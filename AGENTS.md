@@ -492,3 +492,117 @@ Evidence over plausible answers.
 Simplicity over unnecessary complexity.
 
 One iteration at a time.
+
+## 21. SOLID Principles
+
+Apply the five SOLID principles whenever they provide concrete value:
+
+- Single Responsibility Principle: each module, class, and function must have one clearly defined responsibility.
+- Open/Closed Principle: prefer components that can be extended without unnecessary modification of existing code.
+- Liskov Substitution Principle: preserve the behavioral contracts of interfaces and abstractions.
+- Interface Segregation Principle: use small, specialized interfaces.
+- Dependency Inversion Principle: decouple business logic from technical implementations through dependency injection when necessary.
+
+Apply SOLID pragmatically:
+
+- Do not create unnecessary classes or interfaces.
+- Do not introduce premature abstractions.
+- Prefer composition.
+- Use Python Protocols only when they provide real value.
+- Use the FastAPI dependency system when appropriate.
+- Explain which SOLID principles apply during each iteration.
+
+## 22. Modular Architecture Boundaries
+
+Enforce these module responsibilities strictly when the corresponding modules are needed:
+
+### backend/app/api/
+
+HTTP routes, endpoints, and FastAPI dependencies.
+
+### backend/app/core/
+
+Application configuration, authentication, and security infrastructure.
+
+### backend/app/schemas/
+
+Pydantic models, validation, and data contracts.
+
+### backend/app/services/
+
+Business logic, use cases, and application services.
+
+Introduce these future modules only when required by an authorized iteration:
+
+### backend/app/rag/
+
+Hybrid retrieval, reranking, evidence validation, and abstention.
+
+### backend/app/agents/
+
+LangGraph orchestration, AgentState, supervisor, and routing.
+
+### backend/app/integrations/
+
+External service clients, Qdrant, MCP, and observability.
+
+### backend/mcp_server/
+
+Independent FastMCP server and simulated banking business tools.
+
+Architectural rules:
+
+- Routes must not contain complex business logic.
+- Services must not depend on HTTP routes.
+- Pydantic schemas must not orchestrate workflows.
+- External integrations must remain isolated.
+- Avoid circular dependencies.
+- Preserve separation of responsibilities.
+- Never create future modules prematurely.
+- Explain every significant architectural evolution before implementation.
+- The repository tree in Section 3 is a target structure and does not imply that every listed directory currently exists.
+
+## 23. Continuous Documentation
+
+Codex is responsible for creating and maintaining README.md at the repository root.
+
+README.md must be written in English and contain:
+
+- Project Overview
+- Project Objectives
+- Technology Stack
+- System Architecture
+- Repository Structure
+- Prerequisites
+- Installation
+- Environment Configuration
+- Running the Backend
+- Running the Frontend when implemented
+- Running Tests
+- API Documentation
+- Security Considerations
+- Deployment when implemented
+- Development Roadmap
+- Current Implementation Status
+- Known Limitations
+
+README.md must allow a developer to clone and start the project on Ubuntu.
+
+Include exact commands for:
+
+- Cloning the repository
+- Creating and activating a Python 3.12 virtual environment
+- Installing backend dependencies
+- Configuring environment variables
+- Starting FastAPI
+- Testing GET /health
+- Accessing Swagger UI
+- Running tests when tests exist
+
+Documentation rules:
+
+- Document only functionality that is actually available.
+- Clearly distinguish Implemented, In Progress, and Planned capabilities.
+- Never invent functionality, commands, dependencies, or environment variables.
+- After every validated iteration, check whether README.md needs updating.
+- Documentation updates are part of the iteration and are not a separate feature.
