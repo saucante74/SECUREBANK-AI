@@ -20,7 +20,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Area | Implemented | Planned |
 | --- | --- | --- |
 | Backend API | FastAPI, Uvicorn, Python 3.12 | Modular API and service layers |
-| Containerization | Docker image for the backend | Docker Compose |
+| Containerization | Docker image and Docker Compose service for the backend | Frontend Compose service |
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | No application security feature yet | JWT, RBAC, Presidio and regex masking |
@@ -45,6 +45,7 @@ SECUREBANK-AI/
 │       └── backend-ci.yml
 ├── AGENTS.md
 ├── README.md
+├── compose.yml
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py
@@ -167,6 +168,36 @@ curl --fail --silent --show-error http://127.0.0.1:8000/health
 
 The container accepts a `PORT` environment variable for Render-compatible port binding and defaults to port `8000`.
 
+### Running the Backend with Docker Compose
+
+Build and start the backend service from the repository root:
+
+```bash
+docker compose up --build -d
+```
+
+Check the service status:
+
+```bash
+docker compose ps
+```
+
+Read the service logs:
+
+```bash
+docker compose logs
+```
+
+The backend is available at `http://localhost:8000`.
+
+Stop and remove the Compose resources:
+
+```bash
+docker compose down
+```
+
+The frontend will be added to Docker Compose after the React application is initialized.
+
 ## Running the Frontend
 
 **Planned.** The `frontend/` directory is currently empty, so there is no frontend installation or start command yet.
@@ -217,7 +248,7 @@ The workflow configuration and all equivalent checks have been validated locally
 
 ## Deployment
 
-The backend has a production-oriented Docker image. Cloud deployment remains **planned**, with Render targeted for the backend and Vercel for the frontend. Docker Compose and hosted environments are not implemented.
+The backend has a production-oriented Docker image and a local Docker Compose service. Cloud deployment remains **planned**, with Render targeted for the backend and Vercel for the frontend. Hosted environments are not implemented.
 
 ## Development Roadmap
 
@@ -240,6 +271,7 @@ The backend has a production-oriented Docker image. Cloud deployment remains **p
 - Typed application settings with development defaults and environment overrides.
 - Configuration tests and health contract regression test.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
+- Backend Docker Compose service exposed on local port `8000`.
 - Pull Request-only backend GitHub Actions workflow.
 
 ### In Progress
@@ -259,7 +291,7 @@ The backend has a production-oriented Docker image. Cloud deployment remains **p
 
 - Only the health endpoint and application settings are implemented.
 - There is no authentication, authorization, PII masking, RAG pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
-- Docker Compose is not implemented.
+- Docker Compose currently starts only the backend; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.
 - The existing backend virtual environment reports Python 3.12.13; the project supports Python 3.12.x.
