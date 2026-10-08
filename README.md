@@ -238,7 +238,7 @@ Current endpoint:
 
 ## Continuous Integration
 
-The backend workflow is implemented in `.github/workflows/ci.yml`. It runs Ruff linting, Ruff format verification, and pytest with Python 3.12, then validates the backend Docker build in a separate job.
+The backend workflow is implemented in `.github/workflows/ci.yml`. It runs Ruff linting, Ruff format verification, and pytest with Python 3.12. Docker image builds remain available for local validation and are not part of the CI workflow.
 
 The workflow executes exclusively for Pull Requests that are opened, synchronized with new commits, or reopened. A push to a branch without an open Pull Request does not trigger it. A push to a branch with an open Pull Request triggers it through the `pull_request` `synchronize` activity.
 

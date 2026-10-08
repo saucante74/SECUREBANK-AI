@@ -770,10 +770,7 @@ Frontend checks:
 - TypeScript type checking
 - Vitest
 
-Docker checks:
-
-- Validate the backend image build
-- Validate the frontend image build only after a frontend image is implemented
+Docker image builds are not mandatory CI checks. Dockerization remains available for local development and may be validated locally when relevant to the current iteration.
 
 Do not represent a check as available before its tool, configuration, or target exists.
 
