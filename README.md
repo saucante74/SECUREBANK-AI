@@ -21,6 +21,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | --- | --- | --- |
 | Backend API | FastAPI, Uvicorn, Python 3.12 | Modular API and service layers |
 | Containerization | Docker image for the backend | Docker Compose |
+| Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | No application security feature yet | JWT, RBAC, Presidio and regex masking |
 | Retrieval | None | BM25, Qdrant, RRF, FlashRank |
@@ -39,6 +40,9 @@ The current runtime consists of one FastAPI application exposing a health endpoi
 
 ```text
 SECUREBANK-AI/
+├── .github/
+│   └── workflows/
+│       └── backend-ci.yml
 ├── AGENTS.md
 ├── README.md
 ├── backend/
@@ -52,6 +56,8 @@ SECUREBANK-AI/
 │   ├── .env
 │   ├── .env.example
 │   ├── Dockerfile
+│   ├── pyproject.toml
+│   ├── requirements-dev.txt
 │   ├── requirements-runtime.txt
 │   ├── requirements.txt
 │   ├── tests/
@@ -201,11 +207,13 @@ Current endpoint:
 
 ## Continuous Integration
 
-**Planned.** No GitHub Actions workflow exists or has been validated yet.
+The backend workflow is implemented in `.github/workflows/ci.yml`. It runs Ruff linting, Ruff format verification, and pytest with Python 3.12, then validates the backend Docker build in a separate job.
 
-The future CI policy permits execution exclusively for Pull Requests opened, synchronized with new commits, or reopened. A push to a branch without an open Pull Request will not trigger a workflow. A push to a branch with an open Pull Request will trigger CI through the `pull_request` `synchronize` activity.
+The workflow executes exclusively for Pull Requests that are opened, synchronized with new commits, or reopened. A push to a branch without an open Pull Request does not trigger it. A push to a branch with an open Pull Request triggers it through the `pull_request` `synchronize` activity.
 
-The planned checks cover backend quality and tests, frontend quality and tests when the frontend exists, and available Docker image builds. CI will perform validation only. It will not deploy services, push Docker images, or create commits automatically.
+The workflow uses read-only repository permissions and requires no secrets. It performs validation only: it does not deploy services, push Docker images, modify code, or create commits. Frontend checks remain planned.
+
+The workflow configuration and all equivalent checks have been validated locally. GitHub Actions execution remains unverified until a Pull Request runs the workflow successfully.
 
 ## Deployment
 
@@ -232,6 +240,7 @@ The backend has a production-oriented Docker image. Cloud deployment remains **p
 - Typed application settings with development defaults and environment overrides.
 - Configuration tests and health contract regression test.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
+- Pull Request-only backend GitHub Actions workflow.
 
 ### In Progress
 
@@ -245,14 +254,13 @@ The backend has a production-oriented Docker image. Cloud deployment remains **p
 - FastMCP and LangGraph orchestration.
 - Langfuse observability.
 - React frontend and cloud deployment.
-- Pull Request-only GitHub Actions CI.
 
 ## Known Limitations
 
 - Only the health endpoint and application settings are implemented.
 - There is no authentication, authorization, PII masking, RAG pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
 - Docker Compose is not implemented.
-- No GitHub Actions workflow is implemented or operational.
+- The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.
 - The existing backend virtual environment reports Python 3.12.13; the project supports Python 3.12.x.
 - The API version is currently defined directly in the FastAPI application and health response.
