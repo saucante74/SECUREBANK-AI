@@ -23,7 +23,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Containerization | Docker image and Docker Compose service for the backend | Frontend Compose service |
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
-| Security | No application security feature yet | JWT, RBAC, Presidio and regex masking |
+| Security | JWT validation with HS256 | Token generation, protected endpoints, RBAC, Presidio and regex masking |
 | Retrieval | None | BM25, Qdrant, RRF, FlashRank |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
@@ -120,8 +120,14 @@ The implemented configuration accepts these variables:
 | `APP_NAME` | `securebank-ai` | FastAPI title and service name |
 | `APP_VERSION` | `0.1.0` | FastAPI and health contract version |
 | `APP_ENV` | `development` | Runtime environment label |
+| `JWT_SECRET_KEY` | None | Shared secret used to verify JWT signatures |
+| `JWT_ALGORITHM` | `HS256` | Explicitly allowed JWT signing algorithm |
+| `JWT_ISSUER` | None | Required JWT issuer |
+| `JWT_AUDIENCE` | None | Required JWT audience |
 
 Environment variables override values loaded from `backend/.env`, which override the development defaults. Do not commit `.env` or place real banking data in it.
+
+JWT settings are optional while the validator is unused, so the API and health endpoint can start without them. JWT validation requires a secret of at least 32 characters, an issuer, and an audience. Replace every example value before using the validator outside local development.
 
 ## Running the Backend
 
@@ -211,7 +217,7 @@ cd backend
 python -m pytest
 ```
 
-The tests cover configuration defaults, environment overrides, and the health endpoint contract.
+The tests cover configuration defaults, environment overrides, the health endpoint contract, and JWT validation success and rejection cases.
 
 ## API Documentation
 
@@ -231,7 +237,8 @@ Current endpoint:
 
 - The repository must contain no secrets or real banking data.
 - Development data must be synthetic.
-- JWT validation, RBAC, and PII masking are planned and are not currently enforced.
+- JWT validation verifies HS256 signatures and requires valid `exp`, `iss`, and `aud` claims.
+- Token generation, protected endpoints, RBAC, and PII masking are not implemented.
 - Future authorization decisions will remain deterministic and outside LLM control.
 - Sensitive data must be anonymized before transmission to external services.
 - The prototype must not be represented as FINMA-certified or as guaranteeing LPD compliance.
@@ -254,7 +261,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 | Day | Scope | Status |
 | --- | --- | --- |
-| Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII masking, security tests | In Progress: health check and settings completed |
+| Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII masking, security tests | In Progress: health check, settings, and JWT validation completed |
 | Day 2 | Regulatory corpus, Qdrant, BM25, RRF, reranking, evidence validation, abstention | Planned |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | Planned |
@@ -270,6 +277,8 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Iteration 1 validated against a live Uvicorn server.
 - Typed application settings with development defaults and environment overrides.
 - Configuration tests and health contract regression test.
+- Independent JWT validator for HS256 signatures and required `exp`, `iss`, and `aud` claims.
+- Deterministic JWT validation tests using synthetic tokens and secrets.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
 - Pull Request-only backend GitHub Actions workflow.
@@ -280,7 +289,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 ### Planned
 
-- JWT authentication and deterministic RBAC.
+- Token generation, protected endpoints, and deterministic RBAC.
 - PII detection and masking.
 - Hybrid retrieval, evidence validation, and abstention.
 - FastMCP and LangGraph orchestration.
@@ -289,8 +298,9 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 ## Known Limitations
 
-- Only the health endpoint and application settings are implemented.
-- There is no authentication, authorization, PII masking, RAG pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- Only the health endpoint, application settings, and independent JWT validation are implemented.
+- JWT validation is not connected to an HTTP endpoint or authentication flow.
+- There is no token generation, authorization, PII masking, RAG pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
 - Docker Compose currently starts only the backend; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.
