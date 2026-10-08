@@ -23,7 +23,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Containerization | Docker image and Docker Compose service for the backend | Frontend Compose service |
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
-| Security | HS256 JWT validation and Bearer authentication | Token generation, RBAC, Presidio and regex masking |
+| Security | HS256 JWT validation, Bearer authentication, RBAC | Token generation, Presidio and regex masking |
 | Retrieval | None | BM25, Qdrant, RRF, FlashRank |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
@@ -34,7 +34,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application exposing a public health endpoint and a protected identity endpoint. HTTP authentication dependencies and routes are separated from JWT validation and typed response schemas. Future modules will be introduced only in the iteration that needs them.
+The current runtime consists of one FastAPI application exposing a public health endpoint and protected authentication demonstration endpoints. HTTP authentication and RBAC dependencies are separated from JWT validation and typed response schemas. Future modules will be introduced only in the iteration that needs them.
 
 ## Repository Structure
 
@@ -240,7 +240,9 @@ Current endpoints:
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Reports service availability, identity, and version |
-| `GET` | `/auth/me` | Returns `{"sub": "<authenticated-subject>"}` for a valid Bearer JWT |
+| `GET` | `/auth/me` | Returns the authenticated `sub` and `role` |
+| `GET` | `/auth/analyst` | Allows `analyst`, `compliance_officer`, and `admin` |
+| `GET` | `/auth/admin` | Allows only `admin` |
 
 Call the protected endpoint with an existing token:
 
@@ -250,15 +252,25 @@ curl --fail --silent --show-error \
   http://127.0.0.1:8000/auth/me
 ```
 
-A valid HS256 token with matching `exp`, `iss`, `aud`, and a non-empty `sub` returns HTTP 200. Missing or invalid credentials return HTTP 401 with `WWW-Authenticate: Bearer`. The application does not issue tokens.
+A valid HS256 token with matching `exp`, `iss`, `aud`, non-empty `sub`, and a recognized `role` can establish an authenticated identity. Missing or invalid credentials return HTTP 401 with `WWW-Authenticate: Bearer`. An authenticated identity without an explicitly allowed role receives HTTP 403. The application does not issue tokens.
+
+Available roles:
+
+- `analyst`
+- `compliance_officer`
+- `admin`
+
+RBAC denies access unless an endpoint explicitly lists the authenticated role. The role comes only from the cryptographically verified JWT claim; it is never accepted from request parameters, custom headers, or request bodies.
 
 ## Security Considerations
 
 - The repository must contain no secrets or real banking data.
 - Development data must be synthetic.
 - JWT validation verifies HS256 signatures and requires valid `exp`, `iss`, `aud`, and non-empty `sub` claims.
-- Bearer authentication protects `GET /auth/me` and returns only the authenticated subject identifier.
-- Token generation, RBAC, and PII masking are not implemented.
+- Bearer authentication requires a recognized, non-empty `role` claim and returns the authenticated subject and role from `GET /auth/me`.
+- RBAC protects demonstration endpoints with explicit role allowlists and denies authenticated users with HTTP 403 when their role is insufficient.
+- Token generation and PII masking are not implemented.
+- In production, a trusted identity system must assign roles. Permission changes may require token revocation or short expiration because an issued JWT retains its embedded role until it expires or is revoked.
 - Future authorization decisions will remain deterministic and outside LLM control.
 - Sensitive data must be anonymized before transmission to external services.
 - The prototype must not be represented as FINMA-certified or as guaranteeing LPD compliance.
@@ -281,7 +293,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 | Day | Scope | Status |
 | --- | --- | --- |
-| Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII masking, security tests | In Progress: health check, settings, JWT validation, and Bearer authentication completed |
+| Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII masking, security tests | In Progress: health check, settings, JWT authentication, and RBAC completed |
 | Day 2 | Regulatory corpus, Qdrant, BM25, RRF, reranking, evidence validation, abstention | Planned |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | Planned |
@@ -300,7 +312,9 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Independent JWT validator for HS256 signatures and required `exp`, `iss`, `aud`, and non-empty `sub` claims.
 - Deterministic JWT validation tests using synthetic tokens and secrets.
 - Reusable FastAPI Bearer authentication dependency.
-- Protected `GET /auth/me` endpoint returning only the verified subject.
+- Typed roles for `analyst`, `compliance_officer`, and `admin`.
+- Reusable deny-by-default RBAC dependency with explicit role allowlists.
+- Protected authentication demonstration endpoints for identity, analyst access, and admin access.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
 - Pull Request-only backend GitHub Actions workflow.
@@ -311,7 +325,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 ### Planned
 
-- Token generation and deterministic RBAC.
+- Token generation and token revocation.
 - PII detection and masking.
 - Hybrid retrieval, evidence validation, and abstention.
 - FastMCP and LangGraph orchestration.
@@ -320,8 +334,8 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 ## Known Limitations
 
-- Only the health endpoint, application settings, JWT validation, and Bearer authentication demonstration are implemented.
-- There is no token generation, RBAC authorization, PII masking, RAG pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- Only the health endpoint, application settings, JWT validation, Bearer authentication, and demonstration RBAC are implemented.
+- There is no token generation, user directory, token revocation, PII masking, RAG pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
 - Docker Compose currently starts only the backend; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.
