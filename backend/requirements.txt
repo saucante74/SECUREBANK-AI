@@ -3,7 +3,7 @@ uvicorn==0.53.0
 pydantic==2.13.5
 pydantic-settings==2.15.0
 python-dotenv==1.2.3
-python-jose[cryptography]==3.4.0
+PyJWT==2.15.1
 passlib[bcrypt]==1.7.4
 
 langchain-community==0.4.2
