@@ -148,26 +148,43 @@ Use modern Python practices compatible with Python 3.12.
 
 Requirements:
 
+- PEP 8 compliance
+- Standard Python naming conventions
 - Explicit type annotations
+- Explicit return types for functions and methods
+- Modern Python 3.12 type syntax
+- Imports organized according to Python conventions
+- pathlib for filesystem paths instead of manual path manipulation
+- Context managers for resources that require deterministic cleanup
 - Pydantic v2
 - FastAPI dependency injection where appropriate
 - Async endpoints for asynchronous operations
 - Clear separation of concerns
 - Small and focused modules
 - Predictable error handling
+- Explicit and narrowly scoped exception handling
 - Minimal dependencies
+- No dead code
+- No unnecessary duplication
+- No uncontrolled mutable global state
+- Standard-library solutions when they are sufficient
 
 Avoid:
 
 - Premature abstraction
+- Premature optimization
+- Unnecessary complexity
 - Unnecessary design patterns
 - Global mutable application state
 - Broad exception handling without justification
+- Silent generic exception handlers
 - Unnecessary third-party packages
 - Circular imports
 - Duplicated business logic
 
 Prefer standard-library solutions when appropriate.
+
+The prohibition on code comments, explanatory docstrings, and commented-out code in Section 4 always applies.
 
 ## 8. Security Requirements
 
@@ -279,6 +296,8 @@ Test:
 - Invalid inputs
 - Relevant edge cases
 - Security boundaries when applicable
+- Business logic with focused unit tests
+- Component integration when it provides meaningful coverage
 
 Do not claim tests passed unless they were executed successfully.
 
@@ -288,9 +307,22 @@ Do not silently skip failing tests.
 
 Keep tests focused on the current iteration.
 
+Testing requirements:
+
+- Every micro-iteration must include tests proportional to its functionality.
+- Preserve all existing tests unless an explicitly approved behavior change requires an update.
+- Keep tests deterministic and independent of execution order.
+- Isolate external dependencies.
+- Never call real cloud services from unit tests.
+- Never use real secrets in fixtures or test data.
+- Do not silently ignore, disable, or skip tests.
+- Never invent test execution or results.
+
 ## 12. Dependency Management
 
 Inspect requirements.txt before installing packages.
+
+Inspect requirements-dev.txt and pyproject.toml when they exist.
 
 Do not upgrade existing dependencies without justification.
 
@@ -299,6 +331,14 @@ Do not install the entire planned AI stack in advance.
 Add dependencies only when required by the current iteration.
 
 Prefer compatible, reproducible versions.
+
+Maintain compatibility with Python 3.12.x.
+
+Separate production dependencies from development dependencies.
+
+Keep requirements.txt, requirements-dev.txt, and pyproject.toml consistent when they exist.
+
+Do not retain unused dependencies.
 
 Use the active backend virtual environment.
 
@@ -505,11 +545,13 @@ Apply the five SOLID principles whenever they provide concrete value:
 
 Apply SOLID pragmatically:
 
+- Treat the Single Responsibility Principle as mandatory.
 - Do not create unnecessary classes or interfaces.
 - Do not introduce premature abstractions.
 - Prefer composition.
 - Use Python Protocols only when they provide real value.
 - Use the FastAPI dependency system when appropriate.
+- Apply Dependency Inversion when it removes meaningful coupling to technical implementations.
 - Explain which SOLID principles apply during each iteration.
 
 ## 22. Modular Architecture Boundaries
@@ -556,9 +598,12 @@ Architectural rules:
 - Services must not depend on HTTP routes.
 - Pydantic schemas must not orchestrate workflows.
 - External integrations must remain isolated.
+- Do not couple business logic directly to external services when an application boundary is warranted.
 - Avoid circular dependencies.
 - Preserve separation of responsibilities.
+- Keep the architecture extensible and minimal.
 - Never create future modules prematurely.
+- Do not create any module without a functional need in the current authorized iteration.
 - Explain every significant architectural evolution before implementation.
 - The repository tree in Section 3 is a target structure and does not imply that every listed directory currently exists.
 
@@ -606,3 +651,76 @@ Documentation rules:
 - Never invent functionality, commands, dependencies, or environment variables.
 - After every validated iteration, check whether README.md needs updating.
 - Documentation updates are part of the iteration and are not a separate feature.
+
+## 24. FastAPI Best Practices
+
+Apply these rules to every FastAPI implementation:
+
+- Use async def only when the endpoint performs asynchronous work or awaits asynchronous dependencies.
+- Never block the event loop with expensive synchronous I/O or CPU-bound work.
+- Use Depends for dependency injection when it provides a clear application boundary.
+- Introduce APIRouter when the number or grouping of endpoints justifies it.
+- Keep HTTP routes thin and free of complex business logic.
+- Separate request validation, business logic, and infrastructure concerns.
+- Use Pydantic models for complex request and response contracts.
+- Define coherent HTTP status codes.
+- Do not expose internal implementation details in error responses.
+- Preserve compatibility with Render and a stateless deployment model.
+- Avoid unnecessary middleware.
+- Do not introduce complex mechanisms before a concrete requirement exists.
+
+## 25. Pydantic v2 Best Practices
+
+Apply these rules to configuration and data contracts:
+
+- Use Pydantic v2 APIs.
+- Use BaseSettings for application configuration.
+- Use SettingsConfigDict when settings source behavior requires configuration.
+- Validate critical parameters explicitly.
+- Source deployable configuration from environment variables.
+- Never hard-code secrets.
+- Use SecretStr for secret values when it provides meaningful protection against accidental disclosure.
+- Keep configuration, data validation, and business logic separate.
+- Test default settings and environment overrides.
+- Avoid unnecessarily complex Pydantic models.
+
+## 26. Code Quality Tools
+
+Ruff is the preferred tool for Python linting, format verification, and import organization.
+
+When Ruff is available, run from backend/ or use explicit appropriate paths:
+
+```bash
+ruff check .
+ruff format --check .
+```
+
+Never run these mutating commands without explicit user authorization:
+
+```bash
+ruff check --fix .
+ruff format .
+```
+
+If a static type checker is configured, run it with the project configuration.
+
+Do not install Ruff, a type checker, or another quality tool without a concrete justification for the current iteration.
+
+## 27. Quality Gate Before Validation
+
+Before declaring an implementation complete, Codex must:
+
+1. Verify compliance with the modular architecture boundaries.
+2. Verify the relevant SOLID principles, including Single Responsibility.
+3. Verify explicit typing and Python 3.12 compatibility.
+4. Verify the absence of code comments, explanatory docstrings, commented-out code, dead code, and unnecessary duplication.
+5. Execute the tests relevant to the iteration.
+6. Execute Ruff checks when Ruff is available.
+7. Check for regressions in existing behavior and tests.
+8. Verify that secrets and sensitive values are not exposed in code, logs, tests, documentation, or responses.
+9. Determine whether README.md requires an update and update it when the validated behavior changed.
+10. Report every check that could not be completed and explain why.
+
+An iteration must not be declared validated while blocking errors remain.
+
+Codex may declare its implementation complete after the quality gate passes. Final iteration validation always belongs to the user.
