@@ -20,6 +20,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Area | Implemented | Planned |
 | --- | --- | --- |
 | Backend API | FastAPI, Uvicorn, Python 3.12 | Modular API and service layers |
+| Containerization | Docker image for the backend | Docker Compose |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | No application security feature yet | JWT, RBAC, Presidio and regex masking |
 | Retrieval | None | BM25, Qdrant, RRF, FlashRank |
@@ -47,8 +48,11 @@ SECUREBANK-AI/
 │   │   │   ├── __init__.py
 │   │   │   └── config.py
 │   │   └── main.py
+│   ├── .dockerignore
 │   ├── .env
 │   ├── .env.example
+│   ├── Dockerfile
+│   ├── requirements-runtime.txt
 │   ├── requirements.txt
 │   ├── tests/
 │   │   ├── test_config.py
@@ -67,6 +71,7 @@ SECUREBANK-AI/
 - Python 3.12
 - `python3.12-venv`
 - `curl`
+- Docker Engine for containerized execution
 
 Node.js is not required until frontend development begins.
 
@@ -134,6 +139,28 @@ Expected response:
 {"status":"healthy","service":"securebank-ai","version":"0.1.0"}
 ```
 
+### Running the Backend with Docker
+
+Build the backend image from the backend build context:
+
+```bash
+docker build --tag securebank-ai-backend:0.1.0 backend
+```
+
+Run the container without loading a local environment file:
+
+```bash
+docker run --rm --name securebank-ai-backend --publish 8000:8000 securebank-ai-backend:0.1.0
+```
+
+Verify the health endpoint from another terminal:
+
+```bash
+curl --fail --silent --show-error http://127.0.0.1:8000/health
+```
+
+The container accepts a `PORT` environment variable for Render-compatible port binding and defaults to port `8000`.
+
 ## Running the Frontend
 
 **Planned.** The `frontend/` directory is currently empty, so there is no frontend installation or start command yet.
@@ -172,9 +199,17 @@ Current endpoint:
 - Sensitive data must be anonymized before transmission to external services.
 - The prototype must not be represented as FINMA-certified or as guaranteeing LPD compliance.
 
+## Continuous Integration
+
+**Planned.** No GitHub Actions workflow exists or has been validated yet.
+
+The future CI policy permits execution exclusively for Pull Requests opened, synchronized with new commits, or reopened. A push to a branch without an open Pull Request will not trigger a workflow. A push to a branch with an open Pull Request will trigger CI through the `pull_request` `synchronize` activity.
+
+The planned checks cover backend quality and tests, frontend quality and tests when the frontend exists, and available Docker image builds. CI will perform validation only. It will not deploy services, push Docker images, or create commits automatically.
+
 ## Deployment
 
-**Planned.** The target platforms are Render for the backend and Vercel for the frontend. No deployment configuration or hosted environment is currently implemented.
+The backend has a production-oriented Docker image. Cloud deployment remains **planned**, with Render targeted for the backend and Vercel for the frontend. Docker Compose and hosted environments are not implemented.
 
 ## Development Roadmap
 
@@ -196,6 +231,7 @@ Current endpoint:
 - Iteration 1 validated against a live Uvicorn server.
 - Typed application settings with development defaults and environment overrides.
 - Configuration tests and health contract regression test.
+- Backend Docker image using Python 3.12 slim and a non-root runtime user.
 
 ### In Progress
 
@@ -209,11 +245,14 @@ Current endpoint:
 - FastMCP and LangGraph orchestration.
 - Langfuse observability.
 - React frontend and cloud deployment.
+- Pull Request-only GitHub Actions CI.
 
 ## Known Limitations
 
 - Only the health endpoint and application settings are implemented.
 - There is no authentication, authorization, PII masking, RAG pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- Docker Compose is not implemented.
+- No GitHub Actions workflow is implemented or operational.
 - The dependency manifest includes packages reserved for future iterations.
 - The existing backend virtual environment reports Python 3.12.13; the project supports Python 3.12.x.
 - The API version is currently defined directly in the FastAPI application and health response.

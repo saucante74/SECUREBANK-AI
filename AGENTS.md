@@ -724,3 +724,69 @@ Before declaring an implementation complete, Codex must:
 An iteration must not be declared validated while blocking errors remain.
 
 Codex may declare its implementation complete after the quality gate passes. Final iteration validation always belongs to the user.
+
+## 28. CI/CD Rules
+
+These rules apply to every future GitHub Actions implementation.
+
+### Trigger Policy
+
+CI must run exclusively for Pull Request activity using exactly:
+
+```yaml
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+```
+
+Do not add any other event.
+
+Forbidden events:
+
+- push
+- workflow_dispatch
+- schedule
+- pull_request_target
+- workflow_call
+
+The CI must run when a Pull Request is opened, when new commits are added to an open Pull Request through the pull_request synchronize activity, and when a Pull Request is reopened.
+
+A push to a branch without an open Pull Request must not trigger CI.
+
+### Mandatory Checks
+
+Backend checks:
+
+- Python 3.12
+- Ruff lint with ruff check
+- Ruff format verification with ruff format --check
+- Static type checking when configured
+- pytest
+
+Frontend checks:
+
+- Node.js 24
+- ESLint
+- TypeScript type checking
+- Vitest
+
+Docker checks:
+
+- Validate the backend image build
+- Validate the frontend image build only after a frontend image is implemented
+
+Do not represent a check as available before its tool, configuration, or target exists.
+
+### Security and Efficiency
+
+- Apply least privilege to GitHub Actions permissions.
+- Set workflow permissions to contents: read and grant no broader permission without explicit justification and approval.
+- Never expose secrets in workflows, commands, logs, artifacts, or test output.
+- Never deploy automatically from CI.
+- Never push Docker images from CI.
+- Never create automatic commits from CI.
+- Never run automatic correction or formatting commands in CI.
+- Use maintained actions pinned appropriately, preferring immutable commit SHAs when practical.
+- Prefer dependency caches when they reduce work without weakening reproducibility or security.
+- Avoid unnecessary jobs, matrix combinations, triggers, and repeated installations.
+- CI validates changes only and must not mutate repository or external deployment state.
