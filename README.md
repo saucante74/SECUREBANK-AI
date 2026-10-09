@@ -23,7 +23,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Containerization | Docker image and Docker Compose service for the backend | Frontend Compose service |
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
-| Security | HS256 JWT validation, Bearer authentication, RBAC | Token generation, Presidio and regex masking |
+| Security | HS256 JWT validation, Bearer authentication, RBAC, local PII detection and masking | Token generation |
 | Retrieval | None | BM25, Qdrant, RRF, FlashRank |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
@@ -34,7 +34,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application exposing a public health endpoint and protected authentication demonstration endpoints. HTTP authentication and RBAC dependencies are separated from JWT validation and typed response schemas. Future modules will be introduced only in the iteration that needs them.
+The current runtime consists of one FastAPI application exposing a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. Future modules will be introduced only in the iteration that needs them.
 
 ## Repository Structure
 
@@ -52,14 +52,20 @@ SECUREBANK-AI/
 │   │   ├── api/
 │   │   │   ├── __init__.py
 │   │   │   ├── auth.py
-│   │   │   └── dependencies.py
+│   │   │   ├── dependencies.py
+│   │   │   └── pii.py
 │   │   ├── core/
 │   │   │   ├── __init__.py
 │   │   │   ├── config.py
 │   │   │   └── jwt.py
 │   │   ├── schemas/
 │   │   │   ├── __init__.py
-│   │   │   └── auth.py
+│   │   │   ├── auth.py
+│   │   │   └── pii.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── pii.py
+│   │   │   └── pii_masking.py
 │   │   └── main.py
 │   ├── .dockerignore
 │   ├── .env
@@ -71,7 +77,10 @@ SECUREBANK-AI/
 │   ├── requirements.txt
 │   ├── tests/
 │   │   ├── test_config.py
-│   │   └── test_health.py
+│   │   ├── test_health.py
+│   │   ├── test_pii.py
+│   │   ├── test_pii_api.py
+│   │   └── test_pii_masking.py
 │   └── venv/
 ├── frontend/
 └── main.py
@@ -112,6 +121,8 @@ Install the declared backend dependencies:
 python -m pip install --upgrade pip
 python -m pip install -r backend/requirements.txt
 ```
+
+PII detection requires `presidio-analyzer` and the small French spaCy model `fr_core_news_sm`. Both are pinned in the requirement manifests and installed before local execution or during the Docker image build. Runtime analysis does not download models or call cloud services.
 
 ## Environment Configuration
 
@@ -225,7 +236,22 @@ cd backend
 python -m pytest
 ```
 
-The tests cover configuration defaults, environment overrides, the health endpoint contract, JWT validation, and Bearer authentication success and rejection cases.
+The tests cover configuration defaults, environment overrides, the health endpoint contract, JWT validation, Bearer authentication and RBAC, and local PII detection and masking.
+
+### Local PII Detection and Masking
+
+`PiiDetector` accepts French text and returns typed entities containing the entity type, start offset, end offset, and Presidio confidence score. It detects e-mail addresses, phone numbers, valid IBANs, and person names recognized by the French spaCy model. The component is a Python service independent of FastAPI and does not store or log analyzed text.
+
+`PiiMasker` reuses those detected positions and replaces retained entities with `[EMAIL_ADDRESS]`, `[PHONE_NUMBER]`, `[IBAN_CODE]`, or `[PERSON]`. Detection identifies candidate spans, while masking creates a new transformed string without changing the original value. No restoration mechanism is provided.
+
+Synthetic example:
+
+```text
+Before: Camille Martin utilise alice.dupont@example.com.
+After:  [PERSON] utilise [EMAIL_ADDRESS].
+```
+
+When detections overlap, the masker prefers the highest confidence score, then the longest span, followed by position and entity type for deterministic resolution. Presidio can still produce false positives or false negatives. A missed entity remains visible in the transformed text, so masking does not guarantee exhaustive anonymization or regulatory compliance.
 
 ## API Documentation
 
@@ -243,6 +269,7 @@ Current endpoints:
 | `GET` | `/auth/me` | Returns the authenticated `sub` and `role` |
 | `GET` | `/auth/analyst` | Allows `analyst`, `compliance_officer`, and `admin` |
 | `GET` | `/auth/admin` | Allows only `admin` |
+| `POST` | `/pii/mask` | Masks detected PII for authenticated and authorized users |
 
 Call the protected endpoint with an existing token:
 
@@ -262,6 +289,22 @@ Available roles:
 
 RBAC denies access unless an endpoint explicitly lists the authenticated role. The role comes only from the cryptographically verified JWT claim; it is never accepted from request parameters, custom headers, or request bodies.
 
+### PII Masking API
+
+`POST /pii/mask` requires a valid Bearer JWT with the `analyst`, `compliance_officer`, or `admin` role. The JSON request contains one string field between 1 and 10,000 characters and cannot contain only whitespace:
+
+```json
+{"text":"Camille Martin utilise alice.dupont@example.com."}
+```
+
+The response contains only the transformed text:
+
+```json
+{"masked_text":"[PERSON] utilise [EMAIL_ADDRESS]."}
+```
+
+Missing, invalid, or expired credentials return HTTP 401 with `WWW-Authenticate: Bearer`. An authenticated identity without an allowed role returns HTTP 403. Invalid request data returns HTTP 422 with sanitized validation details that exclude the submitted value. The endpoint does not return detected values, positions, confidence scores, or the original text.
+
 ## Security Considerations
 
 - The repository must contain no secrets or real banking data.
@@ -269,7 +312,11 @@ RBAC denies access unless an endpoint explicitly lists the authenticated role. T
 - JWT validation verifies HS256 signatures and requires valid `exp`, `iss`, `aud`, and non-empty `sub` claims.
 - Bearer authentication requires a recognized, non-empty `role` claim and returns the authenticated subject and role from `GET /auth/me`.
 - RBAC protects demonstration endpoints with explicit role allowlists and denies authenticated users with HTTP 403 when their role is insufficient.
-- Token generation and PII masking are not implemented.
+- PII detection runs locally with Presidio Analyzer and a French spaCy model; analyzed values are neither persisted nor logged by the service.
+- PII masking replaces detected values locally with typed markers and provides no restoration mechanism.
+- The protected PII endpoint sanitizes validation errors so rejected request values are not echoed in HTTP 422 responses.
+- E-mail validation uses the public-suffix snapshot bundled with `tldextract` and performs no runtime network refresh.
+- Token generation is not implemented.
 - In production, a trusted identity system must assign roles. Permission changes may require token revocation or short expiration because an issued JWT retains its embedded role until it expires or is revoked.
 - Future authorization decisions will remain deterministic and outside LLM control.
 - Sensitive data must be anonymized before transmission to external services.
@@ -293,7 +340,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 | Day | Scope | Status |
 | --- | --- | --- |
-| Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII masking, security tests | In Progress: health check, settings, JWT authentication, and RBAC completed |
+| Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII detection and masking, security tests | In Progress: health check, settings, JWT authentication, RBAC, PII detection, masking, and protected PII API completed |
 | Day 2 | Regulatory corpus, Qdrant, BM25, RRF, reranking, evidence validation, abstention | Planned |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | Planned |
@@ -315,6 +362,9 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Typed roles for `analyst`, `compliance_officer`, and `admin`.
 - Reusable deny-by-default RBAC dependency with explicit role allowlists.
 - Protected authentication demonstration endpoints for identity, analyst access, and admin access.
+- Local typed PII detection for e-mail addresses, phone numbers, IBANs, and French person names.
+- Deterministic local PII masking with typed markers and overlap resolution.
+- Protected `POST /pii/mask` endpoint with sanitized validation errors.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
 - Pull Request-only backend GitHub Actions workflow.
@@ -326,7 +376,6 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 ### Planned
 
 - Token generation and token revocation.
-- PII detection and masking.
 - Hybrid retrieval, evidence validation, and abstention.
 - FastMCP and LangGraph orchestration.
 - Langfuse observability.
@@ -334,8 +383,10 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 ## Known Limitations
 
-- Only the health endpoint, application settings, JWT validation, Bearer authentication, and demonstration RBAC are implemented.
-- There is no token generation, user directory, token revocation, PII masking, RAG pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- Only the health endpoint, application settings, JWT validation, Bearer authentication, demonstration RBAC, local PII detection and masking, and the protected masking endpoint are implemented.
+- PII detection is probabilistic and may produce false positives or false negatives, especially for person names and ambiguous number formats. It does not guarantee exhaustive identification of sensitive data.
+- False negatives remain unmasked in transformed text. The masking service and endpoint reduce exposure risk without guaranteeing complete anonymization or regulatory compliance.
+- There is no token generation, user directory, token revocation, RAG pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
 - Docker Compose currently starts only the backend; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.

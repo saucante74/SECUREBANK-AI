@@ -4,6 +4,8 @@ pydantic==2.13.5
 pydantic-settings==2.15.0
 python-dotenv==1.2.3
 PyJWT==2.15.1
+presidio-analyzer==2.2.364
+fr-core-news-sm @ https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.8.0/fr_core_news_sm-3.8.0-py3-none-any.whl
 passlib[bcrypt]==1.7.4
 
 langchain-community==0.4.2
