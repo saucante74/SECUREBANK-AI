@@ -24,7 +24,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | HS256 JWT validation, Bearer authentication, RBAC, local PII detection and masking | Token generation |
-| Retrieval | Typed documents and deterministic character chunking | BM25, Qdrant, RRF, FlashRank |
+| Retrieval | Typed documents, character chunking, in-memory BM25 | Qdrant, RRF, FlashRank |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
 | Frontend | None | React 19, TypeScript, Vite |
@@ -34,7 +34,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application exposing a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The first RAG component represents source documents and splits them into typed passages independently of the API. Future modules will be introduced only in the iteration that needs them.
+The current runtime consists of one FastAPI application exposing a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG components represent source documents, split them into typed passages, and search those passages with an in-memory lexical index independently of the API. Future modules will be introduced only in the iteration that needs them.
 
 ## Repository Structure
 
@@ -62,9 +62,11 @@ SECUREBANK-AI/
 │   │   │   ├── __init__.py
 │   │   │   ├── auth.py
 │   │   │   ├── documents.py
-│   │   │   └── pii.py
+│   │   │   ├── pii.py
+│   │   │   └── retrieval.py
 │   │   ├── services/
 │   │   │   ├── __init__.py
+│   │   │   ├── bm25.py
 │   │   │   ├── chunking.py
 │   │   │   ├── pii.py
 │   │   │   └── pii_masking.py
@@ -78,6 +80,7 @@ SECUREBANK-AI/
 │   ├── requirements-runtime.txt
 │   ├── requirements.txt
 │   ├── tests/
+│   │   ├── test_bm25.py
 │   │   ├── test_chunking.py
 │   │   ├── test_config.py
 │   │   ├── test_health.py
@@ -239,7 +242,7 @@ cd backend
 python -m pytest
 ```
 
-The tests cover configuration defaults, environment overrides, the health endpoint contract, JWT validation, Bearer authentication and RBAC, local PII detection and masking, and deterministic document chunking.
+The tests cover configuration defaults, environment overrides, the health endpoint contract, JWT validation, Bearer authentication and RBAC, local PII detection and masking, deterministic document chunking, and in-memory BM25 retrieval.
 
 ### Local PII Detection and Masking
 
@@ -262,7 +265,23 @@ Retrieval-Augmented Generation grounds a generated answer in passages retrieved 
 
 A `Document` stores a stable identifier, content, title, and source. `CharacterChunker` turns it into an ordered list of `Chunk` objects carrying the parent metadata and a deterministic identifier. `chunk_size` sets the maximum number of characters per passage. `overlap` repeats the end of one passage at the start of the next to preserve local context and must remain smaller than `chunk_size`.
 
-For `abcdefghij`, `chunk_size=5` and `overlap=2` produce `abcde`, `defgh`, and `ghij`. Character boundaries are simple and reproducible, but they can split words, sentences, or semantic units. Token-aware and structure-aware chunking, document ingestion, dense and sparse retrieval, fusion, reranking, evidence validation, and answer generation remain planned.
+For `abcdefghij`, `chunk_size=5` and `overlap=2` produce `abcde`, `defgh`, and `ghij`. Character boundaries are simple and reproducible, but they can split words, sentences, or semantic units. Token-aware and structure-aware chunking, document ingestion, dense retrieval, fusion, reranking, evidence validation, and answer generation remain planned.
+
+### In-Memory BM25 Retrieval
+
+BM25 is a lexical ranking algorithm: it scores chunks from the query terms they contain, their frequency, document length, and term rarity across the corpus. Semantic retrieval instead compares learned vector representations and can connect related meanings even when the exact words differ. Only lexical BM25 retrieval is implemented.
+
+`BM25Retriever` receives typed chunks, removes duplicate identifiers while preserving their first occurrence, and builds a local `rank-bm25` index. A search returns typed results ordered by descending BM25 score, with the original chunk metadata intact. Ties preserve the initial chunk order. The index exists only in process memory and must be rebuilt after a restart.
+
+Synthetic example:
+
+```text
+Chunks: "Contrôle du risque de crédit" | "Solde du compte bancaire"
+Query:  "risque crédit"
+Result: "Contrôle du risque de crédit"
+```
+
+Tokenization uses Unicode word sequences after case folding, so punctuation is separated and French accents are preserved. It does not perform stemming, lemmatization, stop-word removal, synonym expansion, spelling correction, or accent folding. Terms such as `conformité` and `conformite` are therefore distinct.
 
 ## API Documentation
 
@@ -352,7 +371,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day | Scope | Status |
 | --- | --- | --- |
 | Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII detection and masking, security tests | In Progress: health check, settings, JWT authentication, RBAC, PII detection, masking, and protected PII API completed |
-| Day 2 | Regulatory corpus, chunking, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models and character chunking completed |
+| Day 2 | Regulatory corpus, chunking, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, and in-memory BM25 completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | Planned |
 
@@ -377,6 +396,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Deterministic local PII masking with typed markers and overlap resolution.
 - Protected `POST /pii/mask` endpoint with sanitized validation errors.
 - Immutable document and chunk contracts with deterministic character chunking.
+- Deterministic in-memory BM25 retrieval with typed scored results.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
 - Pull Request-only backend GitHub Actions workflow.
@@ -388,7 +408,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 ### Planned
 
 - Token generation and token revocation.
-- Document ingestion, hybrid retrieval, evidence validation, and abstention.
+- Document ingestion, dense retrieval, reciprocal rank fusion, reranking, evidence validation, and abstention.
 - FastMCP and LangGraph orchestration.
 - Langfuse observability.
 - React frontend and cloud deployment.
@@ -399,7 +419,8 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - PII detection is probabilistic and may produce false positives or false negatives, especially for person names and ambiguous number formats. It does not guarantee exhaustive identification of sensitive data.
 - False negatives remain unmasked in transformed text. The masking service and endpoint reduce exposure risk without guaranteeing complete anonymization or regulatory compliance.
 - Character chunking can split words and semantic units because it does not understand tokens, sentences, or document structure.
-- There is no token generation, user directory, token revocation, retrieval, embedding, vector database, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- BM25 matches lexical tokens only, does not understand meaning or synonyms, and has no persistent index.
+- There is no token generation, user directory, token revocation, dense retrieval, embedding, vector database, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
 - Docker Compose currently starts only the backend; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.
