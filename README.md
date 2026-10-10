@@ -134,7 +134,7 @@ python -m pip install -r backend/requirements.txt
 
 PII detection requires `presidio-analyzer` and the small French spaCy model `fr_core_news_sm`. Both are pinned in the requirement manifests and installed before local execution or during the Docker image build. Runtime analysis does not download models or call cloud services.
 
-Local embeddings require `sentence-transformers==6.1.0`, which supports Python 3.12 and brings large numerical and machine-learning dependencies, including PyTorch and Transformers. The dependency footprint is substantially larger than the application code.
+Local embeddings require `sentence-transformers==6.1.0`, which supports Python 3.12 and brings large numerical and machine-learning dependencies, including PyTorch and Transformers. The requirement manifests add the official PyTorch CPU wheel index and pin `torch==2.14.1+cpu`, so the standard installation command does not install CUDA or NVIDIA runtime packages. The installation host must be able to reach both PyPI and `https://download.pytorch.org/whl/cpu`.
 
 ## Environment Configuration
 
@@ -320,7 +320,7 @@ python -m scripts.verify_embedding_model
 
 The command validates a real 384-dimensional finite embedding, compares related and unrelated French questions, and reports the measured model loading time and process peak resident memory on Ubuntu. It enables the Hugging Face and Transformers offline modes before loading the model.
 
-The prepared weights must be provisioned before production startup. The upstream repository contains approximately 471 MB of PyTorch weights plus tokenizer files; its full repository is larger because it also contains weights for other frameworks. PyTorch, Transformers, and related packages add substantial disk usage. CPU inference needs enough RAM for the model, Python runtime, and temporary tensors, commonly around 1 GB or more depending on batch size and package versions. Loading and encoding time depend on the host CPU, storage, text length, and batch size; no latency guarantee is claimed.
+The prepared weights must be provisioned before production startup. The local prepared model occupies approximately 466 MB. In the validated Python 3.12 environment, the CPU-only PyTorch package occupies approximately 769 MB and installs no NVIDIA, CUDA, or Triton package. CPU inference needs enough RAM for the model, Python runtime, and temporary tensors, commonly around 1 GB or more depending on batch size and package versions. Loading and encoding time depend on the host CPU, storage, text length, and batch size; no latency guarantee is claimed.
 
 The model limit is 128 tokens including special tokens. The service measures untruncated tokenization and raises `ValueError` above that limit instead of silently truncating text. Character count is not equivalent to token count. Upstream chunk sizes must therefore be selected and validated against this token limit.
 
