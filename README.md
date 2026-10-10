@@ -80,7 +80,8 @@ SECUREBANK-AI/
 │   ├── requirements-runtime.txt
 │   ├── requirements.txt
 │   ├── scripts/
-│   │   └── prepare_embedding_model.py
+│   │   ├── prepare_embedding_model.py
+│   │   └── verify_embedding_model.py
 │   ├── tests/
 │   │   ├── test_bm25.py
 │   │   ├── test_chunking.py
@@ -311,6 +312,14 @@ python -m scripts.prepare_embedding_model \
   --output /srv/securebank/models/paraphrase-multilingual-MiniLM-L12-v2
 ```
 
+After preparing the default local model, run the reproducible offline verification:
+
+```bash
+python -m scripts.verify_embedding_model
+```
+
+The command validates a real 384-dimensional finite embedding, compares related and unrelated French questions, and reports the measured model loading time and process peak resident memory on Ubuntu. It enables the Hugging Face and Transformers offline modes before loading the model.
+
 The prepared weights must be provisioned before production startup. The upstream repository contains approximately 471 MB of PyTorch weights plus tokenizer files; its full repository is larger because it also contains weights for other frameworks. PyTorch, Transformers, and related packages add substantial disk usage. CPU inference needs enough RAM for the model, Python runtime, and temporary tensors, commonly around 1 GB or more depending on batch size and package versions. Loading and encoding time depend on the host CPU, storage, text length, and batch size; no latency guarantee is claimed.
 
 The model limit is 128 tokens including special tokens. The service measures untruncated tokenization and raises `ValueError` above that limit instead of silently truncating text. Character count is not equivalent to token count. Upstream chunk sizes must therefore be selected and validated against this token limit.
@@ -433,6 +442,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Deterministic in-memory BM25 retrieval with typed scored results.
 - Local multilingual embeddings for text and chunks with deterministic input validation.
 - Independent cosine similarity with vector validation.
+- Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
 - Pull Request-only backend GitHub Actions workflow.
