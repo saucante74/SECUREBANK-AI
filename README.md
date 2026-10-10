@@ -24,7 +24,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | HS256 JWT validation, Bearer authentication, RBAC, local PII detection and masking | Token generation |
-| Retrieval | Typed documents, character chunking, in-memory BM25 | Qdrant, RRF, FlashRank |
+| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity | Qdrant, hybrid retrieval, RRF, FlashRank |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
 | Frontend | None | React 19, TypeScript, Vite |
@@ -34,7 +34,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application exposing a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG components represent source documents, split them into typed passages, and search those passages with an in-memory lexical index independently of the API. Future modules will be introduced only in the iteration that needs them.
+The current runtime consists of one FastAPI application exposing a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG components represent source documents, split them into typed passages, search those passages with an in-memory lexical index, and generate local vector representations independently of the API. Future modules will be introduced only in the iteration that needs them.
 
 ## Repository Structure
 
@@ -79,9 +79,12 @@ SECUREBANK-AI/
 │   ├── requirements-dev.txt
 │   ├── requirements-runtime.txt
 │   ├── requirements.txt
+│   ├── scripts/
+│   │   └── prepare_embedding_model.py
 │   ├── tests/
 │   │   ├── test_bm25.py
 │   │   ├── test_chunking.py
+│   │   ├── test_embeddings.py
 │   │   ├── test_config.py
 │   │   ├── test_health.py
 │   │   ├── test_pii.py
@@ -129,6 +132,8 @@ python -m pip install -r backend/requirements.txt
 ```
 
 PII detection requires `presidio-analyzer` and the small French spaCy model `fr_core_news_sm`. Both are pinned in the requirement manifests and installed before local execution or during the Docker image build. Runtime analysis does not download models or call cloud services.
+
+Local embeddings require `sentence-transformers==6.1.0`, which supports Python 3.12 and brings large numerical and machine-learning dependencies, including PyTorch and Transformers. The dependency footprint is substantially larger than the application code.
 
 ## Environment Configuration
 
@@ -283,6 +288,35 @@ Result: "Contrôle du risque de crédit"
 
 Tokenization uses Unicode word sequences after case folding, so punctuation is separated and French accents are preserved. It does not perform stemming, lemmatization, stop-word removal, synonym expansion, spelling correction, or accent folding. Terms such as `conformité` and `conformite` are therefore distinct.
 
+### Local Multilingual Embeddings
+
+An embedding is a fixed-size numeric vector that represents a text so that related meanings can be compared geometrically. BM25 ranks exact or normalized lexical terms and remains effective for identifiers and precise wording. Semantic search compares embeddings and can retrieve related French passages even when a question uses different words. This iteration generates vectors and computes pairwise cosine similarity; it does not implement semantic retrieval or a vector index.
+
+`LocalEmbeddingService` uses `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` on CPU. The model supports French and produces vectors with 384 dimensions. The service accepts one text, multiple texts, or existing `Chunk` contents, preserves input order, and loads the encoder once per service instance. Empty or whitespace-only texts are rejected, and no input text is stored or logged.
+
+The default local model directory is `backend/models/paraphrase-multilingual-MiniLM-L12-v2`. A different `pathlib.Path` can be passed to the service constructor. Runtime loading sets `local_files_only=True`, so the backend fails if the prepared files are absent instead of downloading them implicitly.
+
+Prepare the weights explicitly from the backend directory in an environment with network access:
+
+```bash
+cd backend
+python -m scripts.prepare_embedding_model
+```
+
+An alternative source model or destination can be selected explicitly:
+
+```bash
+python -m scripts.prepare_embedding_model \
+  --model-name sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 \
+  --output /srv/securebank/models/paraphrase-multilingual-MiniLM-L12-v2
+```
+
+The prepared weights must be provisioned before production startup. The upstream repository contains approximately 471 MB of PyTorch weights plus tokenizer files; its full repository is larger because it also contains weights for other frameworks. PyTorch, Transformers, and related packages add substantial disk usage. CPU inference needs enough RAM for the model, Python runtime, and temporary tensors, commonly around 1 GB or more depending on batch size and package versions. Loading and encoding time depend on the host CPU, storage, text length, and batch size; no latency guarantee is claimed.
+
+The model limit is 128 tokens including special tokens. The service measures untruncated tokenization and raises `ValueError` above that limit instead of silently truncating text. Character count is not equivalent to token count. Upstream chunk sizes must therefore be selected and validated against this token limit.
+
+Cosine similarity measures vector direction from `-1` to `1`; larger values indicate closer directions for this embedding space. It is a ranking signal, not a calibrated probability or proof that two texts have the same regulatory meaning. Empty, zero-length, zero-norm, dimension-mismatched, and non-finite vectors are rejected.
+
 ## API Documentation
 
 With the backend running, open Swagger UI at:
@@ -371,7 +405,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day | Scope | Status |
 | --- | --- | --- |
 | Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII detection and masking, security tests | In Progress: health check, settings, JWT authentication, RBAC, PII detection, masking, and protected PII API completed |
-| Day 2 | Regulatory corpus, chunking, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, and in-memory BM25 completed |
+| Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, in-memory BM25, and local embeddings completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | Planned |
 
@@ -397,6 +431,8 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Protected `POST /pii/mask` endpoint with sanitized validation errors.
 - Immutable document and chunk contracts with deterministic character chunking.
 - Deterministic in-memory BM25 retrieval with typed scored results.
+- Local multilingual embeddings for text and chunks with deterministic input validation.
+- Independent cosine similarity with vector validation.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
 - Pull Request-only backend GitHub Actions workflow.
@@ -408,7 +444,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 ### Planned
 
 - Token generation and token revocation.
-- Document ingestion, dense retrieval, reciprocal rank fusion, reranking, evidence validation, and abstention.
+- Document ingestion, vector storage, dense retrieval, reciprocal rank fusion, reranking, evidence validation, and abstention.
 - FastMCP and LangGraph orchestration.
 - Langfuse observability.
 - React frontend and cloud deployment.
@@ -420,7 +456,10 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - False negatives remain unmasked in transformed text. The masking service and endpoint reduce exposure risk without guaranteeing complete anonymization or regulatory compliance.
 - Character chunking can split words and semantic units because it does not understand tokens, sentences, or document structure.
 - BM25 matches lexical tokens only, does not understand meaning or synonyms, and has no persistent index.
-- There is no token generation, user directory, token revocation, dense retrieval, embedding, vector database, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- The embedding model rejects texts above its 128-token limit and does not split them automatically.
+- Cosine similarity is uncalibrated and cannot establish answer correctness or sufficient evidence by itself.
+- Local embedding inference increases installation size, startup time, CPU use, and RAM use; performance has not been benchmarked for this project.
+- There is no token generation, user directory, token revocation, dense retrieval, vector database, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
 - Docker Compose currently starts only the backend; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.

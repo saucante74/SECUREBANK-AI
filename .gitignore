@@ -50,3 +50,4 @@ logs/
 
 .cache/
 .huggingface/
+backend/models/
