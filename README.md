@@ -24,7 +24,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | HS256 JWT validation, Bearer authentication, RBAC, local PII detection and masking | Token generation |
-| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity | Qdrant, hybrid retrieval, RRF, FlashRank |
+| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage | Vector search, hybrid retrieval, RRF, FlashRank |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
 | Frontend | None | React 19, TypeScript, Vite |
@@ -34,7 +34,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application exposing a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG components represent source documents, split them into typed passages, search those passages with an in-memory lexical index, and generate local vector representations independently of the API. Future modules will be introduced only in the iteration that needs them.
+The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG components represent source documents, split them into typed passages, search those passages with an in-memory lexical index, generate local vector representations, and persist vectors with chunk evidence in Qdrant. Vector search is not implemented yet.
 
 ## Repository Structure
 
@@ -68,8 +68,10 @@ SECUREBANK-AI/
 │   │   │   ├── __init__.py
 │   │   │   ├── bm25.py
 │   │   │   ├── chunking.py
+│   │   │   ├── embeddings.py
 │   │   │   ├── pii.py
-│   │   │   └── pii_masking.py
+│   │   │   ├── pii_masking.py
+│   │   │   └── qdrant.py
 │   │   └── main.py
 │   ├── .dockerignore
 │   ├── .env
@@ -90,7 +92,8 @@ SECUREBANK-AI/
 │   │   ├── test_health.py
 │   │   ├── test_pii.py
 │   │   ├── test_pii_api.py
-│   │   └── test_pii_masking.py
+│   │   ├── test_pii_masking.py
+│   │   └── test_qdrant.py
 │   └── venv/
 ├── frontend/
 └── main.py
@@ -155,6 +158,8 @@ The implemented configuration accepts these variables:
 | `JWT_ALGORITHM` | `HS256` | Explicitly allowed JWT signing algorithm |
 | `JWT_ISSUER` | None | Required JWT issuer |
 | `JWT_AUDIENCE` | None | Required JWT audience |
+| `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint |
+| `QDRANT_COLLECTION_NAME` | `securebank_chunks` | Collection used for chunk vectors |
 
 Environment variables override values loaded from `backend/.env`, which override the development defaults. Do not commit `.env` or place real banking data in it.
 
@@ -207,7 +212,7 @@ The container accepts a `PORT` environment variable for Render-compatible port b
 
 ### Running the Backend with Docker Compose
 
-Build and start the backend service from the repository root:
+Build and start the backend and Qdrant services from the repository root:
 
 ```bash
 docker compose up --build -d
@@ -225,7 +230,7 @@ Read the service logs:
 docker compose logs
 ```
 
-The backend is available at `http://localhost:8000`.
+The backend is available at `http://localhost:8000`, and Qdrant exposes its HTTP API at `http://localhost:6333`. The named `qdrant_data` volume preserves vector data across container restarts.
 
 Stop and remove the Compose resources:
 
@@ -248,7 +253,7 @@ cd backend
 python -m pytest
 ```
 
-The tests cover configuration defaults, environment overrides, the health endpoint contract, JWT validation, Bearer authentication and RBAC, local PII detection and masking, deterministic document chunking, and in-memory BM25 retrieval.
+The tests cover configuration defaults, environment overrides, the health endpoint contract, JWT validation, Bearer authentication and RBAC, local PII detection and masking, deterministic document chunking, in-memory BM25 retrieval, local embeddings, and Qdrant vector storage.
 
 ### Local PII Detection and Masking
 
@@ -325,6 +330,19 @@ The prepared weights must be provisioned before production startup. The local pr
 The model limit is 128 tokens including special tokens. The service measures untruncated tokenization and raises `ValueError` above that limit instead of silently truncating text. Character count is not equivalent to token count. Upstream chunk sizes must therefore be selected and validated against this token limit.
 
 Cosine similarity measures vector direction from `-1` to `1`; larger values indicate closer directions for this embedding space. It is a ranking signal, not a calibrated probability or proof that two texts have the same regulatory meaning. Empty, zero-length, zero-norm, dimension-mismatched, and non-finite vectors are rejected.
+
+### Qdrant Vector Storage
+
+Qdrant persists the 384-dimensional embeddings produced for existing `Chunk` objects. `QdrantVectorStore` creates the configured collection with cosine distance when needed, then upserts each vector with a deterministic UUID and a payload containing `document_id`, `chunk_id`, `text`, and `position`. Reprocessing the same document and chunk identifiers targets the same point.
+
+Vectors must contain exactly 384 finite numeric values. The service validates identifiers and vectors before contacting Qdrant and translates Qdrant API failures into an explicit storage error. The current scope stores vectors only; it does not perform vector search or combine Qdrant results with BM25.
+
+Run the focused unit tests without Docker, a Qdrant server, or embedding model weights:
+
+```bash
+cd backend
+python -m pytest tests/test_qdrant.py tests/test_config.py
+```
 
 ## API Documentation
 
@@ -442,6 +460,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Deterministic in-memory BM25 retrieval with typed scored results.
 - Local multilingual embeddings for text and chunks with deterministic input validation.
 - Independent cosine similarity with vector validation.
+- Persistent Qdrant storage for validated chunk embeddings and evidence payloads.
 - Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
@@ -454,7 +473,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 ### Planned
 
 - Token generation and token revocation.
-- Document ingestion, vector storage, dense retrieval, reciprocal rank fusion, reranking, evidence validation, and abstention.
+- Document ingestion, dense retrieval, reciprocal rank fusion, reranking, evidence validation, and abstention.
 - FastMCP and LangGraph orchestration.
 - Langfuse observability.
 - React frontend and cloud deployment.
@@ -469,8 +488,9 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - The embedding model rejects texts above its 128-token limit and does not split them automatically.
 - Cosine similarity is uncalibrated and cannot establish answer correctness or sufficient evidence by itself.
 - Local embedding inference increases installation size, startup time, CPU use, and RAM use; performance has not been benchmarked for this project.
-- There is no token generation, user directory, token revocation, dense retrieval, vector database, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
-- Docker Compose currently starts only the backend; frontend integration is planned after the React application is initialized.
+- There is no token generation, user directory, token revocation, dense retrieval, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- Qdrant currently stores chunk vectors and payloads but is not queried by the application.
+- Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.
 - The existing backend virtual environment reports Python 3.12.13; the project supports Python 3.12.x.
