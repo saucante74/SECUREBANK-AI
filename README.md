@@ -24,7 +24,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | HS256 JWT validation, Bearer authentication, RBAC, local PII detection and masking | Token generation |
-| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage | Vector search, hybrid retrieval, RRF, FlashRank |
+| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search | Hybrid retrieval, RRF, FlashRank |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
 | Frontend | None | React 19, TypeScript, Vite |
@@ -331,11 +331,13 @@ The model limit is 128 tokens including special tokens. The service measures unt
 
 Cosine similarity measures vector direction from `-1` to `1`; larger values indicate closer directions for this embedding space. It is a ranking signal, not a calibrated probability or proof that two texts have the same regulatory meaning. Empty, zero-length, zero-norm, dimension-mismatched, and non-finite vectors are rejected.
 
-### Qdrant Vector Storage
+### Qdrant Vector Storage and Search
 
-Qdrant persists the 384-dimensional embeddings produced for existing `Chunk` objects. `QdrantVectorStore` creates the configured collection with cosine distance when needed, then upserts each vector with a deterministic UUID and a payload containing `document_id`, `chunk_id`, `text`, and `position`. Reprocessing the same document and chunk identifiers targets the same point.
+Qdrant persists the 384-dimensional embeddings produced for existing `Chunk` objects. `QdrantVectorStore` creates the configured collection with cosine distance when needed, then upserts each vector with a deterministic UUID and the metadata required to reconstruct its `Chunk`. Reprocessing the same document and chunk identifiers targets the same point.
 
-Vectors must contain exactly 384 finite numeric values. The service validates identifiers and vectors before contacting Qdrant and translates Qdrant API failures into an explicit storage error. The current scope stores vectors only; it does not perform vector search or combine Qdrant results with BM25.
+`QdrantVectorStore.search` accepts a 384-dimensional query vector and a positive `top_k`, asks Qdrant for the nearest points, and returns typed `RetrievalResult` values in Qdrant relevance order. Results contain the reconstructed chunk and its cosine similarity score; stored vectors are excluded from the response. Invalid payloads and Qdrant failures are translated into `QdrantVectorStoreError`.
+
+Vectors must contain exactly 384 finite numeric values. The service validates identifiers, vectors, and result payloads. Vector search remains independent from BM25 and does not perform fusion, reranking, evidence validation, or answer generation.
 
 Run the focused unit tests without Docker, a Qdrant server, or embedding model weights:
 
@@ -460,7 +462,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Deterministic in-memory BM25 retrieval with typed scored results.
 - Local multilingual embeddings for text and chunks with deterministic input validation.
 - Independent cosine similarity with vector validation.
-- Persistent Qdrant storage for validated chunk embeddings and evidence payloads.
+- Persistent Qdrant storage and nearest-vector search with typed scored results.
 - Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
@@ -488,8 +490,8 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - The embedding model rejects texts above its 128-token limit and does not split them automatically.
 - Cosine similarity is uncalibrated and cannot establish answer correctness or sufficient evidence by itself.
 - Local embedding inference increases installation size, startup time, CPU use, and RAM use; performance has not been benchmarked for this project.
-- There is no token generation, user directory, token revocation, dense retrieval, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
-- Qdrant currently stores chunk vectors and payloads but is not queried by the application.
+- There is no token generation, user directory, token revocation, hybrid retrieval, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- Qdrant vector search requires a pre-existing collection populated with complete chunk payloads and a running Qdrant service.
 - Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.

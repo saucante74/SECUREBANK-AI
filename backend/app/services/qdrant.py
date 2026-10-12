@@ -3,12 +3,14 @@ from collections.abc import Sequence
 from numbers import Real
 from uuid import NAMESPACE_URL, uuid5
 
+from pydantic import ValidationError
 from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import ApiException
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from app.core.config import Settings
 from app.schemas.documents import Chunk
+from app.schemas.retrieval import RetrievalResult
 
 VECTOR_SIZE = 384
 POINT_NAMESPACE = uuid5(NAMESPACE_URL, "securebank-ai/qdrant/chunks")
@@ -88,6 +90,43 @@ class QdrantVectorStore:
             ) from error
         return len(points)
 
+    def search(
+        self,
+        query_vector: Sequence[float],
+        top_k: int = 3,
+    ) -> list[RetrievalResult]:
+        if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k <= 0:
+            raise ValueError("top_k must be a strictly positive integer")
+
+        vector = self._validate_vector(query_vector, "query_vector")
+        try:
+            response = self._client.query_points(
+                collection_name=self._collection_name,
+                query=vector,
+                limit=top_k,
+                with_payload=True,
+                with_vectors=False,
+            )
+        except (ApiException, ValueError) as error:
+            raise QdrantVectorStoreError(
+                f"Unable to search Qdrant collection {self._collection_name!r}"
+            ) from error
+
+        try:
+            points = response.points
+            return [self._build_retrieval_result(point) for point in points[:top_k]]
+        except (
+            AttributeError,
+            KeyError,
+            TypeError,
+            ValidationError,
+            ValueError,
+        ) as error:
+            raise QdrantVectorStoreError(
+                f"Invalid search response from Qdrant collection "
+                f"{self._collection_name!r}"
+            ) from error
+
     def _build_point(
         self,
         chunk: Chunk,
@@ -95,14 +134,7 @@ class QdrantVectorStore:
     ) -> PointStruct:
         if not chunk.document_id.strip() or not chunk.id.strip():
             raise ValueError("chunk identifiers must not be empty")
-        if len(embedding) != VECTOR_SIZE:
-            raise ValueError(f"embedding must contain exactly {VECTOR_SIZE} values")
-        if not all(isinstance(value, Real) for value in embedding):
-            raise ValueError("embedding must contain only numeric values")
-
-        vector = [float(value) for value in embedding]
-        if not all(math.isfinite(value) for value in vector):
-            raise ValueError("embedding must contain only finite values")
+        vector = self._validate_vector(embedding, "embedding")
 
         point_id = str(uuid5(POINT_NAMESPACE, f"{chunk.document_id}\x00{chunk.id}"))
         return PointStruct(
@@ -113,5 +145,38 @@ class QdrantVectorStore:
                 "chunk_id": chunk.id,
                 "text": chunk.content,
                 "position": chunk.position,
+                "title": chunk.title,
+                "source": chunk.source,
             },
         )
+
+    @staticmethod
+    def _validate_vector(vector: Sequence[float], name: str) -> list[float]:
+        if len(vector) != VECTOR_SIZE:
+            raise ValueError(f"{name} must contain exactly {VECTOR_SIZE} values")
+        if not all(isinstance(value, Real) for value in vector):
+            raise ValueError(f"{name} must contain only numeric values")
+
+        normalized_vector = [float(value) for value in vector]
+        if not all(math.isfinite(value) for value in normalized_vector):
+            raise ValueError(f"{name} must contain only finite values")
+        return normalized_vector
+
+    @staticmethod
+    def _build_retrieval_result(point: object) -> RetrievalResult:
+        payload = point.payload
+        if not isinstance(payload, dict):
+            raise ValueError("Qdrant point payload must be an object")
+        score = point.score
+        if not isinstance(score, Real) or not math.isfinite(float(score)):
+            raise ValueError("Qdrant point score must be a finite number")
+
+        chunk = Chunk(
+            id=payload["chunk_id"],
+            document_id=payload["document_id"],
+            content=payload["text"],
+            position=payload["position"],
+            title=payload["title"],
+            source=payload["source"],
+        )
+        return RetrievalResult(chunk=chunk, score=float(score))
