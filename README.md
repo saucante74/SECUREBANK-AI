@@ -24,7 +24,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | HS256 JWT validation, Bearer authentication, RBAC, local PII detection and masking | Token generation |
-| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity | Qdrant, hybrid retrieval, RRF, FlashRank |
+| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search | Hybrid retrieval, RRF, FlashRank |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
 | Frontend | None | React 19, TypeScript, Vite |
@@ -34,7 +34,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application exposing a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG components represent source documents, split them into typed passages, search those passages with an in-memory lexical index, and generate local vector representations independently of the API. Future modules will be introduced only in the iteration that needs them.
+The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG components represent source documents, split them into typed passages, search those passages with an in-memory lexical index, generate local vector representations, persist vectors with chunk evidence in Qdrant, and retrieve the nearest chunks through vector search.
 
 ## Repository Structure
 
@@ -68,8 +68,10 @@ SECUREBANK-AI/
 │   │   │   ├── __init__.py
 │   │   │   ├── bm25.py
 │   │   │   ├── chunking.py
+│   │   │   ├── embeddings.py
 │   │   │   ├── pii.py
-│   │   │   └── pii_masking.py
+│   │   │   ├── pii_masking.py
+│   │   │   └── qdrant.py
 │   │   └── main.py
 │   ├── .dockerignore
 │   ├── .env
@@ -80,9 +82,11 @@ SECUREBANK-AI/
 │   ├── requirements-runtime.txt
 │   ├── requirements.txt
 │   ├── scripts/
+│   │   ├── demo_vector_search.py
 │   │   ├── prepare_embedding_model.py
 │   │   └── verify_embedding_model.py
 │   ├── tests/
+│   │   ├── test_demo_vector_search.py
 │   │   ├── test_bm25.py
 │   │   ├── test_chunking.py
 │   │   ├── test_embeddings.py
@@ -90,7 +94,8 @@ SECUREBANK-AI/
 │   │   ├── test_health.py
 │   │   ├── test_pii.py
 │   │   ├── test_pii_api.py
-│   │   └── test_pii_masking.py
+│   │   ├── test_pii_masking.py
+│   │   └── test_qdrant.py
 │   └── venv/
 ├── frontend/
 └── main.py
@@ -155,6 +160,8 @@ The implemented configuration accepts these variables:
 | `JWT_ALGORITHM` | `HS256` | Explicitly allowed JWT signing algorithm |
 | `JWT_ISSUER` | None | Required JWT issuer |
 | `JWT_AUDIENCE` | None | Required JWT audience |
+| `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint |
+| `QDRANT_COLLECTION_NAME` | `securebank_chunks` | Collection used for chunk vectors |
 
 Environment variables override values loaded from `backend/.env`, which override the development defaults. Do not commit `.env` or place real banking data in it.
 
@@ -207,7 +214,7 @@ The container accepts a `PORT` environment variable for Render-compatible port b
 
 ### Running the Backend with Docker Compose
 
-Build and start the backend service from the repository root:
+Build and start the backend and Qdrant services from the repository root:
 
 ```bash
 docker compose up --build -d
@@ -225,7 +232,7 @@ Read the service logs:
 docker compose logs
 ```
 
-The backend is available at `http://localhost:8000`.
+The backend is available at `http://localhost:8000`, and Qdrant exposes its HTTP API at `http://localhost:6333`. Its dashboard is available at `http://localhost:6333/dashboard`. The named `qdrant_data` volume preserves vector data across container restarts.
 
 Stop and remove the Compose resources:
 
@@ -248,7 +255,7 @@ cd backend
 python -m pytest
 ```
 
-The tests cover configuration defaults, environment overrides, the health endpoint contract, JWT validation, Bearer authentication and RBAC, local PII detection and masking, deterministic document chunking, and in-memory BM25 retrieval.
+The tests cover configuration defaults, environment overrides, the health endpoint contract, JWT validation, Bearer authentication and RBAC, local PII detection and masking, deterministic document chunking, in-memory BM25 retrieval, local embeddings, and Qdrant vector storage.
 
 ### Local PII Detection and Masking
 
@@ -267,7 +274,7 @@ When detections overlap, the masker prefers the highest confidence score, then t
 
 ### RAG Documents and Chunking
 
-Retrieval-Augmented Generation grounds a generated answer in passages retrieved from a source corpus. This iteration implements only the representation and chunking stage; retrieval and generation remain planned.
+Retrieval-Augmented Generation grounds a generated answer in passages retrieved from a source corpus. The current pipeline implements document representation, chunking, independent lexical retrieval, local embeddings, and Qdrant vector search. Fusion and generation remain planned.
 
 A `Document` stores a stable identifier, content, title, and source. `CharacterChunker` turns it into an ordered list of `Chunk` objects carrying the parent metadata and a deterministic identifier. `chunk_size` sets the maximum number of characters per passage. `overlap` repeats the end of one passage at the start of the next to preserve local context and must remain smaller than `chunk_size`.
 
@@ -291,7 +298,7 @@ Tokenization uses Unicode word sequences after case folding, so punctuation is s
 
 ### Local Multilingual Embeddings
 
-An embedding is a fixed-size numeric vector that represents a text so that related meanings can be compared geometrically. BM25 ranks exact or normalized lexical terms and remains effective for identifiers and precise wording. Semantic search compares embeddings and can retrieve related French passages even when a question uses different words. This iteration generates vectors and computes pairwise cosine similarity; it does not implement semantic retrieval or a vector index.
+An embedding is a fixed-size numeric vector that represents a text so that related meanings can be compared geometrically. BM25 ranks exact or normalized lexical terms and remains effective for identifiers and precise wording. Semantic search compares embeddings and can retrieve related French passages even when a question uses different words. `LocalEmbeddingService` generates vectors and computes pairwise cosine similarity, while Qdrant provides the separate vector index and nearest-neighbor search.
 
 `LocalEmbeddingService` uses `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` on CPU. The model supports French and produces vectors with 384 dimensions. The service accepts one text, multiple texts, or existing `Chunk` contents, preserves input order, and loads the encoder once per service instance. Empty or whitespace-only texts are rejected, and no input text is stored or logged.
 
@@ -325,6 +332,40 @@ The prepared weights must be provisioned before production startup. The local pr
 The model limit is 128 tokens including special tokens. The service measures untruncated tokenization and raises `ValueError` above that limit instead of silently truncating text. Character count is not equivalent to token count. Upstream chunk sizes must therefore be selected and validated against this token limit.
 
 Cosine similarity measures vector direction from `-1` to `1`; larger values indicate closer directions for this embedding space. It is a ranking signal, not a calibrated probability or proof that two texts have the same regulatory meaning. Empty, zero-length, zero-norm, dimension-mismatched, and non-finite vectors are rejected.
+
+### Qdrant Vector Storage and Search
+
+Qdrant persists the 384-dimensional embeddings produced for existing `Chunk` objects. `QdrantVectorStore` creates the configured collection with cosine distance when needed, then upserts each vector with a deterministic UUID and the metadata required to reconstruct its `Chunk`. Reprocessing the same document and chunk identifiers targets the same point.
+
+`QdrantVectorStore.search` accepts a 384-dimensional query vector and a positive `top_k`, asks Qdrant for the nearest points, and returns typed `RetrievalResult` values in Qdrant relevance order. Results contain the reconstructed chunk and its cosine similarity score; stored vectors are excluded from the response. Invalid payloads and Qdrant failures are translated into `QdrantVectorStoreError`.
+
+Vectors must contain exactly 384 finite numeric values. The service validates identifiers, vectors, and result payloads. Vector search remains independent from BM25 and does not perform fusion, reranking, evidence validation, or answer generation.
+
+Run the focused unit tests without Docker, a Qdrant server, or embedding model weights:
+
+```bash
+cd backend
+python -m pytest tests/test_qdrant.py tests/test_config.py
+```
+
+### End-to-End Vector Search Demonstration
+
+Start Qdrant from the repository root:
+
+```bash
+docker compose up -d qdrant
+```
+
+With the prepared local MiniLM model and the backend virtual environment active, run the demonstration from the backend directory:
+
+```bash
+cd backend
+python -m scripts.demo_vector_search
+```
+
+The script creates three fictitious French banking documents, splits them into deterministic chunks, generates local embeddings, upserts them into the configured Qdrant collection, and prints the three nearest chunks with their cosine scores for a fictitious housing-finance question. Running it again updates the same deterministic point identifiers instead of creating duplicates. The demonstration data is entirely synthetic and contains no real personal or banking information.
+
+Inspect the collection and its points in the Qdrant dashboard at `http://localhost:6333/dashboard`.
 
 ## API Documentation
 
@@ -414,7 +455,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day | Scope | Status |
 | --- | --- | --- |
 | Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII detection and masking, security tests | In Progress: health check, settings, JWT authentication, RBAC, PII detection, masking, and protected PII API completed |
-| Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, in-memory BM25, and local embeddings completed |
+| Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, in-memory BM25, local embeddings, Qdrant vector search, and the end-to-end demonstration completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | Planned |
 
@@ -442,6 +483,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Deterministic in-memory BM25 retrieval with typed scored results.
 - Local multilingual embeddings for text and chunks with deterministic input validation.
 - Independent cosine similarity with vector validation.
+- Persistent Qdrant storage and nearest-vector search with typed scored results.
 - Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
@@ -454,7 +496,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 ### Planned
 
 - Token generation and token revocation.
-- Document ingestion, vector storage, dense retrieval, reciprocal rank fusion, reranking, evidence validation, and abstention.
+- Document ingestion, dense retrieval, reciprocal rank fusion, reranking, evidence validation, and abstention.
 - FastMCP and LangGraph orchestration.
 - Langfuse observability.
 - React frontend and cloud deployment.
@@ -469,8 +511,9 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - The embedding model rejects texts above its 128-token limit and does not split them automatically.
 - Cosine similarity is uncalibrated and cannot establish answer correctness or sufficient evidence by itself.
 - Local embedding inference increases installation size, startup time, CPU use, and RAM use; performance has not been benchmarked for this project.
-- There is no token generation, user directory, token revocation, dense retrieval, vector database, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
-- Docker Compose currently starts only the backend; frontend integration is planned after the React application is initialized.
+- There is no token generation, user directory, token revocation, hybrid retrieval, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
+- Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.
 - The existing backend virtual environment reports Python 3.12.13; the project supports Python 3.12.x.

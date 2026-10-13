@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     jwt_algorithm: Literal["HS256"] = "HS256"
     jwt_issuer: str | None = None
     jwt_audience: str | None = None
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_collection_name: str = "securebank_chunks"
 
     @field_validator("jwt_secret_key")
     @classmethod
@@ -28,6 +30,13 @@ class Settings(BaseSettings):
     def validate_jwt_claim_setting(cls, value: str | None) -> str | None:
         if value is not None and not value.strip():
             raise ValueError("JWT claim settings must not be empty")
+        return value
+
+    @field_validator("qdrant_url", "qdrant_collection_name")
+    @classmethod
+    def validate_qdrant_setting(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Qdrant settings must not be empty")
         return value
 
     model_config = SettingsConfigDict(

@@ -5,3 +5,16 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    environment:
+      QDRANT_URL: http://qdrant:6333
+    depends_on:
+      - qdrant
+  qdrant:
+    image: qdrant/qdrant:v1.19.0
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  qdrant_data:
