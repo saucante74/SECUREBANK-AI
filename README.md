@@ -84,10 +84,12 @@ SECUREBANK-AI/
 │   ├── requirements-runtime.txt
 │   ├── requirements.txt
 │   ├── scripts/
+│   │   ├── demo_hybrid_search.py
 │   │   ├── demo_vector_search.py
 │   │   ├── prepare_embedding_model.py
 │   │   └── verify_embedding_model.py
 │   ├── tests/
+│   │   ├── test_demo_hybrid_search.py
 │   │   ├── test_demo_vector_search.py
 │   │   ├── test_bm25.py
 │   │   ├── test_chunking.py
@@ -382,6 +384,15 @@ The independent `reciprocal_rank_fusion` service provides deterministic hybrid r
 `HybridRetriever` coordinates the implemented retrieval components through dependency injection. For each question, it requests lexical candidates from BM25, creates one local MiniLM query embedding, requests semantic candidates from Qdrant, and applies Reciprocal Rank Fusion to return the requested number of results.
 
 Each engine receives three times the requested result count by default so RRF has a broader candidate pool. The multiplier and RRF constant are configurable. Dependency failures propagate to the caller, and the service does not log questions or chunks. No API route exposes hybrid retrieval yet.
+
+Run the real hybrid demonstration after starting Qdrant and preparing the local MiniLM model:
+
+```bash
+cd backend
+python -m scripts.demo_hybrid_search
+```
+
+The demonstration reuses the fictitious French banking corpus from the vector-search example, builds BM25 and Qdrant indexes with the same deterministic chunk identifiers, and runs two synthetic questions. It prints the lexical BM25 ranking, the semantic MiniLM/Qdrant ranking, and the final RRF ranking for comparison. BM25 favors matching terms, Qdrant compares semantic vectors, and RRF combines their rank positions without mixing their incompatible source scores. Repeated runs upsert the same Qdrant points instead of creating duplicates. All demonstration documents and questions are fictitious.
 
 ## API Documentation
 
