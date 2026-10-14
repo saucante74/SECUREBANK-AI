@@ -24,7 +24,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | HS256 JWT validation, Bearer authentication, RBAC, local PII detection and masking | Token generation |
-| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, independent RRF | Automated hybrid orchestration, FlashRank |
+| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval orchestration | FlashRank |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
 | Frontend | None | React 19, TypeScript, Vite |
@@ -34,7 +34,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG components represent source documents, split them into typed passages, search those passages with an in-memory lexical index, generate local vector representations, persist vectors with chunk evidence in Qdrant, and retrieve the nearest chunks through vector search.
+The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG components represent source documents, split them into typed passages, retrieve lexical and vector candidates, and fuse both rankings with RRF through an injected hybrid retrieval service.
 
 ## Repository Structure
 
@@ -69,6 +69,7 @@ SECUREBANK-AI/
 │   │   │   ├── bm25.py
 │   │   │   ├── chunking.py
 │   │   │   ├── embeddings.py
+│   │   │   ├── hybrid.py
 │   │   │   ├── pii.py
 │   │   │   ├── pii_masking.py
 │   │   │   ├── qdrant.py
@@ -93,6 +94,7 @@ SECUREBANK-AI/
 │   │   ├── test_embeddings.py
 │   │   ├── test_config.py
 │   │   ├── test_health.py
+│   │   ├── test_hybrid.py
 │   │   ├── test_pii.py
 │   │   ├── test_pii_api.py
 │   │   ├── test_pii_masking.py
@@ -373,7 +375,13 @@ Inspect the collection and its points in the Qdrant dashboard at `http://localho
 
 Reciprocal Rank Fusion combines the ordered BM25 and Qdrant results by adding `1 / (k + rank)` for each ranking in which a chunk appears. The implementation identifies chunks by document and chunk identifiers, ignores source scores, removes repeated contributions from the same ranking, and uses `k=60` by default.
 
-The independent `reciprocal_rank_fusion` service is available for deterministic hybrid ranking. It is not yet connected to an automatic retrieval orchestrator, reranker, evidence validator, or answer generator.
+The independent `reciprocal_rank_fusion` service provides deterministic hybrid ranking and is used by `HybridRetriever`. It is not connected to a reranker, evidence validator, or answer generator.
+
+### Hybrid Retrieval
+
+`HybridRetriever` coordinates the implemented retrieval components through dependency injection. For each question, it requests lexical candidates from BM25, creates one local MiniLM query embedding, requests semantic candidates from Qdrant, and applies Reciprocal Rank Fusion to return the requested number of results.
+
+Each engine receives three times the requested result count by default so RRF has a broader candidate pool. The multiplier and RRF constant are configurable. Dependency failures propagate to the caller, and the service does not log questions or chunks. No API route exposes hybrid retrieval yet.
 
 ## API Documentation
 
@@ -463,7 +471,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day | Scope | Status |
 | --- | --- | --- |
 | Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII detection and masking, security tests | In Progress: health check, settings, JWT authentication, RBAC, PII detection, masking, and protected PII API completed |
-| Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, in-memory BM25, local embeddings, Qdrant vector search, the end-to-end demonstration, and independent RRF completed |
+| Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, in-memory BM25, local embeddings, Qdrant vector search, RRF, and hybrid retrieval orchestration completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | Planned |
 
@@ -493,6 +501,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Independent cosine similarity with vector validation.
 - Persistent Qdrant storage and nearest-vector search with typed scored results.
 - Deterministic Reciprocal Rank Fusion for independent BM25 and Qdrant rankings.
+- Injected hybrid retriever coordinating BM25, MiniLM, Qdrant, and RRF.
 - Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
@@ -505,7 +514,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 ### Planned
 
 - Token generation and token revocation.
-- Document ingestion, automated hybrid retrieval, reranking, evidence validation, and abstention.
+- Document ingestion, reranking, evidence validation, and abstention.
 - FastMCP and LangGraph orchestration.
 - Langfuse observability.
 - React frontend and cloud deployment.
@@ -520,7 +529,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - The embedding model rejects texts above its 128-token limit and does not split them automatically.
 - Cosine similarity is uncalibrated and cannot establish answer correctness or sufficient evidence by itself.
 - Local embedding inference increases installation size, startup time, CPU use, and RAM use; performance has not been benchmarked for this project.
-- There is no token generation, user directory, token revocation, automatic hybrid retrieval orchestration, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- There is no token generation, user directory, token revocation, hybrid retrieval API, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
 - Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
