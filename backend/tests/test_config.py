@@ -11,6 +11,8 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("JWT_ALGORITHM", raising=False)
     monkeypatch.delenv("JWT_ISSUER", raising=False)
     monkeypatch.delenv("JWT_AUDIENCE", raising=False)
+    monkeypatch.delenv("QDRANT_URL", raising=False)
+    monkeypatch.delenv("QDRANT_COLLECTION_NAME", raising=False)
 
     settings = Settings(_env_file=None)
 
@@ -21,6 +23,8 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.jwt_algorithm == "HS256"
     assert settings.jwt_issuer is None
     assert settings.jwt_audience is None
+    assert settings.qdrant_url == "http://localhost:6333"
+    assert settings.qdrant_collection_name == "securebank_chunks"
 
 
 def test_settings_environment_override(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -31,6 +35,8 @@ def test_settings_environment_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("JWT_ALGORITHM", "HS256")
     monkeypatch.setenv("JWT_ISSUER", "securebank-ai-test")
     monkeypatch.setenv("JWT_AUDIENCE", "securebank-ai-test-api")
+    monkeypatch.setenv("QDRANT_URL", "http://qdrant:6333")
+    monkeypatch.setenv("QDRANT_COLLECTION_NAME", "test_chunks")
 
     settings = Settings(_env_file=None)
 
@@ -45,3 +51,5 @@ def test_settings_environment_override(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.jwt_algorithm == "HS256"
     assert settings.jwt_issuer == "securebank-ai-test"
     assert settings.jwt_audience == "securebank-ai-test-api"
+    assert settings.qdrant_url == "http://qdrant:6333"
+    assert settings.qdrant_collection_name == "test_chunks"
