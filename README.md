@@ -88,6 +88,7 @@ SECUREBANK-AI/
 │   ├── requirements-runtime.txt
 │   ├── requirements.txt
 │   ├── scripts/
+│   │   ├── compare_retrievers.py
 │   │   ├── demo_flashrank.py
 │   │   ├── demo_hybrid_search.py
 │   │   ├── demo_rag_retrieval.py
@@ -96,6 +97,7 @@ SECUREBANK-AI/
 │   │   ├── prepare_embedding_model.py
 │   │   └── verify_embedding_model.py
 │   ├── tests/
+│   │   ├── test_compare_retrievers.py
 │   │   ├── test_demo_flashrank.py
 │   │   ├── test_demo_hybrid_search.py
 │   │   ├── test_demo_rag_retrieval.py
@@ -318,7 +320,17 @@ The reusable evaluation set contains six French questions covering mortgage cred
 
 Source Hit@K equals one when at least one expected document appears among the first K results. Evidence Hit@K applies the same rule to expected chunk identifiers and therefore measures whether a precise supporting passage was retrieved. `@K` limits evaluation to the first K ranked results. Dataset evaluation reports both metrics per case and their arithmetic means.
 
-This small synthetic set cannot represent production language, corpus diversity, retrieval difficulty, or statistically reliable quality. It calculates metrics for supplied results only and does not yet execute or compare BM25, Qdrant, RRF, and FlashRank automatically.
+Run the four-way comparison after preparing the local models and starting Qdrant:
+
+```bash
+docker compose up -d qdrant
+cd backend
+python -m scripts.compare_retrievers
+```
+
+The script evaluates BM25, MiniLM/Qdrant, hybrid RRF, and hybrid RRF followed by FlashRank on the same six cases, chunks, references, final `top_k=3`, and Qdrant collection. It reports Source Hit@1, Source Hit@3, Evidence Hit@1, Evidence Hit@3, the first-ranked document per question, and separate local mean latencies. MiniLM and FlashRank must already exist in their documented local caches.
+
+Six synthetic questions cannot represent production language, corpus diversity, retrieval difficulty, statistically reliable quality, or production latency. The output supports diagnosis and learning but must not be used to draw statistical conclusions about the relative quality of the four configurations.
 
 ### Local PII Detection and Masking
 
