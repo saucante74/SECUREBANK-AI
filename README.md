@@ -88,6 +88,7 @@ SECUREBANK-AI/
 │   ├── scripts/
 │   │   ├── demo_flashrank.py
 │   │   ├── demo_hybrid_search.py
+│   │   ├── demo_rag_retrieval.py
 │   │   ├── demo_vector_search.py
 │   │   ├── prepare_flashrank_model.py
 │   │   ├── prepare_embedding_model.py
@@ -95,6 +96,7 @@ SECUREBANK-AI/
 │   ├── tests/
 │   │   ├── test_demo_flashrank.py
 │   │   ├── test_demo_hybrid_search.py
+│   │   ├── test_demo_rag_retrieval.py
 │   │   ├── test_demo_vector_search.py
 │   │   ├── test_bm25.py
 │   │   ├── test_chunking.py
@@ -294,6 +296,18 @@ The script validates the required local files before creating the FlashRank engi
 The service requests three times the desired final count by default. For `top_k=5`, hybrid retrieval receives `top_k=15`, and FlashRank returns at most five final results. The candidate multiplier is configurable and must be a strictly positive integer. A larger value gives FlashRank more candidates to examine but increases retrieval and CPU inference work.
 
 This service has no API route and performs no LLM generation. FlashRank scores are relative ranking signals rather than calibrated probabilities, confidence levels, or evidence-quality guarantees. Evidence validation, score-threshold calibration, answer generation, and abstention remain outside this iteration.
+
+Run the complete pipeline demonstration after preparing both local models and starting Qdrant:
+
+```bash
+docker compose up -d qdrant
+cd backend
+python -m scripts.prepare_embedding_model
+python -m scripts.prepare_flashrank_model
+python -m scripts.demo_rag_retrieval
+```
+
+The demonstration runs BM25 and local MiniLM/Qdrant retrieval, combines their rankings with RRF, and passes a broader candidate set to local FlashRank for the final ranking. It prints RRF and FlashRank scores separately because their numeric scales are not comparable. Stable Qdrant point identifiers make repeated indexing idempotent, and the script verifies that the exact point count matches the synthetic chunks after each run. The demonstration uses three synthetic documents and three sample questions; it does not evaluate retrieval recall, score calibration, evidence quality, latency under load, or answer generation.
 
 ### Local PII Detection and Masking
 
