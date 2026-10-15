@@ -12,16 +12,20 @@ from app.core.config import settings
 from app.schemas.documents import Chunk
 from app.schemas.evaluation import EvaluationCase, EvaluationReport
 from app.schemas.retrieval import RetrievalResult
+from app.services.benchmark_dataset import (
+    BENCHMARK_COLLECTION_NAME,
+    BenchmarkDataset,
+    create_benchmark_chunks,
+    load_benchmark_dataset,
+)
 from app.services.bm25 import BM25Retriever
 from app.services.chunking import CharacterChunker
 from app.services.embeddings import LocalEmbeddingService
+from app.services.hybrid import HybridRetriever
 from app.services.qdrant import QdrantVectorStore, QdrantVectorStoreError
+from app.services.rag_retrieval import RagRetriever
 from app.services.reranking import FlashRankReranker
-from app.services.retrieval_evaluation import (
-    SYNTHETIC_EVALUATION_CASES,
-    evaluate_cases,
-)
-from scripts.demo_rag_retrieval import prepare_pipeline
+from app.services.retrieval_evaluation import evaluate_cases
 
 TOP_K = 3
 ENGINE_NAMES = ("BM25", "Qdrant", "RRF", "RRF + FlashRank")
@@ -50,6 +54,7 @@ class SemanticRetriever:
 @dataclass(frozen=True)
 class ComparisonPipeline:
     chunks: list[Chunk]
+    cases: tuple[EvaluationCase, ...]
     engines: Mapping[str, SearchEngine]
     qdrant_point_count: int
 
@@ -78,29 +83,39 @@ def validate_results(
 
 
 def prepare_comparison(
+    dataset: BenchmarkDataset,
     chunker: CharacterChunker,
     embedding_service: LocalEmbeddingService,
     vector_store: QdrantVectorStore,
     flashrank_reranker: FlashRankReranker,
     point_counter: Callable[[Sequence[Chunk]], int],
 ) -> ComparisonPipeline:
-    rag_pipeline = prepare_pipeline(
-        chunker,
+    chunks = create_benchmark_chunks(dataset.documents, chunker)
+    embeddings = embedding_service.embed_chunks(chunks)
+    vector_store.ensure_collection()
+    vector_store.store_chunks(chunks, embeddings)
+    point_count = point_counter(chunks)
+    if point_count != len(chunks):
+        raise ValueError(
+            f"Qdrant contains {point_count} points for {len(chunks)} indexed chunks"
+        )
+    bm25_retriever = BM25Retriever(chunks)
+    hybrid_retriever = HybridRetriever(
+        bm25_retriever,
         embedding_service,
         vector_store,
-        flashrank_reranker,
-        point_counter,
     )
     engines: dict[str, SearchEngine] = {
-        "BM25": BM25Retriever(rag_pipeline.chunks),
+        "BM25": bm25_retriever,
         "Qdrant": SemanticRetriever(embedding_service, vector_store),
-        "RRF": rag_pipeline.hybrid_retriever,
-        "RRF + FlashRank": rag_pipeline.rag_retriever,
+        "RRF": hybrid_retriever,
+        "RRF + FlashRank": RagRetriever(hybrid_retriever, flashrank_reranker),
     }
     return ComparisonPipeline(
-        chunks=rag_pipeline.chunks,
+        chunks=chunks,
+        cases=dataset.cases,
         engines=engines,
-        qdrant_point_count=rag_pipeline.point_count,
+        qdrant_point_count=point_count,
     )
 
 
@@ -128,13 +143,14 @@ def evaluate_engine(
 
 def compare_retrievers(
     pipeline: ComparisonPipeline,
-    cases: Sequence[EvaluationCase] = SYNTHETIC_EVALUATION_CASES,
+    cases: Sequence[EvaluationCase] | None = None,
     timer: Timer = perf_counter,
 ) -> dict[str, EngineComparison]:
     if tuple(pipeline.engines) != ENGINE_NAMES:
         raise ValueError("comparison requires the four configured retrievers")
+    selected_cases = pipeline.cases if cases is None else cases
     return {
-        name: evaluate_engine(engine, pipeline.chunks, cases, timer)
+        name: evaluate_engine(engine, pipeline.chunks, selected_cases, timer)
         for name, engine in pipeline.engines.items()
     }
 
@@ -177,29 +193,80 @@ def print_case_comparisons(
             )
 
 
+def print_failed_cases(
+    comparisons: Mapping[str, EngineComparison],
+) -> None:
+    print("\nFailed questions at rank 3")
+    for name, comparison in comparisons.items():
+        failed_case_ids = [
+            evaluation.case_id
+            for evaluation in comparison.report_at_3.cases
+            if not evaluation.source_hit_at_k or not evaluation.evidence_hit_at_k
+        ]
+        displayed = ", ".join(failed_case_ids) if failed_case_ids else "None"
+        print(f"  {name}: {displayed}")
+
+
+def print_flashrank_changes(
+    cases: Sequence[EvaluationCase],
+    comparisons: Mapping[str, EngineComparison],
+) -> None:
+    rrf_by_case = {
+        evaluation.case_id: evaluation
+        for evaluation in comparisons["RRF"].report_at_1.cases
+    }
+    flashrank_by_case = {
+        evaluation.case_id: evaluation
+        for evaluation in comparisons["RRF + FlashRank"].report_at_1.cases
+    }
+    improved: list[str] = []
+    degraded: list[str] = []
+    for case in cases:
+        rrf = rrf_by_case[case.id]
+        flashrank = flashrank_by_case[case.id]
+        rrf_score = rrf.source_hit_at_k + rrf.evidence_hit_at_k
+        flashrank_score = flashrank.source_hit_at_k + flashrank.evidence_hit_at_k
+        if flashrank_score > rrf_score:
+            improved.append(case.id)
+        elif flashrank_score < rrf_score:
+            degraded.append(case.id)
+    print("\nFlashRank changes versus RRF at rank 1")
+    print(f"  Improved: {', '.join(improved) if improved else 'None'}")
+    print(f"  Degraded: {', '.join(degraded) if degraded else 'None'}")
+
+
 def run_comparison(
     pipeline: ComparisonPipeline,
-    cases: Sequence[EvaluationCase] = SYNTHETIC_EVALUATION_CASES,
+    cases: Sequence[EvaluationCase] | None = None,
     timer: Timer = perf_counter,
 ) -> dict[str, EngineComparison]:
-    comparisons = compare_retrievers(pipeline, cases, timer)
-    print(f"Evaluation cases: {len(cases)}")
+    selected_cases = pipeline.cases if cases is None else cases
+    comparisons = compare_retrievers(pipeline, selected_cases, timer)
+    document_count = len({chunk.document_id for chunk in pipeline.chunks})
+    print(f"Documents: {document_count}")
+    print(f"Evaluation cases: {len(selected_cases)}")
     print(f"Indexed chunks: {len(pipeline.chunks)}")
     print(f"Qdrant points: {pipeline.qdrant_point_count}")
     print_metric_table(comparisons)
-    print_case_comparisons(cases, comparisons)
+    print_case_comparisons(selected_cases, comparisons)
+    print_failed_cases(comparisons)
+    print_flashrank_changes(selected_cases, comparisons)
     print("\nLocal latency measurements are not a production benchmark.")
     return comparisons
 
 
 def create_local_comparison() -> ComparisonPipeline:
     client = QdrantClient(url=settings.qdrant_url)
-    vector_store = QdrantVectorStore.from_settings(settings, client=client)
+    vector_store = QdrantVectorStore(
+        url=settings.qdrant_url,
+        collection_name=BENCHMARK_COLLECTION_NAME,
+        client=client,
+    )
 
     def count_points(chunks: Sequence[Chunk]) -> int:
         document_ids = sorted({chunk.document_id for chunk in chunks})
         return client.count(
-            collection_name=settings.qdrant_collection_name,
+            collection_name=BENCHMARK_COLLECTION_NAME,
             count_filter=Filter(
                 must=[
                     FieldCondition(
@@ -212,6 +279,7 @@ def create_local_comparison() -> ComparisonPipeline:
         ).count
 
     return prepare_comparison(
+        load_benchmark_dataset(),
         CharacterChunker(chunk_size=180, overlap=30),
         LocalEmbeddingService(),
         vector_store,

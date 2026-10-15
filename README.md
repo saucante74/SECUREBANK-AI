@@ -67,6 +67,7 @@ SECUREBANK-AI/
 │   │   │   └── retrieval.py
 │   │   ├── services/
 │   │   │   ├── __init__.py
+│   │   │   ├── benchmark_dataset.py
 │   │   │   ├── bm25.py
 │   │   │   ├── chunking.py
 │   │   │   ├── embeddings.py
@@ -80,6 +81,8 @@ SECUREBANK-AI/
 │   │   │   └── rrf.py
 │   │   └── main.py
 │   ├── .dockerignore
+│   ├── data/
+│   │   └── rag_benchmark.json
 │   ├── .env
 │   ├── .env.example
 │   ├── Dockerfile
@@ -97,6 +100,7 @@ SECUREBANK-AI/
 │   │   ├── prepare_embedding_model.py
 │   │   └── verify_embedding_model.py
 │   ├── tests/
+│   │   ├── test_benchmark_dataset.py
 │   │   ├── test_compare_retrievers.py
 │   │   ├── test_demo_flashrank.py
 │   │   ├── test_demo_hybrid_search.py
@@ -316,7 +320,9 @@ The demonstration runs BM25 and local MiniLM/Qdrant retrieval, combines their ra
 
 ### Synthetic Retrieval Evaluation
 
-The reusable evaluation set contains six French questions covering mortgage credit, home insurance, savings, and semantic reformulations. Every case references explicit document and chunk identifiers produced by the current synthetic corpus with its 180-character chunk size and 30-character overlap.
+The benchmark corpus contains 30 fictitious French banking documents: five each for mortgage credit, consumer credit, insurance, savings, accounts and payments, and security and compliance. The 180-character chunk size with a 30-character overlap produces 137 deterministic chunks. The separate demonstration corpus remains limited to its original three documents.
+
+The benchmark contains 40 questions: 15 factual questions, 15 semantic reformulations, and 10 difficult or intentionally ambiguous questions. Every case references validated document and chunk identifiers and records a short evidence rationale. The six historical evaluation cases remain available as a separate regression set.
 
 Source Hit@K equals one when at least one expected document appears among the first K results. Evidence Hit@K applies the same rule to expected chunk identifiers and therefore measures whether a precise supporting passage was retrieved. `@K` limits evaluation to the first K ranked results. Dataset evaluation reports both metrics per case and their arithmetic means.
 
@@ -328,9 +334,9 @@ cd backend
 python -m scripts.compare_retrievers
 ```
 
-The script evaluates BM25, MiniLM/Qdrant, hybrid RRF, and hybrid RRF followed by FlashRank on the same six cases, chunks, references, final `top_k=3`, and Qdrant collection. It reports Source Hit@1, Source Hit@3, Evidence Hit@1, Evidence Hit@3, the first-ranked document per question, and separate local mean latencies. MiniLM and FlashRank must already exist in their documented local caches.
+The script evaluates BM25, MiniLM/Qdrant, hybrid RRF, and hybrid RRF followed by FlashRank on the same 40 cases, chunks, references, and final `top_k=3`. It uses the dedicated `securebank_benchmark_chunks` Qdrant collection so benchmark points cannot mix with demonstration points. It reports Source Hit@1, Source Hit@3, Evidence Hit@1, Evidence Hit@3, failed questions, FlashRank changes relative to RRF, the first-ranked document per question, and separate local mean latencies. MiniLM and FlashRank must already exist in their documented local caches.
 
-Six synthetic questions cannot represent production language, corpus diversity, retrieval difficulty, statistically reliable quality, or production latency. The output supports diagnosis and learning but must not be used to draw statistical conclusions about the relative quality of the four configurations.
+The documents and questions are synthetic and cannot reproduce production language, policy complexity, corpus growth, user behavior, statistically reliable quality, or production latency. Forty questions support regression diagnosis but remain too few for broad statistical conclusions. This benchmark does not represent production retrieval performance.
 
 ### Local PII Detection and Masking
 

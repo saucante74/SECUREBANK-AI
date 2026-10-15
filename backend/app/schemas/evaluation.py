@@ -14,6 +14,8 @@ class EvaluationCase(BaseModel):
     question: NonBlankString
     expected_document_ids: NonEmptyIdentifiers
     expected_chunk_ids: NonEmptyIdentifiers
+    difficulty: Literal["factual", "semantic", "difficult"] | None = None
+    rationale: NonBlankString | None = None
 
     @field_validator(
         "expected_document_ids",

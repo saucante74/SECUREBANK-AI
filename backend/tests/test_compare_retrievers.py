@@ -5,6 +5,7 @@ import pytest
 
 from app.schemas.documents import Chunk
 from app.schemas.retrieval import RetrievalResult
+from app.services.benchmark_dataset import load_benchmark_dataset
 from app.services.chunking import CharacterChunker
 from app.services.embeddings import LocalEmbeddingService
 from app.services.qdrant import QdrantVectorStore, QdrantVectorStoreError
@@ -54,19 +55,22 @@ def create_pipeline(result: RetrievalResult | None = None) -> ComparisonPipeline
         engines[name] = engine
     return ComparisonPipeline(
         chunks=[result.chunk] if result else [],
+        cases=SYNTHETIC_EVALUATION_CASES,
         engines=engines,
         qdrant_point_count=1 if result else 0,
     )
 
 
 def test_prepare_comparison_builds_the_four_real_configurations() -> None:
+    dataset = load_benchmark_dataset()
     embeddings = MagicMock(spec=LocalEmbeddingService)
-    embeddings.embed_chunks.return_value = [[0.1] * 384] * 3
+    embeddings.embed_chunks.return_value = [[0.1] * 384] * 30
     vector_store = MagicMock(spec=QdrantVectorStore)
-    vector_store.store_chunks.return_value = 3
+    vector_store.store_chunks.return_value = 137
     reranker = MagicMock(spec=FlashRankReranker)
 
     pipeline = prepare_comparison(
+        dataset,
         CharacterChunker(chunk_size=1_000),
         embeddings,
         vector_store,
@@ -75,8 +79,9 @@ def test_prepare_comparison_builds_the_four_real_configurations() -> None:
     )
 
     assert tuple(pipeline.engines) == ENGINE_NAMES
-    assert len(pipeline.chunks) == 3
-    assert pipeline.qdrant_point_count == 3
+    assert len(pipeline.chunks) == 30
+    assert len(pipeline.cases) == 40
+    assert pipeline.qdrant_point_count == 30
     embeddings.embed_chunks.assert_called_once_with(pipeline.chunks)
     vector_store.store_chunks.assert_called_once()
 
