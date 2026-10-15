@@ -85,6 +85,7 @@ SECUREBANK-AI/
 │   ├── requirements-runtime.txt
 │   ├── requirements.txt
 │   ├── scripts/
+│   │   ├── demo_flashrank.py
 │   │   ├── demo_hybrid_search.py
 │   │   ├── demo_vector_search.py
 │   │   ├── prepare_flashrank_model.py
@@ -265,6 +266,23 @@ python -m pytest
 ```
 
 The tests cover configuration defaults, environment overrides, the health endpoint contract, JWT validation, Bearer authentication and RBAC, local PII detection and masking, deterministic document chunking, in-memory BM25 retrieval, local embeddings, and Qdrant vector storage.
+
+### Local FlashRank Reranking Demonstration
+
+FlashRank reranks a fixed candidate set by comparing each passage with the full question. Prepare `ms-marco-MultiBERT-L-12` explicitly from the backend directory while network access is available:
+
+```bash
+cd backend
+python -m scripts.prepare_flashrank_model
+```
+
+The weights are stored in the Git-ignored `backend/models/flashrank` cache. After preparation, run the qualitative CPU demonstration with no network access:
+
+```bash
+python -m scripts.demo_flashrank
+```
+
+The script validates the required local files before creating the FlashRank engine, so a missing model produces a preparation command instead of a silent runtime download. It prints the initial synthetic ranking, the reranked order, model loading time, and inference time for two French banking questions. FlashRank scores express model-relative relevance within the candidate set; they are not calibrated probabilities and should not be interpreted as confidence or compliance guarantees. This small synthetic example supports visual qualitative inspection only. It does not measure retrieval recall, answer correctness, threshold quality, or performance on a representative banking corpus.
 
 ### Local PII Detection and Masking
 
