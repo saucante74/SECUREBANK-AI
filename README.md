@@ -62,6 +62,7 @@ SECUREBANK-AI/
 │   │   │   ├── __init__.py
 │   │   │   ├── auth.py
 │   │   │   ├── documents.py
+│   │   │   ├── evaluation.py
 │   │   │   ├── pii.py
 │   │   │   └── retrieval.py
 │   │   ├── services/
@@ -75,6 +76,7 @@ SECUREBANK-AI/
 │   │   │   ├── qdrant.py
 │   │   │   ├── rag_retrieval.py
 │   │   │   ├── reranking.py
+│   │   │   ├── retrieval_evaluation.py
 │   │   │   └── rrf.py
 │   │   └── main.py
 │   ├── .dockerignore
@@ -110,6 +112,7 @@ SECUREBANK-AI/
 │   │   ├── test_qdrant.py
 │   │   ├── test_rag_retrieval.py
 │   │   ├── test_reranking.py
+│   │   ├── test_retrieval_evaluation.py
 │   │   └── test_rrf.py
 │   └── venv/
 ├── frontend/
@@ -308,6 +311,14 @@ python -m scripts.demo_rag_retrieval
 ```
 
 The demonstration runs BM25 and local MiniLM/Qdrant retrieval, combines their rankings with RRF, and passes a broader candidate set to local FlashRank for the final ranking. It prints RRF and FlashRank scores separately because their numeric scales are not comparable. Stable Qdrant point identifiers make repeated indexing idempotent, and the script verifies that the exact point count matches the synthetic chunks after each run. The demonstration uses three synthetic documents and three sample questions; it does not evaluate retrieval recall, score calibration, evidence quality, latency under load, or answer generation.
+
+### Synthetic Retrieval Evaluation
+
+The reusable evaluation set contains six French questions covering mortgage credit, home insurance, savings, and semantic reformulations. Every case references explicit document and chunk identifiers produced by the current synthetic corpus with its 180-character chunk size and 30-character overlap.
+
+Source Hit@K equals one when at least one expected document appears among the first K results. Evidence Hit@K applies the same rule to expected chunk identifiers and therefore measures whether a precise supporting passage was retrieved. `@K` limits evaluation to the first K ranked results. Dataset evaluation reports both metrics per case and their arithmetic means.
+
+This small synthetic set cannot represent production language, corpus diversity, retrieval difficulty, or statistically reliable quality. It calculates metrics for supplied results only and does not yet execute or compare BM25, Qdrant, RRF, and FlashRank automatically.
 
 ### Local PII Detection and Masking
 
