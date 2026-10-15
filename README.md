@@ -24,7 +24,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | HS256 JWT validation, Bearer authentication, RBAC, local PII detection and masking | Token generation |
-| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval orchestration, independent FlashRank reranking | Automated reranking integration |
+| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval, and FlashRank reranking orchestration | Evidence validation and abstention |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
 | Frontend | None | React 19, TypeScript, Vite |
@@ -34,7 +34,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG components represent source documents, split them into typed passages, retrieve lexical and vector candidates, and fuse both rankings with RRF through an injected hybrid retrieval service.
+The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates, fuses both rankings with RRF, and reranks the fused candidates with FlashRank through an injected `RagRetriever` service.
 
 ## Repository Structure
 
@@ -73,6 +73,7 @@ SECUREBANK-AI/
 │   │   │   ├── pii.py
 │   │   │   ├── pii_masking.py
 │   │   │   ├── qdrant.py
+│   │   │   ├── rag_retrieval.py
 │   │   │   ├── reranking.py
 │   │   │   └── rrf.py
 │   │   └── main.py
@@ -92,6 +93,7 @@ SECUREBANK-AI/
 │   │   ├── prepare_embedding_model.py
 │   │   └── verify_embedding_model.py
 │   ├── tests/
+│   │   ├── test_demo_flashrank.py
 │   │   ├── test_demo_hybrid_search.py
 │   │   ├── test_demo_vector_search.py
 │   │   ├── test_bm25.py
@@ -104,6 +106,7 @@ SECUREBANK-AI/
 │   │   ├── test_pii_api.py
 │   │   ├── test_pii_masking.py
 │   │   ├── test_qdrant.py
+│   │   ├── test_rag_retrieval.py
 │   │   ├── test_reranking.py
 │   │   └── test_rrf.py
 │   └── venv/
@@ -283,6 +286,14 @@ python -m scripts.demo_flashrank
 ```
 
 The script validates the required local files before creating the FlashRank engine, so a missing model produces a preparation command instead of a silent runtime download. It prints the initial synthetic ranking, the reranked order, model loading time, and inference time for two French banking questions. FlashRank scores express model-relative relevance within the candidate set; they are not calibrated probabilities and should not be interpreted as confidence or compliance guarantees. This small synthetic example supports visual qualitative inspection only. It does not measure retrieval recall, answer correctness, threshold quality, or performance on a representative banking corpus.
+
+### Complete Retrieval and Reranking Pipeline
+
+`RagRetriever` composes the existing hybrid retriever and FlashRank reranker without coupling their implementations. Retrieval finds a broad candidate set through BM25 and MiniLM/Qdrant before RRF fusion. Reranking then compares the full question with each fused passage and changes their order and scores while preserving every chunk and its metadata.
+
+The service requests three times the desired final count by default. For `top_k=5`, hybrid retrieval receives `top_k=15`, and FlashRank returns at most five final results. The candidate multiplier is configurable and must be a strictly positive integer. A larger value gives FlashRank more candidates to examine but increases retrieval and CPU inference work.
+
+This service has no API route and performs no LLM generation. FlashRank scores are relative ranking signals rather than calibrated probabilities, confidence levels, or evidence-quality guarantees. Evidence validation, score-threshold calibration, answer generation, and abstention remain outside this iteration.
 
 ### Local PII Detection and Masking
 
