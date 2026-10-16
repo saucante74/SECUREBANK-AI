@@ -1,0 +1,701 @@
+{
+  "documents": [
+    {
+      "id": "benchmark-mortgage-capacity",
+      "title": "Crédit immobilier : capacité d'emprunt",
+      "source": "synthetic://benchmark/credit-immobilier/mortgage-capacity",
+      "content": "Le prêteur étudie les revenus réguliers, les charges récurrentes et les autres crédits du ménage. Le taux d'effort mesure la part du revenu consacrée aux remboursements.\n\nL'apport personnel peut couvrir une partie du prix et les frais d'acquisition. Une épargne résiduelle aide aussi à absorber un imprévu après l'achat.\n\nLa durée, le taux et le montant demandé déterminent la mensualité. Une simulation reste indicative tant que les justificatifs n'ont pas été analysés.\n\nLe bien sert généralement de garantie. La décision finale dépend du dossier complet et des règles de risque de la banque."
+    },
+    {
+      "id": "benchmark-mortgage-early-repayment",
+      "title": "Crédit immobilier : remboursement anticipé",
+      "source": "synthetic://benchmark/credit-immobilier/mortgage-early-repayment",
+      "content": "Un emprunteur peut rembourser son crédit immobilier avant la date prévue, en totalité ou en partie. Il adresse une demande écrite pour obtenir un décompte.\n\nLe contrat précise le montant minimal d'un remboursement partiel. Il peut également prévoir une indemnité de remboursement anticipé, dans les limites applicables.\n\nLe décompte indique le capital restant dû, les intérêts courus et les frais éventuels à la date choisie. Le paiement clôt le prêt ou réduit sa durée ou ses mensualités.\n\nCertaines situations prévues au contrat peuvent réduire les indemnités. Une comparaison entre économie d'intérêts et coût de l'opération éclaire la décision."
+    },
+    {
+      "id": "benchmark-mortgage-fixed-variable",
+      "title": "Taux fixe ou révisable pour un prêt immobilier",
+      "source": "synthetic://benchmark/credit-immobilier/mortgage-fixed-variable",
+      "content": "Un taux fixe conserve la même règle de calcul pendant la période convenue. Il facilite la prévision des mensualités et du coût du financement.\n\nUn taux révisable évolue selon un indice et une fréquence définis au contrat. Une hausse de l'indice peut augmenter la mensualité ou prolonger la durée.\n\nUn plafond de variation limite parfois l'évolution du taux. L'offre détaille l'indice, la marge, les dates de révision et les exemples chiffrés.\n\nLe choix dépend de la tolérance au risque, de l'horizon de détention du logement et de la capacité à supporter une variation des échéances."
+    },
+    {
+      "id": "benchmark-mortgage-guarantees",
+      "title": "Garanties d'un financement immobilier",
+      "source": "synthetic://benchmark/credit-immobilier/mortgage-guarantees",
+      "content": "La banque peut demander une hypothèque, une sûreté équivalente ou la garantie d'un organisme spécialisé. La garantie protège le remboursement du capital en cas de défaillance.\n\nL'hypothèque porte sur le bien financé et nécessite des formalités. Une caution mutualisée repose sur l'engagement d'un organisme après examen du dossier.\n\nLes frais de constitution, de mainlevée et la restitution éventuelle diffèrent selon la garantie. Ils doivent être intégrés au coût total du projet.\n\nLa garantie du prêt ne remplace pas l'assurance emprunteur. Ces mécanismes couvrent des risques distincts et suivent leurs propres conditions."
+    },
+    {
+      "id": "benchmark-mortgage-offer",
+      "title": "Lecture d'une offre de crédit immobilier",
+      "source": "synthetic://benchmark/credit-immobilier/mortgage-offer",
+      "content": "L'offre de crédit présente le montant, la durée, le taux débiteur et le coût total. Elle détaille les échéances et les conditions de mise à disposition des fonds.\n\nLe taux annuel effectif global regroupe les coûts obligatoires connus nécessaires à l'obtention du financement. Il facilite la comparaison d'offres comparables.\n\nLe tableau d'amortissement répartit chaque échéance entre capital et intérêts. Les premières échéances d'un prêt amortissable comportent souvent une part d'intérêts plus élevée.\n\nL'emprunteur vérifie aussi les garanties, l'assurance, les frais et les conditions de remboursement anticipé avant d'accepter."
+    },
+    {
+      "id": "benchmark-consumer-personal-loan",
+      "title": "Prêt personnel non affecté",
+      "source": "synthetic://benchmark/credit-consommation/consumer-personal-loan",
+      "content": "Le prêt personnel finance un projet sans lier les fonds à un achat déterminé. Le client choisit le montant et la durée dans les limites proposées.\n\nLa banque examine les revenus, les charges et les crédits existants avant d'évaluer la capacité de remboursement. Aucun justificatif d'utilisation n'est normalement demandé.\n\nL'offre précise le taux, les mensualités, le coût total et les frais éventuels. Un délai de rétractation permet de revenir sur l'engagement selon les conditions indiquées.\n\nUn remboursement anticipé est possible. Le contrat indique si une indemnité peut s'appliquer selon le montant remboursé et la durée restante."
+    },
+    {
+      "id": "benchmark-consumer-assigned-loan",
+      "title": "Crédit affecté à un achat",
+      "source": "synthetic://benchmark/credit-consommation/consumer-assigned-loan",
+      "content": "Le crédit affecté finance un bien ou un service désigné, comme un véhicule ou des travaux. Le contrat de crédit mentionne précisément l'achat concerné.\n\nLa vente et le financement sont juridiquement liés dans les conditions prévues. Si le crédit est refusé, l'achat financé ne suit normalement pas son cours.\n\nLes fonds sont destinés au vendeur ou au prestataire après réalisation des conditions. Le client conserve les documents décrivant le bien, le prix et la livraison.\n\nLe coût comprend les intérêts et les frais obligatoires. Le remboursement anticipé suit les règles du crédit à la consommation, distinctes d'un prêt immobilier."
+    },
+    {
+      "id": "benchmark-consumer-revolving",
+      "title": "Crédit renouvelable et réserve disponible",
+      "source": "synthetic://benchmark/credit-consommation/consumer-revolving",
+      "content": "Le crédit renouvelable met à disposition une réserve utilisable en plusieurs fois. La partie non utilisée ne produit pas d'intérêts.\n\nChaque utilisation diminue le disponible et déclenche des remboursements. Les mensualités reconstituent progressivement la réserve, sous réserve des intérêts et frais.\n\nLe taux peut être révisable et le coût augmente lorsque le remboursement s'étale. Le relevé indique le capital utilisé, le disponible et une estimation de la durée.\n\nCe produit diffère d'un prêt personnel amortissable au montant versé une seule fois. Une utilisation répétée nécessite un suivi attentif du budget."
+    },
+    {
+      "id": "benchmark-consumer-early-repayment",
+      "title": "Remboursement anticipé d'un crédit à la consommation",
+      "source": "synthetic://benchmark/credit-consommation/consumer-early-repayment",
+      "content": "Le client peut rembourser avant l'échéance tout ou partie d'un crédit à la consommation. Il demande au prêteur le solde arrêté à une date précise.\n\nLes intérêts et frais correspondant à la période future ne sont plus dus. Une indemnité peut toutefois être prévue lorsque les conditions et seuils du contrat sont réunis.\n\nPour un remboursement partiel, le prêteur précise l'effet sur la durée ou les mensualités. Le client vérifie que le paiement a bien été imputé au capital.\n\nCes modalités concernent le crédit à la consommation. Un financement immobilier obéit à son propre contrat et à des règles d'indemnisation différentes."
+    },
+    {
+      "id": "benchmark-consumer-difficulty",
+      "title": "Difficultés de remboursement d'un crédit",
+      "source": "synthetic://benchmark/credit-consommation/consumer-difficulty",
+      "content": "Un client qui anticipe une difficulté de paiement contacte rapidement le prêteur. Un échange précoce permet d'examiner la situation avant l'accumulation d'impayés.\n\nSelon le dossier, un report limité, un réaménagement des échéances ou une autre solution peut être étudié. Aucune mesure n'est automatique.\n\nLe client prépare un budget recensant revenus, charges essentielles et dettes. Il transmet uniquement les justificatifs nécessaires par un canal sécurisé.\n\nIgnorer les relances peut entraîner des frais et des procédures. Une structure indépendante d'accompagnement budgétaire peut aussi fournir une aide adaptée."
+    },
+    {
+      "id": "benchmark-insurance-home-cover",
+      "title": "Garanties de l'assurance habitation",
+      "source": "synthetic://benchmark/assurance/insurance-home-cover",
+      "content": "L'assurance habitation peut couvrir l'incendie, le dégât des eaux, le vol et certains événements naturels selon la formule souscrite. Les biens et plafonds garantis figurent au contrat.\n\nLa responsabilité civile indemnise certains dommages causés involontairement à des tiers. Elle ne couvre pas automatiquement tous les usages professionnels du logement.\n\nDes mesures de prévention, comme entretenir les canalisations, fermer les accès et installer des détecteurs, réduisent l'exposition aux sinistres sans remplacer l'assurance.\n\nFranchises, plafonds, délais et exclusions déterminent l'indemnisation réelle. Ils doivent être examinés avant la souscription."
+    },
+    {
+      "id": "benchmark-insurance-home-claim",
+      "title": "Déclarer un sinistre habitation",
+      "source": "synthetic://benchmark/assurance/insurance-home-claim",
+      "content": "Après un sinistre, l'assuré protège les personnes et limite l'aggravation des dommages sans se mettre en danger. Il conserve les biens endommagés lorsque cela est possible.\n\nLa déclaration est transmise à l'assureur dans le délai prévu au contrat. Elle décrit la date, les circonstances, les dommages et les coordonnées utiles.\n\nDes photographies, factures, devis ou constats peuvent soutenir le dossier. L'assureur peut demander une expertise avant d'arrêter l'indemnité.\n\nL'assuré ne lance pas de réparation définitive importante avant accord, sauf urgence. Il conserve une trace des échanges et des dépenses de sauvegarde."
+    },
+    {
+      "id": "benchmark-insurance-home-exclusions",
+      "title": "Exclusions et franchises en assurance habitation",
+      "source": "synthetic://benchmark/assurance/insurance-home-exclusions",
+      "content": "Une exclusion retire certains événements ou comportements du champ de la garantie. Elle peut concerner un défaut d'entretien, un acte intentionnel ou un usage non déclaré.\n\nLa franchise est la part du dommage qui reste à la charge de l'assuré après un sinistre couvert. Son montant peut être fixe ou calculé selon le préjudice.\n\nUn plafond limite la somme versée pour une garantie ou une catégorie de biens. Des objets de valeur nécessitent parfois une déclaration et une protection particulières.\n\nLire ensemble garanties, exclusions, franchises et plafonds évite de confondre événement couvert et indemnisation intégrale."
+    },
+    {
+      "id": "benchmark-insurance-borrower",
+      "title": "Assurance emprunteur",
+      "source": "synthetic://benchmark/assurance/insurance-borrower",
+      "content": "L'assurance emprunteur peut prendre en charge tout ou partie des échéances d'un prêt en cas de décès, d'invalidité ou d'incapacité selon les garanties retenues.\n\nLa quotité représente la part du capital assurée pour chaque emprunteur. Pour deux coemprunteurs, la répartition choisie détermine le niveau de protection de chacun.\n\nLes exclusions, délais de carence, franchises et définitions médicales influencent la prise en charge. Le coût dépend notamment du capital, de l'âge et des garanties.\n\nCette assurance protège le remboursement du crédit. Elle ne couvre ni les murs ni les biens du logement comme une assurance habitation."
+    },
+    {
+      "id": "benchmark-insurance-payment-protection",
+      "title": "Assurance facultative d'un crédit à la consommation",
+      "source": "synthetic://benchmark/assurance/insurance-payment-protection",
+      "content": "Une assurance liée à un crédit à la consommation peut couvrir certaines échéances en cas d'incapacité, d'invalidité, de décès ou parfois de perte d'emploi.\n\nLes garanties sont facultatives sauf exigence particulière clairement annoncée. Leur coût et leurs conditions figurent séparément dans l'offre.\n\nLes délais de carence, franchises, limites d'âge et exclusions peuvent restreindre la prise en charge. Une perte d'emploi volontaire n'est généralement pas couverte.\n\nLe client compare le coût total, les risques couverts et les assurances qu'il détient déjà avant de souscrire une protection supplémentaire."
+    },
+    {
+      "id": "benchmark-savings-booklet",
+      "title": "Livret d'épargne disponible",
+      "source": "synthetic://benchmark/epargne/savings-booklet",
+      "content": "Un livret d'épargne permet des versements et retraits dans les conditions du produit. Les fonds restent généralement disponibles sans échéance fixe.\n\nLa rémunération dépend d'un taux qui peut évoluer. Les intérêts sont calculés selon les règles annoncées et crédités périodiquement.\n\nUn plafond de versement peut limiter les nouveaux dépôts sans empêcher la capitalisation des intérêts. La fiscalité dépend du type de livret et de la situation applicable.\n\nCe support convient à une réserve de précaution lorsque la disponibilité prime. Son rendement peut être inférieur à celui de placements bloqués ou exposés au marché."
+    },
+    {
+      "id": "benchmark-savings-term-deposit",
+      "title": "Compte à terme",
+      "source": "synthetic://benchmark/epargne/savings-term-deposit",
+      "content": "Le compte à terme immobilise une somme pendant une durée convenue en échange d'une rémunération définie. Le taux peut être fixe, progressif ou dépendre de conditions annoncées.\n\nLe contrat précise le dépôt minimal, l'échéance et le mode de versement des intérêts. Aucun nouveau versement n'est généralement prévu après l'ouverture.\n\nUne sortie avant l'échéance peut être interdite ou entraîner une pénalité et une rémunération réduite. Les modalités doivent être vérifiées avant de bloquer les fonds.\n\nCe produit se distingue d'un livret disponible à tout moment. Il convient à une somme dont le client prévoit de ne pas avoir besoin pendant la durée retenue."
+    },
+    {
+      "id": "benchmark-savings-securities-account",
+      "title": "Compte-titres et investissement",
+      "source": "synthetic://benchmark/epargne/savings-securities-account",
+      "content": "Un compte-titres permet de détenir des actions, obligations, fonds et autres instruments proposés. La valeur des placements peut monter ou baisser.\n\nAvant d'investir, le client définit son horizon, son objectif, sa tolérance aux pertes et son besoin de liquidité. La diversification répartit les risques sans les supprimer.\n\nLes frais de transaction, de garde et de gestion réduisent la performance. La fiscalité varie selon les revenus et plus-values réalisés.\n\nContrairement à un dépôt bancaire, le capital investi sur les marchés n'est pas garanti. Une perte est possible, notamment lors d'une vente dans une période défavorable."
+    },
+    {
+      "id": "benchmark-savings-regular-plan",
+      "title": "Plan d'épargne programmé",
+      "source": "synthetic://benchmark/epargne/savings-regular-plan",
+      "content": "Un plan programmé investit ou épargne un montant défini à intervalles réguliers. L'automatisation aide à maintenir l'effort d'épargne dans le temps.\n\nLe montant doit rester compatible avec le budget et la réserve de précaution. Il peut être ajusté ou suspendu selon les conditions du produit.\n\nDes versements réguliers sur un placement de marché répartissent les points d'entrée, mais n'empêchent ni une baisse de valeur ni une perte en capital.\n\nLe choix du support dépend de l'horizon, du risque accepté, des frais et de la disponibilité souhaitée. La régularité ne garantit aucun rendement."
+    },
+    {
+      "id": "benchmark-savings-risk-profile",
+      "title": "Profil de risque et horizon d'épargne",
+      "source": "synthetic://benchmark/epargne/savings-risk-profile",
+      "content": "L'horizon indique quand l'argent devra être disponible. Un besoin proche appelle généralement des supports plus stables et liquides qu'un objectif éloigné.\n\nLa capacité de perte mesure l'effet financier qu'aurait une baisse du placement. La tolérance au risque décrit la réaction personnelle face aux fluctuations.\n\nObjectifs, connaissances, expérience et situation financière contribuent au profil. Ces éléments doivent être actualisés lorsqu'un projet ou le budget change.\n\nUn rendement espéré plus élevé s'accompagne généralement d'un risque supérieur. Diversifier et comprendre les frais restent nécessaires, quel que soit le profil."
+    },
+    {
+      "id": "benchmark-payments-card-opposition",
+      "title": "Faire opposition sur une carte",
+      "source": "synthetic://benchmark/comptes-paiements/payments-card-opposition",
+      "content": "En cas de perte, de vol ou d'utilisation suspecte, le titulaire fait immédiatement opposition sur sa carte par le canal prévu par la banque. L'opposition bloque les nouvelles opérations.\n\nLe client note la référence de l'opposition et vérifie les dernières transactions. Il sécurise aussi l'accès à l'application si le téléphone a disparu.\n\nUne opposition est distincte d'une contestation : bloquer la carte empêche de nouveaux paiements, tandis que contester vise des opérations déjà comptabilisées.\n\nUne nouvelle carte et un nouveau code peuvent être émis. La carte retrouvée après opposition ne doit plus être utilisée."
+    },
+    {
+      "id": "benchmark-payments-card-dispute",
+      "title": "Contester un paiement par carte",
+      "source": "synthetic://benchmark/comptes-paiements/payments-card-dispute",
+      "content": "Le titulaire qui ne reconnaît pas un paiement consulte d'abord le libellé, la date et le montant. Un nom commercial peut différer de l'enseigne connue.\n\nSi l'opération reste inconnue, il la conteste auprès de la banque dans le délai applicable et fournit les éléments demandés. Il indique si la carte est toujours en sa possession.\n\nLa banque examine l'authentification, le déroulement de l'opération et les circonstances déclarées. Une contestation ne garantit pas automatiquement un remboursement.\n\nSi d'autres utilisations sont possibles, le client fait aussi opposition. La contestation traite l'opération passée ; l'opposition protège les opérations futures."
+    },
+    {
+      "id": "benchmark-payments-transfer-fraud",
+      "title": "Réagir à une fraude au virement",
+      "source": "synthetic://benchmark/comptes-paiements/payments-transfer-fraud",
+      "content": "Lorsqu'un virement frauduleux vient d'être exécuté, le client contacte immédiatement la banque pour demander une tentative de rappel des fonds. Le succès dépend notamment du délai.\n\nIl transmet la référence, le montant et le compte bénéficiaire par un canal sécurisé. Il signale les accès compromis et change ses moyens d'authentification.\n\nLa banque analyse l'ordre, les validations et le parcours des fonds. Un rappel n'annule pas automatiquement un virement déjà crédité au bénéficiaire.\n\nLe client conserve les messages et dépose plainte lorsque la situation le justifie. Il surveille ensuite le compte et refuse toute nouvelle instruction suspecte."
+    },
+    {
+      "id": "benchmark-payments-standing-order",
+      "title": "Virement permanent et prélèvement",
+      "source": "synthetic://benchmark/comptes-paiements/payments-standing-order",
+      "content": "Un virement permanent est un ordre donné par le client pour envoyer périodiquement un montant vers un bénéficiaire. Le client choisit la fréquence et la date.\n\nUn prélèvement est initié par le créancier sur la base d'une autorisation. Son montant peut varier, par exemple pour une facture d'énergie.\n\nModifier un virement permanent n'annule pas les virements déjà exécutés. Révoquer un mandat de prélèvement n'efface pas une dette due au créancier.\n\nLe client vérifie les délais de modification avant l'échéance et contrôle régulièrement les opérations récurrentes sur ses relevés."
+    },
+    {
+      "id": "benchmark-payments-account-fees",
+      "title": "Frais et relevé de compte",
+      "source": "synthetic://benchmark/comptes-paiements/payments-account-fees",
+      "content": "Le relevé retrace les opérations, les dates de valeur, les frais et le solde du compte. Le client le contrôle régulièrement et signale rapidement une anomalie.\n\nLes frais peuvent concerner la tenue du compte, les cartes, les retraits ou certaines opérations internationales. La brochure tarifaire précise leur montant.\n\nUne autorisation de découvert fixe une limite, une durée et un taux. Dépasser la limite peut entraîner des frais supplémentaires et le refus d'opérations.\n\nComparer les offres suppose d'examiner les services réellement utilisés plutôt qu'un seul tarif. Les notifications aident à suivre le solde sans remplacer le relevé."
+    },
+    {
+      "id": "benchmark-security-phishing",
+      "title": "Reconnaître une tentative de phishing",
+      "source": "synthetic://benchmark/securite-conformite/security-phishing",
+      "content": "Un message de phishing imite une banque et cherche à obtenir un mot de passe, un code ou une validation. Il crée souvent un sentiment d'urgence ou menace de bloquer le compte.\n\nLe client ne clique pas sur le lien et n'appelle pas le numéro fourni. Il ouvre lui-même l'application officielle ou saisit l'adresse habituelle de la banque.\n\nUne banque ne demande pas de communiquer un code confidentiel complet par courriel ou téléphone. Un code reçu sert uniquement à l'action décrite dans le message légitime.\n\nEn cas de saisie ou de validation suspecte, le client contacte immédiatement la banque, change ses accès et surveille les opérations."
+    },
+    {
+      "id": "benchmark-security-transfer-scam",
+      "title": "Prévenir les arnaques au virement",
+      "source": "synthetic://benchmark/securite-conformite/security-transfer-scam",
+      "content": "Une fraude au faux conseiller pousse la victime à effectuer elle-même un virement présenté comme sécurisé. L'appelant peut afficher un numéro falsifié et connaître certaines informations.\n\nAucun compte de sécurité n'exige de transférer l'épargne. Le client raccroche puis rappelle la banque avec un numéro obtenu indépendamment.\n\nPour une facture, une modification soudaine d'IBAN doit être vérifiée auprès du fournisseur par un canal déjà connu. Une validation forte confirme l'ordre mais pas l'identité réelle du bénéficiaire.\n\nLes plafonds, alertes et doubles contrôles réduisent le risque. Après un virement suspect, une demande de rappel doit être faite sans attendre."
+    },
+    {
+      "id": "benchmark-security-strong-authentication",
+      "title": "Authentification forte et accès bancaire",
+      "source": "synthetic://benchmark/securite-conformite/security-strong-authentication",
+      "content": "L'authentification forte combine au moins deux éléments indépendants, comme un secret, un appareil détenu ou une caractéristique biométrique. Elle protège l'accès et certaines opérations.\n\nLe client garde son code secret, verrouille son téléphone et met à jour l'application. Il ne valide jamais une demande qu'il n'a pas initiée.\n\nUne notification de validation doit indiquer l'action et, pour un paiement, le montant ou le bénéficiaire. En cas d'écart, le client refuse et contacte la banque.\n\nLa biométrie facilite l'usage mais ne dispense pas de sécuriser l'appareil. La banque peut demander une vérification supplémentaire selon le niveau de risque."
+    },
+    {
+      "id": "benchmark-compliance-funds-origin",
+      "title": "Justifier l'origine des fonds",
+      "source": "synthetic://benchmark/securite-conformite/compliance-funds-origin",
+      "content": "La banque peut demander l'origine économique de fonds reçus ou destinés à une opération importante. Cette vérification contribue à comprendre la transaction et à respecter ses obligations.\n\nLes justificatifs dépendent du contexte : acte de vente, attestation successorale, contrat, relevé ou document fiscal pertinent. Seules les pièces nécessaires doivent être transmises.\n\nUne demande d'information ne signifie pas qu'une opération est illégale. Une réponse cohérente et complète facilite l'examen, qui peut nécessiter des vérifications supplémentaires.\n\nLes documents sont envoyés par le canal sécurisé indiqué par la banque. Les données ne doivent pas être adressées à un contact non vérifié."
+    },
+    {
+      "id": "benchmark-compliance-account-review",
+      "title": "Mise à jour du dossier client",
+      "source": "synthetic://benchmark/securite-conformite/compliance-account-review",
+      "content": "La banque actualise périodiquement les informations permettant de connaître son client, son activité et l'usage prévu du compte. La fréquence dépend notamment du niveau de risque.\n\nElle peut demander une pièce d'identité valide, une adresse, une activité professionnelle ou des informations sur la résidence fiscale. La demande précise les moyens de réponse.\n\nLe client vérifie l'authenticité du message depuis son espace sécurisé avant de transmettre un document. Il évite les pièces par courriel non protégé.\n\nL'absence de réponse peut limiter certains services après les relances prévues. La mise à jour sert la conformité et se distingue d'une sollicitation commerciale."
+    }
+  ],
+  "cases": [
+    {
+      "id": "factual-mortgage-capacity",
+      "question": "Quels éléments la banque examine-t-elle pour calculer la capacité de remboursement d'un crédit immobilier ?",
+      "expected_document_ids": [
+        "benchmark-mortgage-capacity"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-mortgage-capacity:chunk:0"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage énumère les revenus, charges, crédits existants et le taux d'effort."
+    },
+    {
+      "id": "factual-mortgage-early-fee",
+      "question": "Un remboursement anticipé de prêt immobilier peut-il entraîner une indemnité ?",
+      "expected_document_ids": [
+        "benchmark-mortgage-early-repayment"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-mortgage-early-repayment:chunk:1"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage précise que le contrat peut prévoir une indemnité dans les limites applicables."
+    },
+    {
+      "id": "factual-variable-rate-index",
+      "question": "Selon quoi le taux révisable d'un prêt immobilier évolue-t-il ?",
+      "expected_document_ids": [
+        "benchmark-mortgage-fixed-variable"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-mortgage-fixed-variable:chunk:1"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage relie la révision du taux à un indice et à une fréquence contractuelle."
+    },
+    {
+      "id": "factual-mortgage-apr",
+      "question": "Que regroupe le taux annuel effectif global d'une offre immobilière ?",
+      "expected_document_ids": [
+        "benchmark-mortgage-offer"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-mortgage-offer:chunk:1"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage définit le TAEG par les coûts obligatoires connus du financement."
+    },
+    {
+      "id": "factual-assigned-loan-refusal",
+      "question": "Que devient l'achat financé si un crédit affecté est refusé ?",
+      "expected_document_ids": [
+        "benchmark-consumer-assigned-loan"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-consumer-assigned-loan:chunk:1"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage explique le lien entre la vente et le refus du crédit affecté."
+    },
+    {
+      "id": "factual-revolving-unused-interest",
+      "question": "La partie non utilisée d'un crédit renouvelable produit-elle des intérêts ?",
+      "expected_document_ids": [
+        "benchmark-consumer-revolving"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-consumer-revolving:chunk:0"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage indique explicitement que seule la réserve utilisée produit des intérêts."
+    },
+    {
+      "id": "factual-consumer-future-interest",
+      "question": "Quels intérêts disparaissent lors du remboursement anticipé d'un crédit à la consommation ?",
+      "expected_document_ids": [
+        "benchmark-consumer-early-repayment"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-consumer-early-repayment:chunk:1"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage indique que les intérêts et frais de la période future ne sont plus dus."
+    },
+    {
+      "id": "factual-home-claim-deadline",
+      "question": "Dans quel délai faut-il déclarer un sinistre habitation ?",
+      "expected_document_ids": [
+        "benchmark-insurance-home-claim"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-insurance-home-claim:chunk:1"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage renvoie au délai prévu par le contrat d'assurance."
+    },
+    {
+      "id": "factual-home-franchise",
+      "question": "Qu'est-ce qu'une franchise en assurance habitation ?",
+      "expected_document_ids": [
+        "benchmark-insurance-home-exclusions"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-insurance-home-exclusions:chunk:1"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage définit la franchise comme la part restant à la charge de l'assuré."
+    },
+    {
+      "id": "factual-borrower-share",
+      "question": "Que représente la quotité d'une assurance emprunteur ?",
+      "expected_document_ids": [
+        "benchmark-insurance-borrower"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-insurance-borrower:chunk:1"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage définit la part de capital assurée pour chaque emprunteur."
+    },
+    {
+      "id": "factual-booklet-withdrawal",
+      "question": "Les fonds d'un livret d'épargne sont-ils disponibles sans échéance fixe ?",
+      "expected_document_ids": [
+        "benchmark-savings-booklet"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-savings-booklet:chunk:0"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage indique que les retraits restent généralement possibles sans échéance fixe."
+    },
+    {
+      "id": "factual-term-early-exit",
+      "question": "Quelle conséquence peut avoir une sortie anticipée d'un compte à terme ?",
+      "expected_document_ids": [
+        "benchmark-savings-term-deposit"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-savings-term-deposit:chunk:2"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage mentionne une interdiction, une pénalité ou une rémunération réduite."
+    },
+    {
+      "id": "factual-card-loss",
+      "question": "Quelle action immédiate faut-il effectuer après la perte d'une carte bancaire ?",
+      "expected_document_ids": [
+        "benchmark-payments-card-opposition"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-payments-card-opposition:chunk:0"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage demande une opposition immédiate pour bloquer les nouvelles opérations."
+    },
+    {
+      "id": "factual-transfer-recall",
+      "question": "Quelle demande adresser rapidement à la banque après un virement frauduleux ?",
+      "expected_document_ids": [
+        "benchmark-payments-transfer-fraud"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-payments-transfer-fraud:chunk:0"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage recommande une tentative immédiate de rappel des fonds."
+    },
+    {
+      "id": "factual-funds-origin-documents",
+      "question": "Quels justificatifs peuvent établir l'origine de fonds ?",
+      "expected_document_ids": [
+        "benchmark-compliance-funds-origin"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-compliance-funds-origin:chunk:1"
+      ],
+      "difficulty": "factual",
+      "rationale": "Le passage cite acte de vente, succession, contrat, relevé et document fiscal."
+    },
+    {
+      "id": "semantic-home-budget",
+      "question": "Sur quoi mon conseiller se base-t-il pour savoir si mon budget supportera l'achat d'un logement ?",
+      "expected_document_ids": [
+        "benchmark-mortgage-capacity"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-mortgage-capacity:chunk:0",
+        "benchmark-mortgage-capacity:chunk:1"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Les passages couvrent revenus, charges, taux d'effort et apport personnel."
+    },
+    {
+      "id": "semantic-clear-home-loan",
+      "question": "Puis-je solder mon financement immobilier avant son terme ?",
+      "expected_document_ids": [
+        "benchmark-mortgage-early-repayment"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-mortgage-early-repayment:chunk:0"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Solder avant le terme reformule le remboursement anticipé total."
+    },
+    {
+      "id": "semantic-stable-home-payment",
+      "question": "Quel type de taux facilite la prévision de mes mensualités de logement ?",
+      "expected_document_ids": [
+        "benchmark-mortgage-fixed-variable"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-mortgage-fixed-variable:chunk:0"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Le taux fixe est présenté comme facilitant la prévision des mensualités."
+    },
+    {
+      "id": "semantic-collateral-insurance",
+      "question": "La garantie prise par la banque remplace-t-elle la couverture de l'emprunteur ?",
+      "expected_document_ids": [
+        "benchmark-mortgage-guarantees"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-mortgage-guarantees:chunk:3"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Le passage distingue explicitement garantie du prêt et assurance emprunteur."
+    },
+    {
+      "id": "semantic-free-use-loan",
+      "question": "Quel prêt puis-je utiliser pour un projet sans justifier précisément l'achat ?",
+      "expected_document_ids": [
+        "benchmark-consumer-personal-loan"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-consumer-personal-loan:chunk:0",
+        "benchmark-consumer-personal-loan:chunk:1"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Les passages décrivent le prêt personnel non lié à un achat et sans justificatif d'utilisation."
+    },
+    {
+      "id": "semantic-reusable-reserve",
+      "question": "Quel financement se reconstitue à mesure que je rembourse mes utilisations ?",
+      "expected_document_ids": [
+        "benchmark-consumer-revolving"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-consumer-revolving:chunk:1"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Le passage explique la reconstitution progressive de la réserve."
+    },
+    {
+      "id": "semantic-payment-trouble",
+      "question": "Que faire avant que mes échéances impayées ne s'accumulent ?",
+      "expected_document_ids": [
+        "benchmark-consumer-difficulty"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-consumer-difficulty:chunk:0",
+        "benchmark-consumer-difficulty:chunk:1"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Les passages recommandent un contact précoce et présentent les solutions étudiables."
+    },
+    {
+      "id": "semantic-protect-home-disasters",
+      "question": "Comment protéger mon logement contre les sinistres ?",
+      "expected_document_ids": [
+        "benchmark-insurance-home-cover"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-insurance-home-cover:chunk:0",
+        "benchmark-insurance-home-cover:chunk:2",
+        "benchmark-insurance-home-cover:chunk:3"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Les passages associent garanties habitation et mesures de prévention des sinistres."
+    },
+    {
+      "id": "semantic-claim-proof",
+      "question": "Quelles pièces peuvent appuyer mon dossier après un dommage dans mon logement ?",
+      "expected_document_ids": [
+        "benchmark-insurance-home-claim"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-insurance-home-claim:chunk:2"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Le passage cite photographies, factures, devis et constats."
+    },
+    {
+      "id": "semantic-loan-disability-cover",
+      "question": "Quelle protection peut payer mes échéances si une invalidité m'empêche de travailler ?",
+      "expected_document_ids": [
+        "benchmark-insurance-borrower"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-insurance-borrower:chunk:0"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Le passage décrit la prise en charge du prêt en cas d'invalidité ou d'incapacité."
+    },
+    {
+      "id": "semantic-emergency-cash",
+      "question": "Où placer une réserve de précaution qui doit rester accessible ?",
+      "expected_document_ids": [
+        "benchmark-savings-booklet"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-savings-booklet:chunk:3"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Le passage recommande le livret lorsque la disponibilité prime."
+    },
+    {
+      "id": "semantic-lock-savings",
+      "question": "Quel produit rémunère une somme que je peux laisser bloquée jusqu'à une échéance ?",
+      "expected_document_ids": [
+        "benchmark-savings-term-deposit"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-savings-term-deposit:chunk:0",
+        "benchmark-savings-term-deposit:chunk:2"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Les passages décrivent l'immobilisation rémunérée et les contraintes de sortie."
+    },
+    {
+      "id": "semantic-monthly-saving",
+      "question": "Comment automatiser un effort d'épargne chaque mois ?",
+      "expected_document_ids": [
+        "benchmark-savings-regular-plan"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-savings-regular-plan:chunk:0"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Le passage décrit des versements automatiques à intervalles réguliers."
+    },
+    {
+      "id": "semantic-block-card-versus-dispute",
+      "question": "Quelle différence y a-t-il entre bloquer ma carte et contester une opération passée ?",
+      "expected_document_ids": [
+        "benchmark-payments-card-opposition",
+        "benchmark-payments-card-dispute"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-payments-card-opposition:chunk:2",
+        "benchmark-payments-card-dispute:chunk:4"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Les deux passages distinguent protection des opérations futures et traitement d'un paiement passé."
+    },
+    {
+      "id": "semantic-suspicious-bank-link",
+      "question": "Comment réagir à un message bancaire urgent contenant un lien inhabituel ?",
+      "expected_document_ids": [
+        "benchmark-security-phishing"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-security-phishing:chunk:0",
+        "benchmark-security-phishing:chunk:1"
+      ],
+      "difficulty": "semantic",
+      "rationale": "Les passages décrivent l'urgence typique du phishing et recommandent de ne pas cliquer."
+    },
+    {
+      "id": "difficult-early-repayment-unspecified",
+      "question": "Quelles conséquences dois-je vérifier avant de rembourser un prêt plus tôt ?",
+      "expected_document_ids": [
+        "benchmark-mortgage-early-repayment",
+        "benchmark-consumer-early-repayment"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-mortgage-early-repayment:chunk:1",
+        "benchmark-mortgage-early-repayment:chunk:2",
+        "benchmark-consumer-early-repayment:chunk:1",
+        "benchmark-consumer-early-repayment:chunk:2"
+      ],
+      "difficulty": "difficult",
+      "rationale": "Le type de prêt est ambigu ; les deux documents traitent indemnité, solde et effet du remboursement partiel."
+    },
+    {
+      "id": "difficult-insure-home-and-loan",
+      "question": "Quelles assurances protègent à la fois mon logement et le remboursement de mon crédit ?",
+      "expected_document_ids": [
+        "benchmark-insurance-home-cover",
+        "benchmark-insurance-borrower"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-insurance-home-cover:chunk:0",
+        "benchmark-insurance-borrower:chunk:0",
+        "benchmark-insurance-borrower:chunk:3"
+      ],
+      "difficulty": "difficult",
+      "rationale": "La question exige de distinguer les dommages au logement de la couverture des échéances."
+    },
+    {
+      "id": "difficult-unknown-card-payment",
+      "question": "Je vois un paiement inconnu et crains d'autres débits : quelles démarches sont pertinentes ?",
+      "expected_document_ids": [
+        "benchmark-payments-card-dispute",
+        "benchmark-payments-card-opposition"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-payments-card-dispute:chunk:1",
+        "benchmark-payments-card-dispute:chunk:3",
+        "benchmark-payments-card-opposition:chunk:0"
+      ],
+      "difficulty": "difficult",
+      "rationale": "La situation appelle la contestation du paiement et l'opposition contre de nouvelles opérations."
+    },
+    {
+      "id": "difficult-phishing-transfer-executed",
+      "question": "J'ai suivi un faux message puis validé un virement : comment limiter les conséquences ?",
+      "expected_document_ids": [
+        "benchmark-security-phishing",
+        "benchmark-payments-transfer-fraud"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-security-phishing:chunk:3",
+        "benchmark-payments-transfer-fraud:chunk:0",
+        "benchmark-payments-transfer-fraud:chunk:1"
+      ],
+      "difficulty": "difficult",
+      "rationale": "Le phishing explique la compromission et le document fraude décrit le rappel urgent du virement."
+    },
+    {
+      "id": "difficult-liquid-or-term-savings",
+      "question": "Comment arbitrer entre argent disponible et rémunération liée à une durée de blocage ?",
+      "expected_document_ids": [
+        "benchmark-savings-booklet",
+        "benchmark-savings-term-deposit"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-savings-booklet:chunk:3",
+        "benchmark-savings-term-deposit:chunk:0",
+        "benchmark-savings-term-deposit:chunk:3"
+      ],
+      "difficulty": "difficult",
+      "rationale": "Les documents opposent disponibilité du livret et immobilisation du compte à terme."
+    },
+    {
+      "id": "difficult-authentication-beneficiary",
+      "question": "Une validation forte garantit-elle que le bénéficiaire d'un virement est honnête ?",
+      "expected_document_ids": [
+        "benchmark-security-transfer-scam",
+        "benchmark-security-strong-authentication"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-security-transfer-scam:chunk:3",
+        "benchmark-security-strong-authentication:chunk:2"
+      ],
+      "difficulty": "difficult",
+      "rationale": "Les passages distinguent validation technique de l'ordre et identité réelle du bénéficiaire."
+    },
+    {
+      "id": "difficult-overdraft-cost",
+      "question": "Où trouver les règles sur le coût et les limites d'un découvert bancaire ?",
+      "expected_document_ids": [
+        "benchmark-payments-account-fees"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-payments-account-fees:chunk:1",
+        "benchmark-payments-account-fees:chunk:2"
+      ],
+      "difficulty": "difficult",
+      "rationale": "Les passages renvoient à la brochure tarifaire et aux paramètres de l'autorisation de découvert."
+    },
+    {
+      "id": "difficult-recurring-payment-control",
+      "question": "Qui déclenche une opération récurrente et que change sa révocation ?",
+      "expected_document_ids": [
+        "benchmark-payments-standing-order"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-payments-standing-order:chunk:0",
+        "benchmark-payments-standing-order:chunk:1",
+        "benchmark-payments-standing-order:chunk:2"
+      ],
+      "difficulty": "difficult",
+      "rationale": "Les passages différencient ordre permanent du client et prélèvement du créancier, puis leur révocation."
+    },
+    {
+      "id": "difficult-market-risk-profile",
+      "question": "Pourquoi mon horizon et ma capacité de perte comptent-ils avant d'acheter des titres ?",
+      "expected_document_ids": [
+        "benchmark-savings-risk-profile",
+        "benchmark-savings-securities-account"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-savings-risk-profile:chunk:0",
+        "benchmark-savings-risk-profile:chunk:1",
+        "benchmark-savings-securities-account:chunk:1"
+      ],
+      "difficulty": "difficult",
+      "rationale": "Les documents relient horizon, capacité de perte, liquidité et choix d'investissement."
+    },
+    {
+      "id": "difficult-covered-but-not-fully-paid",
+      "question": "Un sinistre couvert est-il nécessairement indemnisé intégralement ?",
+      "expected_document_ids": [
+        "benchmark-insurance-home-exclusions"
+      ],
+      "expected_chunk_ids": [
+        "benchmark-insurance-home-exclusions:chunk:1",
+        "benchmark-insurance-home-exclusions:chunk:2",
+        "benchmark-insurance-home-exclusions:chunk:3"
+      ],
+      "difficulty": "difficult",
+      "rationale": "Franchise, plafond et exclusions expliquent pourquoi couverture ne signifie pas indemnisation intégrale."
+    }
+  ]
+}

@@ -21,7 +21,7 @@ qdrant-client==1.19.1
 rank-bm25==0.2.2
 torch==2.14.1+cpu
 sentence-transformers==6.1.0
-flashrank>=0.2.0
+flashrank==0.2.10
 
 langchain-groq>=0.2.0
 langchain-huggingface==1.2.2

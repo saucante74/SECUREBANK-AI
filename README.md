@@ -24,7 +24,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | HS256 JWT validation, Bearer authentication, RBAC, local PII detection and masking | Token generation |
-| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval orchestration | FlashRank |
+| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval, and FlashRank reranking orchestration | Evidence validation and abstention |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
 | Frontend | None | React 19, TypeScript, Vite |
@@ -34,7 +34,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG components represent source documents, split them into typed passages, retrieve lexical and vector candidates, and fuse both rankings with RRF through an injected hybrid retrieval service.
+The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates, fuses both rankings with RRF, and reranks the fused candidates with FlashRank through an injected `RagRetriever` service.
 
 ## Repository Structure
 
@@ -62,10 +62,12 @@ SECUREBANK-AI/
 │   │   │   ├── __init__.py
 │   │   │   ├── auth.py
 │   │   │   ├── documents.py
+│   │   │   ├── evaluation.py
 │   │   │   ├── pii.py
 │   │   │   └── retrieval.py
 │   │   ├── services/
 │   │   │   ├── __init__.py
+│   │   │   ├── benchmark_dataset.py
 │   │   │   ├── bm25.py
 │   │   │   ├── chunking.py
 │   │   │   ├── embeddings.py
@@ -73,9 +75,14 @@ SECUREBANK-AI/
 │   │   │   ├── pii.py
 │   │   │   ├── pii_masking.py
 │   │   │   ├── qdrant.py
+│   │   │   ├── rag_retrieval.py
+│   │   │   ├── reranking.py
+│   │   │   ├── retrieval_evaluation.py
 │   │   │   └── rrf.py
 │   │   └── main.py
 │   ├── .dockerignore
+│   ├── data/
+│   │   └── rag_benchmark.json
 │   ├── .env
 │   ├── .env.example
 │   ├── Dockerfile
@@ -84,12 +91,20 @@ SECUREBANK-AI/
 │   ├── requirements-runtime.txt
 │   ├── requirements.txt
 │   ├── scripts/
+│   │   ├── compare_retrievers.py
+│   │   ├── demo_flashrank.py
 │   │   ├── demo_hybrid_search.py
+│   │   ├── demo_rag_retrieval.py
 │   │   ├── demo_vector_search.py
+│   │   ├── prepare_flashrank_model.py
 │   │   ├── prepare_embedding_model.py
 │   │   └── verify_embedding_model.py
 │   ├── tests/
+│   │   ├── test_benchmark_dataset.py
+│   │   ├── test_compare_retrievers.py
+│   │   ├── test_demo_flashrank.py
 │   │   ├── test_demo_hybrid_search.py
+│   │   ├── test_demo_rag_retrieval.py
 │   │   ├── test_demo_vector_search.py
 │   │   ├── test_bm25.py
 │   │   ├── test_chunking.py
@@ -101,6 +116,9 @@ SECUREBANK-AI/
 │   │   ├── test_pii_api.py
 │   │   ├── test_pii_masking.py
 │   │   ├── test_qdrant.py
+│   │   ├── test_rag_retrieval.py
+│   │   ├── test_reranking.py
+│   │   ├── test_retrieval_evaluation.py
 │   │   └── test_rrf.py
 │   └── venv/
 ├── frontend/
@@ -263,6 +281,63 @@ python -m pytest
 
 The tests cover configuration defaults, environment overrides, the health endpoint contract, JWT validation, Bearer authentication and RBAC, local PII detection and masking, deterministic document chunking, in-memory BM25 retrieval, local embeddings, and Qdrant vector storage.
 
+### Local FlashRank Reranking Demonstration
+
+FlashRank reranks a fixed candidate set by comparing each passage with the full question. Prepare `ms-marco-MultiBERT-L-12` explicitly from the backend directory while network access is available:
+
+```bash
+cd backend
+python -m scripts.prepare_flashrank_model
+```
+
+The weights are stored in the Git-ignored `backend/models/flashrank` cache. After preparation, run the qualitative CPU demonstration with no network access:
+
+```bash
+python -m scripts.demo_flashrank
+```
+
+The script validates the required local files before creating the FlashRank engine, so a missing model produces a preparation command instead of a silent runtime download. It prints the initial synthetic ranking, the reranked order, model loading time, and inference time for two French banking questions. FlashRank scores express model-relative relevance within the candidate set; they are not calibrated probabilities and should not be interpreted as confidence or compliance guarantees. This small synthetic example supports visual qualitative inspection only. It does not measure retrieval recall, answer correctness, threshold quality, or performance on a representative banking corpus.
+
+### Complete Retrieval and Reranking Pipeline
+
+`RagRetriever` composes the existing hybrid retriever and FlashRank reranker without coupling their implementations. Retrieval finds a broad candidate set through BM25 and MiniLM/Qdrant before RRF fusion. Reranking then compares the full question with each fused passage and changes their order and scores while preserving every chunk and its metadata.
+
+The service requests three times the desired final count by default. For `top_k=5`, hybrid retrieval receives `top_k=15`, and FlashRank returns at most five final results. The candidate multiplier is configurable and must be a strictly positive integer. A larger value gives FlashRank more candidates to examine but increases retrieval and CPU inference work.
+
+This service has no API route and performs no LLM generation. FlashRank scores are relative ranking signals rather than calibrated probabilities, confidence levels, or evidence-quality guarantees. Evidence validation, score-threshold calibration, answer generation, and abstention remain outside this iteration.
+
+Run the complete pipeline demonstration after preparing both local models and starting Qdrant:
+
+```bash
+docker compose up -d qdrant
+cd backend
+python -m scripts.prepare_embedding_model
+python -m scripts.prepare_flashrank_model
+python -m scripts.demo_rag_retrieval
+```
+
+The demonstration runs BM25 and local MiniLM/Qdrant retrieval, combines their rankings with RRF, and passes a broader candidate set to local FlashRank for the final ranking. It prints RRF and FlashRank scores separately because their numeric scales are not comparable. Stable Qdrant point identifiers make repeated indexing idempotent, and the script verifies that the exact point count matches the synthetic chunks after each run. The demonstration uses three synthetic documents and three sample questions; it does not evaluate retrieval recall, score calibration, evidence quality, latency under load, or answer generation.
+
+### Synthetic Retrieval Evaluation
+
+The benchmark corpus contains 30 fictitious French banking documents: five each for mortgage credit, consumer credit, insurance, savings, accounts and payments, and security and compliance. The 180-character chunk size with a 30-character overlap produces 137 deterministic chunks. The separate demonstration corpus remains limited to its original three documents.
+
+The benchmark contains 40 questions: 15 factual questions, 15 semantic reformulations, and 10 difficult or intentionally ambiguous questions. Every case references validated document and chunk identifiers and records a short evidence rationale. The six historical evaluation cases remain available as a separate regression set.
+
+Source Hit@K equals one when at least one expected document appears among the first K results. Evidence Hit@K applies the same rule to expected chunk identifiers and therefore measures whether a precise supporting passage was retrieved. `@K` limits evaluation to the first K ranked results. Dataset evaluation reports both metrics per case and their arithmetic means.
+
+Run the four-way comparison after preparing the local models and starting Qdrant:
+
+```bash
+docker compose up -d qdrant
+cd backend
+python -m scripts.compare_retrievers
+```
+
+The script evaluates BM25, MiniLM/Qdrant, hybrid RRF, and hybrid RRF followed by FlashRank on the same 40 cases, chunks, references, and final `top_k=3`. It uses the dedicated `securebank_benchmark_chunks` Qdrant collection so benchmark points cannot mix with demonstration points. It reports Source Hit@1, Source Hit@3, Evidence Hit@1, Evidence Hit@3, failed questions, FlashRank changes relative to RRF, the first-ranked document per question, and separate local mean latencies. MiniLM and FlashRank must already exist in their documented local caches.
+
+The documents and questions are synthetic and cannot reproduce production language, policy complexity, corpus growth, user behavior, statistically reliable quality, or production latency. Forty questions support regression diagnosis but remain too few for broad statistical conclusions. This benchmark does not represent production retrieval performance.
+
 ### Local PII Detection and Masking
 
 `PiiDetector` accepts French text and returns typed entities containing the entity type, start offset, end offset, and Presidio confidence score. It detects e-mail addresses, phone numbers, valid IBANs, and person names recognized by the French spaCy model. The component is a Python service independent of FastAPI and does not store or log analyzed text.
@@ -394,6 +469,24 @@ python -m scripts.demo_hybrid_search
 
 The demonstration reuses the fictitious French banking corpus from the vector-search example, builds BM25 and Qdrant indexes with the same deterministic chunk identifiers, and runs two synthetic questions. It prints the lexical BM25 ranking, the semantic MiniLM/Qdrant ranking, and the final RRF ranking for comparison. BM25 favors matching terms, Qdrant compares semantic vectors, and RRF combines their rank positions without mixing their incompatible source scores. Repeated runs upsert the same Qdrant points instead of creating duplicates. All demonstration documents and questions are fictitious.
 
+### FlashRank Reranking
+
+Reranking applies a cross-encoder after retrieval so each candidate is scored jointly with the question. `FlashRankReranker` accepts existing `RetrievalResult` values, preserves their chunks and metadata, replaces retrieval scores with FlashRank scores, and returns the highest-scoring candidates. It remains independent and is not yet called automatically by `HybridRetriever`.
+
+The selected model is `ms-marco-MultiBERT-L-12`, the FlashRank model explicitly documented as multilingual for more than 100 languages. It runs as a quantized ONNX model on CPU and is approximately 150 MB. Multilingual coverage includes French, but it does not establish banking-domain quality, calibrated relevance probabilities, or regulatory answer correctness.
+
+FlashRank downloads missing models by default. Runtime loading prevents that behavior by requiring a prepared local cache at `backend/models/flashrank/ms-marco-MultiBERT-L-12`. Prepare it explicitly from the backend directory in an environment with network access:
+
+```bash
+python -m scripts.prepare_flashrank_model
+```
+
+Run the focused unit tests without a model download or external service:
+
+```bash
+python -m pytest tests/test_reranking.py
+```
+
 ## API Documentation
 
 With the backend running, open Swagger UI at:
@@ -482,7 +575,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day | Scope | Status |
 | --- | --- | --- |
 | Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII detection and masking, security tests | In Progress: health check, settings, JWT authentication, RBAC, PII detection, masking, and protected PII API completed |
-| Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, in-memory BM25, local embeddings, Qdrant vector search, RRF, and hybrid retrieval orchestration completed |
+| Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, BM25, local embeddings, Qdrant vector search, RRF, hybrid orchestration, and independent FlashRank reranking completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | Planned |
 
@@ -513,6 +606,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Persistent Qdrant storage and nearest-vector search with typed scored results.
 - Deterministic Reciprocal Rank Fusion for independent BM25 and Qdrant rankings.
 - Injected hybrid retriever coordinating BM25, MiniLM, Qdrant, and RRF.
+- Independent multilingual FlashRank reranking with explicit local model preparation.
 - Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
@@ -525,7 +619,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 ### Planned
 
 - Token generation and token revocation.
-- Document ingestion, reranking, evidence validation, and abstention.
+- Document ingestion, automatic reranking integration, evidence validation, and abstention.
 - FastMCP and LangGraph orchestration.
 - Langfuse observability.
 - React frontend and cloud deployment.
@@ -540,6 +634,8 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - The embedding model rejects texts above its 128-token limit and does not split them automatically.
 - Cosine similarity is uncalibrated and cannot establish answer correctness or sufficient evidence by itself.
 - Local embedding inference increases installation size, startup time, CPU use, and RAM use; performance has not been benchmarked for this project.
+- The multilingual FlashRank model adds approximately 150 MB and has not been evaluated on French banking or regulatory benchmarks.
+- FlashRank reranking is not yet connected automatically to `HybridRetriever`.
 - There is no token generation, user directory, token revocation, hybrid retrieval API, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
 - Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
