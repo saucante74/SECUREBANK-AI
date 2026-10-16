@@ -65,6 +65,7 @@ SECUREBANK-AI/
 │   │   │   ├── documents.py
 │   │   │   ├── evaluation.py
 │   │   │   ├── pii.py
+│   │   │   ├── rag_generation.py
 │   │   │   └── retrieval.py
 │   │   ├── services/
 │   │   │   ├── __init__.py
@@ -77,6 +78,7 @@ SECUREBANK-AI/
 │   │   │   ├── pii.py
 │   │   │   ├── pii_masking.py
 │   │   │   ├── qdrant.py
+│   │   │   ├── rag_generation.py
 │   │   │   ├── rag_retrieval.py
 │   │   │   ├── reranking.py
 │   │   │   ├── retrieval_evaluation.py
@@ -203,9 +205,17 @@ The LLM API key is also optional at application startup. Creating a real LLM cli
 
 `OpenAILLMService` is an independent text-generation boundary. It sends the configured model, a minimal French system instruction, and the caller's prompt through the official SDK Responses API, then returns only the generated text. Its injected client contract allows unit tests to run with no network access.
 
-Generation and retrieval remain separate. The service does not retrieve BM25 or Qdrant results, invoke RRF or FlashRank, add documents, validate evidence, or produce citations. It has no FastAPI route and is not connected to the RAG pipeline.
+Generation and retrieval remain separate service boundaries. `OpenAILLMService` does not retrieve BM25 or Qdrant results, invoke RRF or FlashRank, add documents, validate evidence, or produce citations. `RagGenerationService` composes it with retrieval without adding those responsibilities to the LLM service.
 
 Prompts are transmitted to the selected external provider when the service is called. Callers must mask sensitive data before transmission and assess the provider's retention, hosting, and confidentiality controls. The service does not log prompts, and its public errors omit provider details and credentials.
+
+### Generative RAG Pipeline
+
+`RagGenerationService` connects the existing `HybridRetriever` contract to the independent `LLMService` contract through dependency injection. It requests the configured number of BM25 and Qdrant results fused by RRF, preserves their order and metadata, builds a deterministic French prompt, and returns the generated answer with the chunks used as sources.
+
+The default pipeline uses hybrid RRF results directly and does not invoke FlashRank. Retrieved passage content is serialized as untrusted JSON data, and the prompt tells the model to ignore instructions found inside documents and to answer only from the supplied passages. If retrieval returns nothing, the service skips generation and returns a deterministic unavailability response.
+
+This orchestration has no API route and does not yet produce verifiable citations. Prompt constraints reduce risk but cannot prevent hallucinations or guarantee that retrieved documents are accurate, trustworthy, current, or sufficient. Generated answers therefore remain unsuitable for autonomous banking or compliance decisions.
 
 ## Running the Backend
 
@@ -624,6 +634,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Injected hybrid retriever coordinating BM25, MiniLM, Qdrant, and RRF.
 - Independent multilingual FlashRank reranking with explicit local model preparation.
 - Independent configurable OpenAI-compatible LLM generation service with an injected client contract.
+- Generative RAG orchestration connecting hybrid RRF retrieval to LLM generation without FlashRank by default.
 - Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
@@ -653,8 +664,9 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Local embedding inference increases installation size, startup time, CPU use, and RAM use; performance has not been benchmarked for this project.
 - The multilingual FlashRank model adds approximately 150 MB and has not been evaluated on French banking or regulatory benchmarks.
 - FlashRank reranking is not yet connected automatically to `HybridRetriever`.
-- LLM generation has no API route, RAG context, evidence validation, citations, or automatic PII masking integration.
-- There is no token generation, user directory, token revocation, hybrid retrieval API, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- LLM generation has no API route, evidence validation, citations, or automatic PII masking integration.
+- Generative RAG has no API route or verifiable citations and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
+- There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, observability, frontend, or deployment configuration.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
 - Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
