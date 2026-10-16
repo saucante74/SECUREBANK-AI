@@ -25,6 +25,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | HS256 JWT validation, Bearer authentication, RBAC, local PII detection and masking | Token generation |
 | Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval, and FlashRank reranking orchestration | Evidence validation and abstention |
+| Generation | Configurable OpenAI-compatible LLM service | RAG context, citations, and API route |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
 | Frontend | None | React 19, TypeScript, Vite |
@@ -34,7 +35,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates, fuses both rankings with RRF, and reranks the fused candidates with FlashRank through an injected `RagRetriever` service.
+The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates, fuses both rankings with RRF, and reranks the fused candidates with FlashRank through an injected `RagRetriever` service. A separate LLM service can generate French text through an OpenAI-compatible provider without depending on retrieval or FastAPI.
 
 ## Repository Structure
 
@@ -72,6 +73,7 @@ SECUREBANK-AI/
 │   │   │   ├── chunking.py
 │   │   │   ├── embeddings.py
 │   │   │   ├── hybrid.py
+│   │   │   ├── llm.py
 │   │   │   ├── pii.py
 │   │   │   ├── pii_masking.py
 │   │   │   ├── qdrant.py
@@ -186,10 +188,24 @@ The implemented configuration accepts these variables:
 | `JWT_AUDIENCE` | None | Required JWT audience |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint |
 | `QDRANT_COLLECTION_NAME` | `securebank_chunks` | Collection used for chunk vectors |
+| `LLM_API_KEY` | None | Secret credential for the configured LLM provider |
+| `LLM_MODEL` | `gpt-4.1-mini` | Model identifier sent to the LLM provider |
+| `LLM_BASE_URL` | None | Optional base URL for an OpenAI-compatible provider |
+| `LLM_TIMEOUT_SECONDS` | `30` | Positive request timeout in seconds |
 
 Environment variables override values loaded from `backend/.env`, which override the development defaults. Do not commit `.env` or place real banking data in it.
 
 JWT settings remain optional at application startup, so the public health endpoint works without them. Access to protected endpoints is denied until a secret of at least 32 characters, an issuer, and an audience are configured. Replace every example value before using authentication outside local development.
+
+The LLM API key is also optional at application startup. Creating a real LLM client requires it. To use an OpenAI-compatible provider, set `LLM_API_KEY`, set the provider's model identifier in `LLM_MODEL`, and set `LLM_BASE_URL` to its API base URL. Leave `LLM_BASE_URL` empty for the official OpenAI endpoint. Keep provider credentials only in the untracked `.env` file or a deployment secret store.
+
+### LLM Generation Service
+
+`OpenAILLMService` is an independent text-generation boundary. It sends the configured model, a minimal French system instruction, and the caller's prompt through the official SDK Responses API, then returns only the generated text. Its injected client contract allows unit tests to run with no network access.
+
+Generation and retrieval remain separate. The service does not retrieve BM25 or Qdrant results, invoke RRF or FlashRank, add documents, validate evidence, or produce citations. It has no FastAPI route and is not connected to the RAG pipeline.
+
+Prompts are transmitted to the selected external provider when the service is called. Callers must mask sensitive data before transmission and assess the provider's retention, hosting, and confidentiality controls. The service does not log prompts, and its public errors omit provider details and credentials.
 
 ## Running the Backend
 
@@ -607,6 +623,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Deterministic Reciprocal Rank Fusion for independent BM25 and Qdrant rankings.
 - Injected hybrid retriever coordinating BM25, MiniLM, Qdrant, and RRF.
 - Independent multilingual FlashRank reranking with explicit local model preparation.
+- Independent configurable OpenAI-compatible LLM generation service with an injected client contract.
 - Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
@@ -636,6 +653,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Local embedding inference increases installation size, startup time, CPU use, and RAM use; performance has not been benchmarked for this project.
 - The multilingual FlashRank model adds approximately 150 MB and has not been evaluated on French banking or regulatory benchmarks.
 - FlashRank reranking is not yet connected automatically to `HybridRetriever`.
+- LLM generation has no API route, RAG context, evidence validation, citations, or automatic PII masking integration.
 - There is no token generation, user directory, token revocation, hybrid retrieval API, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
 - Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
