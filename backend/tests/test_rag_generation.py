@@ -112,6 +112,24 @@ def test_default_top_k_is_three() -> None:
     assert retriever.calls == [("Question bancaire synthétique", 3)]
 
 
+def test_top_k_can_be_overridden_for_one_generation() -> None:
+    retriever = FakeRetriever([create_result("chunk-1")])
+    service = RagGenerationService(retriever, FakeLLMService(), top_k=2)
+
+    service.generate("Première question", top_k=5)
+    service.generate("Deuxième question")
+
+    assert retriever.calls == [("Première question", 5), ("Deuxième question", 2)]
+
+
+@pytest.mark.parametrize("top_k", [0, -1, 1.5, True])
+def test_invalid_per_generation_top_k_is_rejected(top_k: object) -> None:
+    service = RagGenerationService(FakeRetriever([]), FakeLLMService())
+
+    with pytest.raises(ValueError, match="top_k must be a strictly positive integer"):
+        service.generate("Question", top_k=top_k)
+
+
 def test_prompt_preserves_passage_order_and_source_identifiers() -> None:
     results = [
         create_result("second", document_id="document-b", position=4),

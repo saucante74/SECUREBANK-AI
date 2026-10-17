@@ -124,17 +124,22 @@ class RagGenerationService:
         llm_service: LLMService,
         top_k: int = 3,
     ) -> None:
-        if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k <= 0:
-            raise ValueError("top_k must be a strictly positive integer")
+        self._validate_top_k(top_k)
         self._retriever = retriever
         self._llm_service = llm_service
         self._top_k = top_k
 
-    def generate(self, question: str) -> RagGenerationResult:
+    def generate(
+        self,
+        question: str,
+        top_k: int | None = None,
+    ) -> RagGenerationResult:
         if not isinstance(question, str) or not question.strip():
             raise ValueError("question must contain non-whitespace characters")
 
-        retrieval_results = self._retriever.search(question, top_k=self._top_k)
+        effective_top_k = self._top_k if top_k is None else top_k
+        self._validate_top_k(effective_top_k)
+        retrieval_results = self._retriever.search(question, top_k=effective_top_k)
         chunks = [result.chunk for result in retrieval_results]
         if not chunks:
             return RagGenerationResult(
@@ -155,3 +160,8 @@ class RagGenerationService:
             citations=citations,
             abstained=abstained,
         )
+
+    @staticmethod
+    def _validate_top_k(top_k: int) -> None:
+        if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k <= 0:
+            raise ValueError("top_k must be a strictly positive integer")

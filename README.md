@@ -54,7 +54,9 @@ SECUREBANK-AI/
 │   │   │   ├── __init__.py
 │   │   │   ├── auth.py
 │   │   │   ├── dependencies.py
-│   │   │   └── pii.py
+│   │   │   ├── pii.py
+│   │   │   ├── rag.py
+│   │   │   └── validation.py
 │   │   ├── core/
 │   │   │   ├── __init__.py
 │   │   │   ├── config.py
@@ -120,6 +122,7 @@ SECUREBANK-AI/
 │   │   ├── test_pii_api.py
 │   │   ├── test_pii_masking.py
 │   │   ├── test_qdrant.py
+│   │   ├── test_rag_api.py
 │   │   ├── test_rag_retrieval.py
 │   │   ├── test_reranking.py
 │   │   ├── test_retrieval_evaluation.py
@@ -228,7 +231,51 @@ Each `[n]` refers to the passage numbered `n` in the prompt. The RAG layer parse
 
 If retrieval returns no passage, the service skips generation and returns its deterministic no-passage answer with `abstained=true` and no citations. The model can also request abstention with `{"answer":"Les passages fournis ne permettent pas de répondre.","abstained":true}`; the service then replaces the model text with the same deterministic abstention answer and returns no citations. Invalid JSON, malformed output, unknown references, and uncited non-abstained answers raise a safe application error without exposing the raw provider response.
 
-Citation validation proves only that a cited chunk was present in the supplied context. It does not verify that the chunk supports each claim, detect contradictions, establish answer correctness, or prevent hallucinations. This orchestration currently has no API route and remains unsuitable for autonomous banking or compliance decisions.
+Citation validation proves only that a cited chunk was present in the supplied context. It does not verify that the chunk supports each claim, detect contradictions, establish answer correctness, or prevent hallucinations. The pipeline remains unsuitable for autonomous banking or compliance decisions.
+
+### RAG API
+
+`POST /rag/ask` exposes the generative RAG orchestration through a typed FastAPI contract. It requires a valid Bearer JWT and permits the `analyst`, `compliance_officer`, and `admin` roles. The question must contain non-whitespace characters and at most 2,000 characters. `top_k` defaults to 3 and accepts values from 1 through 5.
+
+Synthetic request example:
+
+```bash
+curl --fail-with-body --request POST http://127.0.0.1:8000/rag/ask \
+  --header "Authorization: Bearer ${SYNTHETIC_TEST_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data '{"question":"Quelle règle synthétique est applicable ?","top_k":3}'
+```
+
+Example response:
+
+```json
+{
+  "question": "Quelle règle synthétique est applicable ?",
+  "answer": "La règle synthétique s'applique [1].",
+  "sources": [
+    {
+      "id": "chunk-1",
+      "document_id": "document-1",
+      "content": "Passage réglementaire synthétique.",
+      "position": 0,
+      "title": "Document synthétique",
+      "source": "synthetic://document-1"
+    }
+  ],
+  "citations": [
+    {
+      "reference": 1,
+      "document_id": "document-1",
+      "chunk_id": "chunk-1"
+    }
+  ],
+  "abstained": false
+}
+```
+
+The application does not construct an OpenAI client, load an embedding model, or connect to Qdrant at startup. Until a configured `RagGenerationService` is injected, the endpoint returns HTTP 503 with a non-sensitive message. Malformed provider output returns HTTP 502, while authentication, authorization, and request-validation failures follow the existing 401, 403, and 422 contracts.
+
+The endpoint does not automatically mask PII. Questions, retrieved passages, and prompts may be transmitted to configured retrieval and LLM providers, subject to their hosting, retention, and confidentiality controls. Use synthetic data only during the current prototype stage; real banking or customer data is not permitted in tests. Synthetic test data demonstrates behavior but does not constitute a security control.
 
 ## Running the Backend
 
@@ -638,6 +685,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Local typed PII detection for e-mail addresses, phone numbers, IBANs, and French person names.
 - Deterministic local PII masking with typed markers and overlap resolution.
 - Protected `POST /pii/mask` endpoint with sanitized validation errors.
+- Protected `POST /rag/ask` endpoint with typed input, RBAC, safe upstream errors, and replaceable pipeline injection.
 - Immutable document and chunk contracts with deterministic character chunking.
 - Deterministic in-memory BM25 retrieval with typed scored results.
 - Local multilingual embeddings for text and chunks with deterministic input validation.
@@ -667,7 +715,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 ## Known Limitations
 
-- Only the health endpoint, application settings, JWT validation, Bearer authentication, demonstration RBAC, local PII detection and masking, and the protected masking endpoint are implemented.
+- The RAG API is unavailable until a `RagGenerationService` pipeline is explicitly configured and injected.
 - PII detection is probabilistic and may produce false positives or false negatives, especially for person names and ambiguous number formats. It does not guarantee exhaustive identification of sensitive data.
 - False negatives remain unmasked in transformed text. The masking service and endpoint reduce exposure risk without guaranteeing complete anonymization or regulatory compliance.
 - Character chunking can split words and semantic units because it does not understand tokens, sentences, or document structure.
@@ -677,7 +725,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Local embedding inference increases installation size, startup time, CPU use, and RAM use; performance has not been benchmarked for this project.
 - The multilingual FlashRank model adds approximately 150 MB and has not been evaluated on French banking or regulatory benchmarks.
 - FlashRank reranking is not yet connected automatically to `HybridRetriever`.
-- LLM generation has no API route, semantic evidence validation, or automatic PII masking integration.
+- LLM generation has no semantic evidence validation or automatic PII masking integration.
 - Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
 - There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, observability, frontend, or deployment configuration.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
