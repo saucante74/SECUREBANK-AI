@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     jwt_audience: str | None = None
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection_name: str = "securebank_chunks"
+    rag_enabled: bool = False
+    rag_corpus_path: Path | None = None
     llm_api_key: SecretStr | None = None
     llm_model: str = "gpt-4.1-mini"
     llm_base_url: str | None = None
@@ -47,6 +49,13 @@ class Settings(BaseSettings):
     @field_validator("llm_api_key", mode="before")
     @classmethod
     def validate_llm_api_key(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("rag_corpus_path", mode="before")
+    @classmethod
+    def validate_rag_corpus_path(cls, value: object) -> object:
         if isinstance(value, str) and not value.strip():
             return None
         return value

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from unittest.mock import MagicMock
 
 import jwt
 import pytest
@@ -9,12 +10,17 @@ from pydantic import SecretStr
 from app.api.dependencies import get_current_identity, get_settings
 from app.api.rag import get_rag_generation_service
 from app.core.config import Settings
+from app.core.rag_factory import (
+    RagConfigurationError,
+    RagDependencyUnavailableError,
+)
 from app.core.rbac import Role
 from app.main import app
 from app.schemas.auth import AuthenticatedIdentity
 from app.schemas.documents import Chunk
 from app.schemas.rag_generation import RagCitation, RagGenerationResult
 from app.services.llm import LLMProviderError
+from app.services.qdrant import QdrantVectorStoreError
 from app.services.rag_generation import RagGenerationResponseError
 
 JWT_SECRET = "synthetic-rag-api-secret-key-with-at-least-32-characters"
@@ -273,6 +279,66 @@ def test_unconfigured_pipeline_returns_503() -> None:
     assert response.json() == {"detail": "RAG pipeline is not configured"}
 
 
+def test_disabled_pipeline_does_not_call_factory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = MagicMock()
+    monkeypatch.setattr("app.api.rag.rag_generation_service_provider", provider)
+
+    response, _ = request_rag(
+        {"question": "Question synthétique"},
+        authorization=bearer_token(),
+    )
+
+    assert response.status_code == 503
+    provider.get.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("error", "detail"),
+    [
+        (RagConfigurationError("secret-key"), "RAG pipeline is not configured"),
+        (RagDependencyUnavailableError("secret-host"), "RAG pipeline is unavailable"),
+    ],
+)
+def test_enabled_pipeline_failure_returns_safe_503(
+    monkeypatch: pytest.MonkeyPatch,
+    error: RuntimeError,
+    detail: str,
+) -> None:
+    enabled_settings = create_settings().model_copy(update={"rag_enabled": True})
+    provider = MagicMock()
+    provider.get.side_effect = error
+    monkeypatch.setattr("app.api.rag.rag_generation_service_provider", provider)
+
+    app.dependency_overrides[get_settings] = lambda: enabled_settings
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/rag/ask",
+                json={"question": "Question synthétique"},
+                headers={"Authorization": bearer_token()},
+            )
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": detail}
+    assert str(error) not in response.text
+
+
+def test_enabled_pipeline_programming_error_is_not_converted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    enabled_settings = create_settings().model_copy(update={"rag_enabled": True})
+    provider = MagicMock()
+    provider.get.side_effect = TypeError("programming defect")
+    monkeypatch.setattr("app.api.rag.rag_generation_service_provider", provider)
+
+    with pytest.raises(TypeError, match="programming defect"):
+        get_rag_generation_service(enabled_settings)
+
+
 def test_malformed_provider_response_returns_502_without_sensitive_data() -> None:
     sensitive_data = "raw-provider-response-with-secret"
     service = FakeRagGenerationService(create_result())
@@ -309,7 +375,7 @@ def test_provider_failure_returns_502_without_internal_details() -> None:
 def test_retrieval_failure_returns_503_without_internal_details() -> None:
     sensitive_data = "qdrant-internal-address-and-question"
     service = FakeRagGenerationService(create_result())
-    service.error = RuntimeError(sensitive_data)
+    service.error = QdrantVectorStoreError(sensitive_data)
 
     response, _ = request_rag(
         {"question": "Question synthétique"},
