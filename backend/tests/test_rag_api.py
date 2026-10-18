@@ -19,9 +19,14 @@ from app.main import app
 from app.schemas.auth import AuthenticatedIdentity
 from app.schemas.documents import Chunk
 from app.schemas.rag_generation import RagCitation, RagGenerationResult
+from app.schemas.retrieval import RetrievalResult
 from app.services.llm import LLMProviderError
 from app.services.qdrant import QdrantVectorStoreError
-from app.services.rag_generation import RagGenerationResponseError
+from app.services.rag_generation import (
+    RagGenerationResponseError,
+    RagGenerationService,
+    RagPiiProtectionError,
+)
 
 JWT_SECRET = "synthetic-rag-api-secret-key-with-at-least-32-characters"
 JWT_ISSUER = "securebank-ai-rag-api-test"
@@ -162,6 +167,47 @@ def test_valid_response_contains_answer_sources_citations_and_abstention() -> No
         "abstained": False,
     }
     assert service.calls == [("Quelle règle synthétique s'applique ?", 2)]
+
+
+def test_http_response_exposes_only_masked_rag_text() -> None:
+    sensitive_name = "Camille Martin"
+    sensitive_email = "camille.synthetic@example.test"
+    chunk = Chunk(
+        id="chunk-safe",
+        document_id="document-safe",
+        content=f"Contact {sensitive_name} via {sensitive_email}.",
+        position=0,
+        title=f"Dossier {sensitive_name}",
+        source=f"synthetic://{sensitive_email}",
+    )
+    retriever = MagicMock()
+    retriever.search.return_value = [RetrievalResult(chunk=chunk, score=0.8)]
+    llm = MagicMock()
+    llm.generate.return_value = (
+        f'{{"answer":"Réponse pour {sensitive_name} [1]","abstained":false}}'
+    )
+    masker = MagicMock()
+    masker.mask.side_effect = lambda text: text.replace(
+        sensitive_name, "[PERSON]"
+    ).replace(sensitive_email, "[EMAIL_ADDRESS]")
+    service = RagGenerationService(retriever, llm, masker)
+
+    response, _ = request_rag(
+        {"question": f"Question de {sensitive_name}"},
+        authorization=bearer_token(),
+        service=service,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["question"] == "Question de [PERSON]"
+    assert response.json()["answer"] == "Réponse pour [PERSON] [1]"
+    assert response.json()["sources"][0]["content"] == (
+        "Contact [PERSON] via [EMAIL_ADDRESS]."
+    )
+    assert response.json()["sources"][0]["title"] == "Dossier [PERSON]"
+    assert response.json()["sources"][0]["source"] == ("synthetic://[EMAIL_ADDRESS]")
+    assert sensitive_name not in response.text
+    assert sensitive_email not in response.text
 
 
 def test_abstention_is_returned_with_http_200() -> None:
@@ -384,4 +430,20 @@ def test_retrieval_failure_returns_503_without_internal_details() -> None:
     )
 
     assert response.status_code == 503
+    assert sensitive_data not in response.text
+
+
+def test_pii_protection_failure_returns_safe_503() -> None:
+    sensitive_data = "private-question-and-detector-details"
+    service = FakeRagGenerationService(create_result())
+    service.error = RagPiiProtectionError(sensitive_data)
+
+    response, _ = request_rag(
+        {"question": "Question synthétique"},
+        authorization=bearer_token(),
+        service=service,
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "PII protection is unavailable"}
     assert sensitive_data not in response.text

@@ -9,6 +9,7 @@ from app.schemas.documents import Chunk
 from app.schemas.rag_generation import RagCitation, RagGenerationResult
 from app.schemas.retrieval import RetrievalResult
 from app.services.llm import LLMService
+from app.services.pii_masking import PiiMaskingError
 
 NO_PASSAGES_ANSWER = (
     "Je ne dispose d'aucun passage pertinent pour répondre à cette question."
@@ -19,6 +20,10 @@ BRACKETED_TEXT_PATTERN = re.compile(r"\[[^\[\]]*\]")
 
 
 class RagGenerationResponseError(RuntimeError):
+    pass
+
+
+class RagPiiProtectionError(RuntimeError):
     pass
 
 
@@ -38,6 +43,10 @@ class LLMGenerationPayload(BaseModel):
 
 class RetrievalEngine(Protocol):
     def search(self, question: str, top_k: int = 3) -> list[RetrievalResult]: ...
+
+
+class PiiProtectionService(Protocol):
+    def mask(self, text: str) -> str: ...
 
 
 def build_rag_prompt(question: str, chunks: Sequence[Chunk]) -> str:
@@ -122,11 +131,13 @@ class RagGenerationService:
         self,
         retriever: RetrievalEngine,
         llm_service: LLMService,
+        pii_masker: PiiProtectionService,
         top_k: int = 3,
     ) -> None:
         self._validate_top_k(top_k)
         self._retriever = retriever
         self._llm_service = llm_service
+        self._pii_masker = pii_masker
         self._top_k = top_k
 
     def generate(
@@ -139,27 +150,55 @@ class RagGenerationService:
 
         effective_top_k = self._top_k if top_k is None else top_k
         self._validate_top_k(effective_top_k)
-        retrieval_results = self._retriever.search(question, top_k=effective_top_k)
-        chunks = [result.chunk for result in retrieval_results]
-        if not chunks:
+        masked_question = self._mask_text(question)
+        retrieval_results = self._retriever.search(
+            masked_question,
+            top_k=effective_top_k,
+        )
+        masked_chunks = [self._mask_chunk(result.chunk) for result in retrieval_results]
+        if not masked_chunks:
             return RagGenerationResult(
-                question=question,
-                answer=NO_PASSAGES_ANSWER,
+                question=masked_question,
+                answer=self._mask_text(NO_PASSAGES_ANSWER),
                 sources=[],
                 citations=[],
                 abstained=True,
             )
 
-        prompt = build_rag_prompt(question, chunks)
+        prompt = build_rag_prompt(masked_question, masked_chunks)
         response_text = self._llm_service.generate(prompt)
-        answer, abstained, citations = parse_llm_response(response_text, chunks)
+        answer, abstained, citations = parse_llm_response(
+            response_text,
+            masked_chunks,
+        )
+        masked_answer = self._mask_text(answer)
+        if CITATION_PATTERN.findall(masked_answer) != CITATION_PATTERN.findall(answer):
+            raise RagPiiProtectionError("PII masking altered citation references")
         return RagGenerationResult(
-            question=question,
-            answer=answer,
-            sources=chunks,
+            question=masked_question,
+            answer=masked_answer,
+            sources=masked_chunks,
             citations=citations,
             abstained=abstained,
         )
+
+    def _mask_chunk(self, chunk: Chunk) -> Chunk:
+        return chunk.model_copy(
+            update={
+                "content": self._mask_text(chunk.content),
+                "title": self._mask_text(chunk.title),
+                "source": self._mask_text(chunk.source),
+            }
+        )
+
+    def _mask_text(self, text: str) -> str:
+        try:
+            masked_text = self._pii_masker.mask(text)
+        except PiiMaskingError as error:
+            raise RagPiiProtectionError("PII protection is unavailable") from error
+        if not isinstance(masked_text, str) or not masked_text.strip():
+            raise RagPiiProtectionError("PII protection returned an invalid result")
+        return masked_text
 
     @staticmethod
     def _validate_top_k(top_k: int) -> None:

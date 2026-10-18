@@ -8,6 +8,7 @@ from app.services.bm25 import BM25Retriever
 from app.services.embeddings import LocalEmbeddingService
 from app.services.hybrid import HybridRetriever
 from app.services.llm import create_openai_llm_service
+from app.services.pii_masking import PiiMasker
 from app.services.qdrant import QdrantVectorStore, QdrantVectorStoreError
 from app.services.rag_corpus import create_rag_chunks, load_rag_corpus
 from app.services.rag_generation import RagGenerationService
@@ -52,9 +53,14 @@ def create_rag_generation_service(settings: Settings) -> RagGenerationService:
         embedding_service=embedding_service,
         vector_retriever=vector_store,
     )
+    try:
+        pii_masker = PiiMasker()
+    except (OSError, RuntimeError) as error:
+        raise RagDependencyUnavailableError("PII protection is unavailable") from error
     return RagGenerationService(
         retriever=retriever,
         llm_service=create_openai_llm_service(settings),
+        pii_masker=pii_masker,
     )
 
 

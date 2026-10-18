@@ -18,6 +18,7 @@ from app.services.qdrant import QdrantVectorStoreError
 from app.services.rag_generation import (
     RagGenerationResponseError,
     RagGenerationService,
+    RagPiiProtectionError,
 )
 
 router = APIRouter(
@@ -66,6 +67,11 @@ def ask_rag(
 ) -> RagGenerationResult:
     try:
         return service.generate(request.question, top_k=request.top_k)
+    except RagPiiProtectionError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="PII protection is unavailable",
+        ) from None
     except RagGenerationResponseError:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

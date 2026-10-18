@@ -19,6 +19,7 @@ from app.services.bm25 import BM25Retriever
 from app.services.embeddings import LocalEmbeddingService
 from app.services.hybrid import HybridRetriever
 from app.services.llm import OpenAILLMService
+from app.services.pii_masking import PiiMasker
 from app.services.qdrant import QdrantVectorStore, QdrantVectorStoreError
 from app.services.rag_corpus import RagCorpus
 from app.services.rag_generation import RagGenerationService
@@ -90,6 +91,7 @@ def test_factory_composes_bm25_qdrant_rrf_and_generation(
     bm25_retriever = MagicMock(spec=BM25Retriever)
     vector_store = MagicMock(spec=QdrantVectorStore)
     llm_service = MagicMock(spec=OpenAILLMService)
+    pii_masker = MagicMock(spec=PiiMasker)
     monkeypatch.setattr(rag_factory, "load_rag_corpus", lambda path: corpus)
     monkeypatch.setattr(rag_factory, "create_rag_chunks", lambda value: [chunk])
     monkeypatch.setattr(rag_factory, "LocalEmbeddingService", lambda: embeddings)
@@ -108,6 +110,7 @@ def test_factory_composes_bm25_qdrant_rrf_and_generation(
         "create_openai_llm_service",
         lambda settings: llm_service,
     )
+    monkeypatch.setattr(rag_factory, "PiiMasker", lambda: pii_masker)
 
     service = create_rag_generation_service(create_settings())
 
@@ -118,6 +121,7 @@ def test_factory_composes_bm25_qdrant_rrf_and_generation(
     assert retriever._vector_retriever is vector_store
     assert retriever._rank_fusion is reciprocal_rank_fusion
     assert service._llm_service is llm_service
+    assert service._pii_masker is pii_masker
     embeddings.embed_chunks.assert_called_once_with([chunk])
     vector_store.store_chunks.assert_called_once_with(
         [chunk], embeddings.embed_chunks.return_value
@@ -147,6 +151,33 @@ def test_qdrant_failure_has_controlled_dependency_error(
         create_rag_generation_service(create_settings())
 
     assert "secret-qdrant-address" not in str(error.value)
+
+
+def test_pii_initialization_failure_has_controlled_dependency_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    chunk = create_chunk()
+    embeddings = MagicMock(spec=LocalEmbeddingService)
+    embeddings.embed_chunks.return_value = [[0.1] * 384]
+    vector_store = MagicMock(spec=QdrantVectorStore)
+    monkeypatch.setattr(rag_factory, "load_rag_corpus", lambda path: MagicMock())
+    monkeypatch.setattr(rag_factory, "create_rag_chunks", lambda corpus: [chunk])
+    monkeypatch.setattr(rag_factory, "LocalEmbeddingService", lambda: embeddings)
+    monkeypatch.setattr(
+        rag_factory.QdrantVectorStore,
+        "from_settings",
+        lambda settings: vector_store,
+    )
+    monkeypatch.setattr(
+        rag_factory,
+        "PiiMasker",
+        MagicMock(side_effect=RuntimeError("sensitive-presidio-details")),
+    )
+
+    with pytest.raises(RagDependencyUnavailableError) as error:
+        create_rag_generation_service(create_settings())
+
+    assert "sensitive-presidio-details" not in str(error.value)
 
 
 def test_programming_error_is_not_converted(

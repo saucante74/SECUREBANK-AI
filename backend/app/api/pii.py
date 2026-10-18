@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -14,11 +15,11 @@ router = APIRouter(
     tags=["pii"],
     route_class=SensitiveBodyRoute,
 )
-pii_masker = PiiMasker()
 
 
+@lru_cache(maxsize=1)
 def get_pii_masker() -> PiiMasker:
-    return pii_masker
+    return PiiMasker()
 
 
 @router.post("/mask", response_model=PiiMaskResponse)

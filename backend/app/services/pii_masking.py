@@ -19,6 +19,10 @@ class PiiDetectionService(Protocol):
     def detect(self, text: str) -> list[PiiEntity]: ...
 
 
+class PiiMaskingError(RuntimeError):
+    pass
+
+
 class PiiMasker:
     def __init__(self, detector: PiiDetectionService | None = None) -> None:
         self._detector = detector if detector is not None else PiiDetector()
@@ -27,7 +31,13 @@ class PiiMasker:
         if not text:
             return ""
 
-        entities = self._resolve_overlaps(self._detector.detect(text))
+        try:
+            detected_entities = self._detector.detect(text)
+        except (OSError, RuntimeError) as error:
+            raise PiiMaskingError("PII detection is unavailable") from error
+        entities = self._resolve_overlaps(
+            self._validate_entities(text, detected_entities)
+        )
         masked_parts: list[str] = []
         cursor = 0
 
@@ -38,6 +48,20 @@ class PiiMasker:
 
         masked_parts.append(text[cursor:])
         return "".join(masked_parts)
+
+    @staticmethod
+    def _validate_entities(text: str, entities: object) -> list[PiiEntity]:
+        if not isinstance(entities, list):
+            raise PiiMaskingError("PII detection returned an invalid result")
+        for entity in entities:
+            if (
+                not isinstance(entity, PiiEntity)
+                or entity.entity_type not in PII_MARKERS
+                or entity.start >= entity.end
+                or entity.end > len(text)
+            ):
+                raise PiiMaskingError("PII detection returned an invalid result")
+        return entities
 
     @staticmethod
     def _resolve_overlaps(entities: list[PiiEntity]) -> list[PiiEntity]:
