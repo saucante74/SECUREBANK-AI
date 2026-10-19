@@ -452,6 +452,23 @@ The asserted scenarios cover a factual cited answer, a masked PII-bearing questi
 
 This integration command is intentionally excluded from the default pytest suite because it needs Qdrant plus prepared local embedding, Presidio, and spaCy resources. The lightweight tests use substitutes and require no Docker, Qdrant server, model loading, or network. The `FakeLLM` supports only the demonstration's fixed evidence rules and cannot measure language-model quality, general grounding, or real-world abstention. Presidio and spaCy can produce false positives or false negatives, so successful masking in these scenarios does not prove exhaustive anonymization or legal compliance.
 
+### Local HTTP RAG Integration Test
+
+The explicit HTTP integration script extends the local pipeline test through the real FastAPI `POST /rag/ask` route using an in-process ASGI client. It retains real JWT signature, issuer, audience, expiration, and RBAC validation while `app.dependency_overrides` supplies isolated synthetic JWT settings and replaces only the RAG service dependency with the prepared `RagGenerationService`. That service still uses real BM25 retrieval, local CPU embeddings, Qdrant vector search, reciprocal rank fusion, Presidio/spaCy masking, citation validation, and the deterministic `FakeLLM`. It never constructs `OpenAILLMService` or calls OpenAI.
+
+Start Qdrant, prepare the local models, and run the script from the repository root:
+
+```bash
+docker compose up -d qdrant
+cd backend
+python -m scripts.prepare_embedding_model
+python -m scripts.run_rag_http_integration
+```
+
+The script asserts HTTP 401 responses for missing and invalid tokens, HTTP 200 for an authorized compliance-officer token, cited factual generation, masking of a PII-bearing question, masking of passage content and textual metadata, masking of the generated answer, explicit documentary abstention, sanitized HTTP 422 validation errors, and HTTP 503 while RAG is disabled without initializing the production provider. Every role currently recognized by the application is authorized for this endpoint, so there is no recognized unauthorized role that can validly exercise HTTP 403. Overrides are restored after every request, including failed assertions, and the script never starts a public server.
+
+The real HTTP script is excluded from the default pytest suite because it requires Qdrant and prepared local models. Lightweight tests cover token compatibility, override cleanup, ASGI routing with real JWT/RBAC, and validation rejection using substitutes without Docker, model loading, Presidio, network, or OpenAI. The fixed-rule `FakeLLM` cannot evaluate general language-model behavior, and successful synthetic PII checks do not guarantee exhaustive anonymization or regulatory compliance.
+
 ### Synthetic Retrieval Evaluation
 
 The benchmark corpus contains 30 fictitious French banking documents: five each for mortgage credit, consumer credit, insurance, savings, accounts and payments, and security and compliance. The 180-character chunk size with a 30-character overlap produces 137 deterministic chunks. The separate demonstration corpus remains limited to its original three documents.
