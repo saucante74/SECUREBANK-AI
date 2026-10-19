@@ -1,11 +1,14 @@
 import asyncio
+from collections.abc import Iterator
 from datetime import UTC, datetime
 
 import jwt
+import pytest
 from httpx import ASGITransport, AsyncClient, Response
 from pydantic import SecretStr
 
 from app.api.dependencies import get_settings
+from app.api.pii import get_pii_masker
 from app.core.config import Settings
 from app.core.rbac import Role
 from app.main import app
@@ -74,6 +77,13 @@ def assert_unauthorized(response: Response) -> None:
     assert response.status_code == 401
     assert response.json() == {"detail": "Authentication required"}
     assert response.headers["WWW-Authenticate"] == "Bearer"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def clear_pii_masker_cache() -> Iterator[None]:
+    get_pii_masker.cache_clear()
+    yield
+    get_pii_masker.cache_clear()
 
 
 def test_analyst_can_mask_pii() -> None:
