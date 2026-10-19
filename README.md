@@ -233,6 +233,8 @@ Use only synthetic or otherwise approved content. The benchmark dataset is never
 
 `OpenAILLMService` is an independent text-generation boundary. It sends the configured model, a minimal French system instruction, and the caller's prompt through the official SDK Responses API, then returns only the generated text. Its injected client contract allows unit tests to run with no network access.
 
+Contract tests inject a test-only fake Responses client into `OpenAILLMService` and compose that real provider service with `RagGenerationService`. They verify request parameters, text extraction, empty and provider-error translation, strict JSON and citation validation, abstention, and PII masking before and after generation without an API key, network access, or OpenAI cost.
+
 Generation and retrieval remain separate service boundaries. `OpenAILLMService` does not retrieve BM25 or Qdrant results, invoke RRF or FlashRank, add documents, validate evidence, or produce citations. `RagGenerationService` composes it with retrieval without adding those responsibilities to the LLM service.
 
 Prompts are transmitted to the selected external provider when the service is called. Callers must mask sensitive data before transmission and assess the provider's retention, hosting, and confidentiality controls. The service does not log prompts, and its public errors omit provider details and credentials.
