@@ -239,6 +239,28 @@ Generation and retrieval remain separate service boundaries. `OpenAILLMService` 
 
 Prompts are transmitted to the selected external provider when the service is called. Callers must mask sensitive data before transmission and assess the provider's retention, hosting, and confidentiality controls. The service does not log prompts, and its public errors omit provider details and credentials.
 
+### Manual OpenAI Smoke Test
+
+The manual smoke test checks one minimal call through the production `OpenAILLMService` and the OpenAI Responses API. It uses a fixed public arithmetic question and does not load the RAG corpus, Qdrant, embeddings, or banking data. It is a provider connectivity check, not a complete RAG validation.
+
+The script is disarmed by default. This preparation command does not load the OpenAI configuration, construct a client, or make a network call:
+
+```bash
+cd backend
+./venv/bin/python -m scripts.run_openai_smoke_test
+```
+
+To perform the manual test, configure `LLM_API_KEY` and optionally the existing `LLM_MODEL` and `LLM_BASE_URL` settings. Then explicitly authorize the single real call:
+
+```bash
+cd backend
+./venv/bin/python -m scripts.run_openai_smoke_test --allow-real-openai-call
+```
+
+A real call can incur API charges. The authorized path uses a 15-second timeout, disables automatic retries, and makes at most one provider request. It prints only a generic success or failure status; it never prints the key, prompt, raw response, or HTTP headers. Never replace the fixed question with sensitive, personal, confidential, or banking data.
+
+This smoke test confirms only that the configured provider can return a non-empty response. It does not evaluate answer quality, structured RAG output, retrieval, citation grounding, PII detection, or end-to-end application security. Automated tests inject local fakes and never contact OpenAI.
+
 ### Generative RAG Pipeline
 
 `RagGenerationService` connects the existing `HybridRetriever` contract to the independent `LLMService` contract through dependency injection. It requests the configured number of BM25 and Qdrant results fused by RRF, preserves their order and metadata, builds a deterministic French prompt, and returns the generated answer with the chunks used as sources.
