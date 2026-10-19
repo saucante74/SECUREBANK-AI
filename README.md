@@ -476,6 +476,29 @@ The asserted scenarios cover a factual cited answer, a masked PII-bearing questi
 
 This integration command is intentionally excluded from the default pytest suite because it needs Qdrant plus prepared local embedding, Presidio, and spaCy resources. The lightweight tests use substitutes and require no Docker, Qdrant server, model loading, or network. The `FakeLLM` supports only the demonstration's fixed evidence rules and cannot measure language-model quality, general grounding, or real-world abstention. Presidio and spaCy can produce false positives or false negatives, so successful masking in these scenarios does not prove exhaustive anonymization or legal compliance.
 
+### Manual OpenAI RAG Integration Test
+
+The manual OpenAI RAG integration test prepares the complete local pipeline with the existing four-document synthetic corpus, CPU embeddings, BM25, a dedicated Qdrant collection, RRF, Presidio, `RagGenerationService`, and the production `OpenAILLMService`. It runs no public HTTP server and must never be used with real banking or personal data.
+
+The script is disarmed by default. The following command exits before loading embeddings, initializing Presidio, accessing Qdrant, constructing an OpenAI client, or requiring an API key:
+
+```bash
+cd backend
+./venv/bin/python -m scripts.run_rag_openai_integration
+```
+
+For a later explicitly authorized manual run, prepare the local embedding and French spaCy models, start Qdrant, configure `LLM_API_KEY`, and run:
+
+```bash
+docker compose up -d qdrant
+cd backend
+./venv/bin/python -m scripts.run_rag_openai_integration --allow-real-openai-call
+```
+
+The authorized mode can make at most two OpenAI Responses API calls and can incur provider charges. It uses the smoke-test client configuration with a 15-second timeout and automatic retries disabled. Before each external call, a preflight guard verifies that every passage belongs to the pinned synthetic corpus and that its known synthetic PII is absent from the masked prompt. Prompts, raw responses, credentials, and source contents are not printed.
+
+The two scenarios validate contract properties rather than exact wording: a non-abstained factual answer with citations attached to returned sources, and an explicit abstention without citations for unsupported evidence. Model output remains variable and can fail the strict JSON, citation, or abstention contract. Presidio can produce false negatives, and checking known synthetic values does not prove exhaustive anonymization. This manual test does not establish answer quality, regulatory compliance, production readiness, or safe processing of real data. Its automated tests use injected fakes without Docker, Qdrant, local models, Presidio, network access, or OpenAI calls.
+
 ### Local HTTP RAG Integration Test
 
 The explicit HTTP integration script extends the local pipeline test through the real FastAPI `POST /rag/ask` route using an in-process ASGI client. It retains real JWT signature, issuer, audience, expiration, and RBAC validation while `app.dependency_overrides` supplies isolated synthetic JWT settings and replaces only the RAG service dependency with the prepared `RagGenerationService`. That service still uses real BM25 retrieval, local CPU embeddings, Qdrant vector search, reciprocal rank fusion, Presidio/spaCy masking, citation validation, and the deterministic `FakeLLM`. It never constructs `OpenAILLMService` or calls OpenAI.
