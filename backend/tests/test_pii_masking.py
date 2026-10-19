@@ -2,7 +2,7 @@ import pytest
 
 from app.schemas.pii import PiiEntity
 from app.services.pii import PiiDetector
-from app.services.pii_masking import PiiMasker
+from app.services.pii_masking import PiiMasker, PiiMaskingError
 
 
 class SimulatedDetector:
@@ -13,6 +13,11 @@ class SimulatedDetector:
     def detect(self, text: str) -> list[PiiEntity]:
         self.received_texts.append(text)
         return self._entities
+
+
+class UnavailableDetector:
+    def detect(self, text: str) -> list[PiiEntity]:
+        raise RuntimeError("sensitive detector details")
 
 
 @pytest.fixture(scope="module")
@@ -144,3 +149,17 @@ def test_exact_overlap_tie_is_deterministic() -> None:
     expected = "ab[EMAIL_ADDRESS]ghij"
     assert PiiMasker(first_order).mask(text) == expected
     assert PiiMasker(reversed_order).mask(text) == expected
+
+
+def test_detector_failure_is_translated_without_sensitive_details() -> None:
+    with pytest.raises(PiiMaskingError) as error:
+        PiiMasker(UnavailableDetector()).mask("Texte synthétique")
+
+    assert "sensitive detector details" not in str(error.value)
+
+
+def test_invalid_detector_entity_is_rejected() -> None:
+    detector = SimulatedDetector([entity("UNKNOWN", 0, 5, 0.8)])
+
+    with pytest.raises(PiiMaskingError, match="invalid result"):
+        PiiMasker(detector).mask("Texte synthétique")

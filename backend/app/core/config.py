@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 from typing import Literal
 
@@ -17,6 +18,12 @@ class Settings(BaseSettings):
     jwt_audience: str | None = None
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection_name: str = "securebank_chunks"
+    rag_enabled: bool = False
+    rag_corpus_path: Path | None = None
+    llm_api_key: SecretStr | None = None
+    llm_model: str = "gpt-4.1-mini"
+    llm_base_url: str | None = None
+    llm_timeout_seconds: float = 30.0
 
     @field_validator("jwt_secret_key")
     @classmethod
@@ -37,6 +44,41 @@ class Settings(BaseSettings):
     def validate_qdrant_setting(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("Qdrant settings must not be empty")
+        return value
+
+    @field_validator("llm_api_key", mode="before")
+    @classmethod
+    def validate_llm_api_key(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("rag_corpus_path", mode="before")
+    @classmethod
+    def validate_rag_corpus_path(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("llm_model")
+    @classmethod
+    def validate_llm_model(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("LLM model must not be empty")
+        return value
+
+    @field_validator("llm_base_url", mode="before")
+    @classmethod
+    def validate_llm_base_url(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("llm_timeout_seconds")
+    @classmethod
+    def validate_llm_timeout_seconds(cls, value: float) -> float:
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError("LLM timeout must be a finite positive number")
         return value
 
     model_config = SettingsConfigDict(

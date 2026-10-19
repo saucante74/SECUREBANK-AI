@@ -24,7 +24,8 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Continuous integration | Pull Request backend workflow | Frontend checks |
 | Validation and configuration | Pydantic v2, pydantic-settings | Extended configuration contracts |
 | Security | HS256 JWT validation, Bearer authentication, RBAC, local PII detection and masking | Token generation |
-| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval, and FlashRank reranking orchestration | Evidence validation and abstention |
+| Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval, and FlashRank reranking orchestration | Semantic evidence validation |
+| Generation | Configurable OpenAI-compatible LLM service, lazy RAG factory, RAG context, citation mapping, and explicit abstention | Semantic evidence validation |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | None | Langfuse |
 | Frontend | None | React 19, TypeScript, Vite |
@@ -34,7 +35,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, and a protected PII masking endpoint. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. The current RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates, fuses both rankings with RRF, and reranks the fused candidates with FlashRank through an injected `RagRetriever` service.
+The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, a protected PII masking endpoint, and a protected generative RAG endpoint that is disabled by default. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. When enabled and configured, the generative RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates and fuses both rankings with RRF. FlashRank remains available as an independent retrieval experiment but is not part of the default generative pipeline.
 
 ## Repository Structure
 
@@ -53,17 +54,21 @@ SECUREBANK-AI/
 │   │   │   ├── __init__.py
 │   │   │   ├── auth.py
 │   │   │   ├── dependencies.py
-│   │   │   └── pii.py
+│   │   │   ├── pii.py
+│   │   │   ├── rag.py
+│   │   │   └── validation.py
 │   │   ├── core/
 │   │   │   ├── __init__.py
 │   │   │   ├── config.py
-│   │   │   └── jwt.py
+│   │   │   ├── jwt.py
+│   │   │   └── rag_factory.py
 │   │   ├── schemas/
 │   │   │   ├── __init__.py
 │   │   │   ├── auth.py
 │   │   │   ├── documents.py
 │   │   │   ├── evaluation.py
 │   │   │   ├── pii.py
+│   │   │   ├── rag_generation.py
 │   │   │   └── retrieval.py
 │   │   ├── services/
 │   │   │   ├── __init__.py
@@ -72,9 +77,12 @@ SECUREBANK-AI/
 │   │   │   ├── chunking.py
 │   │   │   ├── embeddings.py
 │   │   │   ├── hybrid.py
+│   │   │   ├── llm.py
 │   │   │   ├── pii.py
 │   │   │   ├── pii_masking.py
 │   │   │   ├── qdrant.py
+│   │   │   ├── rag_corpus.py
+│   │   │   ├── rag_generation.py
 │   │   │   ├── rag_retrieval.py
 │   │   │   ├── reranking.py
 │   │   │   ├── retrieval_evaluation.py
@@ -116,6 +124,9 @@ SECUREBANK-AI/
 │   │   ├── test_pii_api.py
 │   │   ├── test_pii_masking.py
 │   │   ├── test_qdrant.py
+│   │   ├── test_rag_api.py
+│   │   ├── test_rag_corpus.py
+│   │   ├── test_rag_factory.py
 │   │   ├── test_rag_retrieval.py
 │   │   ├── test_reranking.py
 │   │   ├── test_retrieval_evaluation.py
@@ -186,10 +197,138 @@ The implemented configuration accepts these variables:
 | `JWT_AUDIENCE` | None | Required JWT audience |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint |
 | `QDRANT_COLLECTION_NAME` | `securebank_chunks` | Collection used for chunk vectors |
+| `RAG_ENABLED` | `false` | Enables lazy construction of the generative RAG pipeline |
+| `RAG_CORPUS_PATH` | None | Path to the local JSON corpus used by BM25 and Qdrant |
+| `LLM_API_KEY` | None | Secret credential for the configured LLM provider |
+| `LLM_MODEL` | `gpt-4.1-mini` | Model identifier sent to the LLM provider |
+| `LLM_BASE_URL` | None | Optional base URL for an OpenAI-compatible provider |
+| `LLM_TIMEOUT_SECONDS` | `30` | Positive request timeout in seconds |
 
 Environment variables override values loaded from `backend/.env`, which override the development defaults. Do not commit `.env` or place real banking data in it.
 
 JWT settings remain optional at application startup, so the public health endpoint works without them. Access to protected endpoints is denied until a secret of at least 32 characters, an issuer, and an audience are configured. Replace every example value before using authentication outside local development.
+
+The LLM API key is also optional at application startup. Creating a real LLM client requires it. To use an OpenAI-compatible provider, set `LLM_API_KEY`, set the provider's model identifier in `LLM_MODEL`, and set `LLM_BASE_URL` to its API base URL. Leave `LLM_BASE_URL` empty for the official OpenAI endpoint. Keep provider credentials only in the untracked `.env` file or a deployment secret store.
+
+The generative pipeline remains disabled while `RAG_ENABLED=false`. Enabling it also requires `RAG_CORPUS_PATH`, `LLM_API_KEY`, the existing Qdrant settings, a running Qdrant service, and the locally prepared MiniLM and Presidio models. The application loads none of these resources during import or startup. The first authorized RAG request loads and chunks the corpus, creates its local embeddings, upserts the same chunks into Qdrant, builds BM25, Qdrant, RRF, PII, and LLM services, and caches the resulting pipeline for later requests. Concurrent first requests are serialized during construction so only one cached instance is published. The standalone PII endpoint also initializes its cached masker only on first use.
+
+`RAG_CORPUS_PATH` must point to a UTF-8 JSON file with a non-empty `documents` array. Each item follows the existing `Document` contract:
+
+```json
+{
+  "documents": [
+    {
+      "id": "synthetic-policy",
+      "content": "Synthetic regulatory content.",
+      "title": "Synthetic policy",
+      "source": "synthetic://policy"
+    }
+  ]
+}
+```
+
+Use only synthetic or otherwise approved content. The benchmark dataset is never selected implicitly and is not a production corpus. A missing or invalid corpus, a missing LLM key, or a disabled pipeline produces HTTP 503 with a generic message. An unavailable local model or Qdrant service also produces a non-sensitive HTTP 503. Programming errors are not converted into configuration errors.
+
+### LLM Generation Service
+
+`OpenAILLMService` is an independent text-generation boundary. It sends the configured model, a minimal French system instruction, and the caller's prompt through the official SDK Responses API, then returns only the generated text. Its injected client contract allows unit tests to run with no network access.
+
+Contract tests inject a test-only fake Responses client into `OpenAILLMService` and compose that real provider service with `RagGenerationService`. They verify request parameters, text extraction, empty and provider-error translation, strict JSON and citation validation, abstention, and PII masking before and after generation without an API key, network access, or OpenAI cost.
+
+Generation and retrieval remain separate service boundaries. `OpenAILLMService` does not retrieve BM25 or Qdrant results, invoke RRF or FlashRank, add documents, validate evidence, or produce citations. `RagGenerationService` composes it with retrieval without adding those responsibilities to the LLM service.
+
+Prompts are transmitted to the selected external provider when the service is called. Callers must mask sensitive data before transmission and assess the provider's retention, hosting, and confidentiality controls. The service does not log prompts, and its public errors omit provider details and credentials.
+
+### Manual OpenAI Smoke Test
+
+The manual smoke test checks one minimal call through the production `OpenAILLMService` and the OpenAI Responses API. It uses a fixed public arithmetic question and does not load the RAG corpus, Qdrant, embeddings, or banking data. It is a provider connectivity check, not a complete RAG validation.
+
+The script is disarmed by default. This preparation command does not load the OpenAI configuration, construct a client, or make a network call:
+
+```bash
+cd backend
+./venv/bin/python -m scripts.run_openai_smoke_test
+```
+
+To perform the manual test, configure `LLM_API_KEY` and optionally the existing `LLM_MODEL` and `LLM_BASE_URL` settings. Then explicitly authorize the single real call:
+
+```bash
+cd backend
+./venv/bin/python -m scripts.run_openai_smoke_test --allow-real-openai-call
+```
+
+A real call can incur API charges. The authorized path uses a 15-second timeout, disables automatic retries, and makes at most one provider request. It prints only a generic success or failure status; it never prints the key, prompt, raw response, or HTTP headers. Never replace the fixed question with sensitive, personal, confidential, or banking data.
+
+This smoke test confirms only that the configured provider can return a non-empty response. It does not evaluate answer quality, structured RAG output, retrieval, citation grounding, PII detection, or end-to-end application security. Automated tests inject local fakes and never contact OpenAI.
+
+### Generative RAG Pipeline
+
+`RagGenerationService` connects the existing `HybridRetriever` contract to the independent `LLMService` contract through dependency injection. It requests the configured number of BM25 and Qdrant results fused by RRF, preserves their order and metadata, builds a deterministic French prompt, and returns the generated answer with the chunks used as sources.
+
+Before retrieval, the service applies local PII detection and masking to the user question. Only the masked question is sent to BM25, the local embedding service, Qdrant, and the prompt builder. After retrieval, it creates new immutable chunk values with masked `content`, `title`, and `source` fields. The original chunks remain untouched, and only these masked copies are sent to the LLM and exposed as HTTP sources. Chunk and document identifiers are preserved for citation mapping and must therefore remain opaque identifiers without personal data.
+
+After the LLM response has passed JSON and citation validation, its answer text is checked and masked again. The service verifies that masking did not alter the ordered numeric citation references. A PII detector failure, unavailable detector, invalid masking result, or changed citation structure fails closed: generation stops before the LLM when possible, and no unchecked answer or original text is returned.
+
+The default pipeline uses hybrid RRF results directly and does not invoke FlashRank. Retrieved passage content is serialized as untrusted JSON data, and the prompt tells the model to ignore instructions found inside documents, use no external knowledge, cite document-based claims, and answer only from the supplied passages.
+
+The LLM must return only this JSON structure:
+
+```json
+{
+  "answer": "Réponse en français avec références [1], [2]...",
+  "abstained": false
+}
+```
+
+Each `[n]` refers to the passage numbered `n` in the prompt. The RAG layer parses the JSON strictly, rejects missing or incorrectly typed fields, requires at least one valid reference for a factual answer, and derives each citation's document and chunk identifiers from the retrieved chunks rather than trusting identifiers generated by the LLM. Repeated references are deduplicated in their first-appearance order while all retrieved source metadata remains available in the result.
+
+If retrieval returns no passage, the service skips generation and returns its deterministic no-passage answer with `abstained=true` and no citations. The model can also request abstention with `{"answer":"Les passages fournis ne permettent pas de répondre.","abstained":true}`; the service then replaces the model text with the same deterministic abstention answer and returns no citations. Invalid JSON, malformed output, unknown references, and uncited non-abstained answers raise a safe application error without exposing the raw provider response.
+
+Citation validation proves only that a cited chunk was present in the supplied context. It does not verify that the chunk supports each claim, detect contradictions, establish answer correctness, or prevent hallucinations. The pipeline remains unsuitable for autonomous banking or compliance decisions.
+
+### RAG API
+
+`POST /rag/ask` exposes the generative RAG orchestration through a typed FastAPI contract. It requires a valid Bearer JWT and permits the `analyst`, `compliance_officer`, and `admin` roles. The question must contain non-whitespace characters and at most 2,000 characters. `top_k` defaults to 3 and accepts values from 1 through 5.
+
+Synthetic request example:
+
+```bash
+curl --fail-with-body --request POST http://127.0.0.1:8000/rag/ask \
+  --header "Authorization: Bearer ${SYNTHETIC_TEST_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data '{"question":"Quelle règle synthétique est applicable ?","top_k":3}'
+```
+
+Example response:
+
+```json
+{
+  "question": "Quelle règle synthétique est applicable ?",
+  "answer": "La règle synthétique s'applique [1].",
+  "sources": [
+    {
+      "id": "chunk-1",
+      "document_id": "document-1",
+      "content": "Passage réglementaire synthétique.",
+      "position": 0,
+      "title": "Document synthétique",
+      "source": "synthetic://document-1"
+    }
+  ],
+  "citations": [
+    {
+      "reference": 1,
+      "document_id": "document-1",
+      "chunk_id": "chunk-1"
+    }
+  ],
+  "abstained": false
+}
+```
+
+The application does not construct an OpenAI client, load an embedding or Presidio model, read the RAG corpus, or connect to Qdrant at startup. With `RAG_ENABLED=false`, the endpoint returns HTTP 503 before calling the factory. When enabled, missing configuration, unavailable construction dependencies, and PII protection failures return HTTP 503 with non-sensitive messages. Malformed provider output and LLM failures return HTTP 502, while authentication, authorization, and request-validation failures follow the existing 401, 403, and 422 contracts.
+
+The endpoint masks detected PII in questions, retrieved passage text, exposed source metadata, and generated answers. Only masked prompt data is sent to the configured LLM provider. Presidio is probabilistic, so undetected values may still be transmitted or returned. Provider hosting, retention, access, and confidentiality controls must still be assessed. The implementation does not guarantee anonymization, GDPR compliance, Swiss data-protection compliance, or suitability for real banking data. Unit and API tests use synthetic fakes; no real OpenAI request or live Qdrant RAG request has been tested.
 
 ## Running the Backend
 
@@ -317,6 +456,65 @@ python -m scripts.demo_rag_retrieval
 ```
 
 The demonstration runs BM25 and local MiniLM/Qdrant retrieval, combines their rankings with RRF, and passes a broader candidate set to local FlashRank for the final ranking. It prints RRF and FlashRank scores separately because their numeric scales are not comparable. Stable Qdrant point identifiers make repeated indexing idempotent, and the script verifies that the exact point count matches the synthetic chunks after each run. The demonstration uses three synthetic documents and three sample questions; it does not evaluate retrieval recall, score calibration, evidence quality, latency under load, or answer generation.
+
+### Local End-to-End RAG Integration Test
+
+The explicit integration script exercises the real local corpus loader, character chunking, BM25 retrieval, CPU MiniLM embeddings, Qdrant vector search, reciprocal rank fusion, Presidio/spaCy PII masking, citation validation, and `RagGenerationService`. It never constructs `OpenAILLMService` and makes no OpenAI or other external LLM call. A deterministic `FakeLLM` inspects only the masked question and masked passages, returns the existing structured JSON contract, cites matching evidence, and abstains when its small rule set finds no supported answer.
+
+The dedicated `backend/data/rag_integration_corpus.json` contains four short, entirely synthetic documents about credit processing time, transfer limits, KYC renewal, and adviser contact details. Its synthetic e-mail values exercise masking in passage content and textual metadata. The script resets only the explicitly reserved `securebank_rag_integration_chunks` collection, indexes the current chunks, then indexes the same chunks again and asserts that the exact point count remains stable.
+
+Prepare the local embedding and French spaCy models, then start Qdrant and run the script from the repository root:
+
+```bash
+docker compose up -d qdrant
+cd backend
+python -m scripts.prepare_embedding_model
+python -m scripts.run_rag_integration
+```
+
+The asserted scenarios cover a factual cited answer, a masked PII-bearing question, PII masking in a retrieved passage and its metadata, masking of a generated synthetic e-mail while preserving its citation, explicit abstention for an unsupported question, and idempotent Qdrant reindexing. Console output contains only masked questions, answers, citation identifiers, source counts, and collection counts. On a PII-control failure, the script stops with a generic message.
+
+This integration command is intentionally excluded from the default pytest suite because it needs Qdrant plus prepared local embedding, Presidio, and spaCy resources. The lightweight tests use substitutes and require no Docker, Qdrant server, model loading, or network. The `FakeLLM` supports only the demonstration's fixed evidence rules and cannot measure language-model quality, general grounding, or real-world abstention. Presidio and spaCy can produce false positives or false negatives, so successful masking in these scenarios does not prove exhaustive anonymization or legal compliance.
+
+### Manual OpenAI RAG Integration Test
+
+The manual OpenAI RAG integration test prepares the complete local pipeline with the existing four-document synthetic corpus, CPU embeddings, BM25, a dedicated Qdrant collection, RRF, Presidio, `RagGenerationService`, and the production `OpenAILLMService`. It runs no public HTTP server and must never be used with real banking or personal data.
+
+The script is disarmed by default. The following command exits before loading embeddings, initializing Presidio, accessing Qdrant, constructing an OpenAI client, or requiring an API key:
+
+```bash
+cd backend
+./venv/bin/python -m scripts.run_rag_openai_integration
+```
+
+For a later explicitly authorized manual run, prepare the local embedding and French spaCy models, start Qdrant, configure `LLM_API_KEY`, and run:
+
+```bash
+docker compose up -d qdrant
+cd backend
+./venv/bin/python -m scripts.run_rag_openai_integration --allow-real-openai-call
+```
+
+The authorized mode can make at most two OpenAI Responses API calls and can incur provider charges. It uses the smoke-test client configuration with a 15-second timeout and automatic retries disabled. Before each external call, a preflight guard verifies that every passage belongs to the pinned synthetic corpus and that its known synthetic PII is absent from the masked prompt. Prompts, raw responses, credentials, and source contents are not printed.
+
+The two scenarios validate contract properties rather than exact wording: a non-abstained factual answer with citations attached to returned sources, and an explicit abstention without citations for unsupported evidence. Model output remains variable and can fail the strict JSON, citation, or abstention contract. Presidio can produce false negatives, and checking known synthetic values does not prove exhaustive anonymization. This manual test does not establish answer quality, regulatory compliance, production readiness, or safe processing of real data. Its automated tests use injected fakes without Docker, Qdrant, local models, Presidio, network access, or OpenAI calls.
+
+### Local HTTP RAG Integration Test
+
+The explicit HTTP integration script extends the local pipeline test through the real FastAPI `POST /rag/ask` route using an in-process ASGI client. It retains real JWT signature, issuer, audience, expiration, and RBAC validation while `app.dependency_overrides` supplies isolated synthetic JWT settings and replaces only the RAG service dependency with the prepared `RagGenerationService`. That service still uses real BM25 retrieval, local CPU embeddings, Qdrant vector search, reciprocal rank fusion, Presidio/spaCy masking, citation validation, and the deterministic `FakeLLM`. It never constructs `OpenAILLMService` or calls OpenAI.
+
+Start Qdrant, prepare the local models, and run the script from the repository root:
+
+```bash
+docker compose up -d qdrant
+cd backend
+python -m scripts.prepare_embedding_model
+python -m scripts.run_rag_http_integration
+```
+
+The script asserts HTTP 401 responses for missing and invalid tokens, HTTP 200 for an authorized compliance-officer token, cited factual generation, masking of a PII-bearing question, masking of passage content and textual metadata, masking of the generated answer, explicit documentary abstention, sanitized HTTP 422 validation errors, and HTTP 503 while RAG is disabled without initializing the production provider. Every role currently recognized by the application is authorized for this endpoint, so there is no recognized unauthorized role that can validly exercise HTTP 403. Overrides are restored after every request, including failed assertions, and the script never starts a public server.
+
+The real HTTP script is excluded from the default pytest suite because it requires Qdrant and prepared local models. Lightweight tests cover token compatibility, override cleanup, ASGI routing with real JWT/RBAC, and validation rejection using substitutes without Docker, model loading, Presidio, network, or OpenAI. The fixed-rule `FakeLLM` cannot evaluate general language-model behavior, and successful synthetic PII checks do not guarantee exhaustive anonymization or regulatory compliance.
 
 ### Synthetic Retrieval Evaluation
 
@@ -599,6 +797,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Local typed PII detection for e-mail addresses, phone numbers, IBANs, and French person names.
 - Deterministic local PII masking with typed markers and overlap resolution.
 - Protected `POST /pii/mask` endpoint with sanitized validation errors.
+- Protected `POST /rag/ask` endpoint with typed input, RBAC, safe upstream errors, and replaceable pipeline injection.
 - Immutable document and chunk contracts with deterministic character chunking.
 - Deterministic in-memory BM25 retrieval with typed scored results.
 - Local multilingual embeddings for text and chunks with deterministic input validation.
@@ -607,6 +806,10 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Deterministic Reciprocal Rank Fusion for independent BM25 and Qdrant rankings.
 - Injected hybrid retriever coordinating BM25, MiniLM, Qdrant, and RRF.
 - Independent multilingual FlashRank reranking with explicit local model preparation.
+- Independent configurable OpenAI-compatible LLM generation service with an injected client contract.
+- Generative RAG orchestration connecting hybrid RRF retrieval to LLM generation without FlashRank by default.
+- Lazy, cached RAG composition from a configurable local synthetic corpus, local embeddings, Qdrant, BM25, RRF, and OpenAI generation.
+- Fail-closed PII masking for RAG questions, retrieved source text and metadata, and generated answers.
 - Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
@@ -619,14 +822,14 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 ### Planned
 
 - Token generation and token revocation.
-- Document ingestion, automatic reranking integration, evidence validation, and abstention.
+- Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
 - Langfuse observability.
 - React frontend and cloud deployment.
 
 ## Known Limitations
 
-- Only the health endpoint, application settings, JWT validation, Bearer authentication, demonstration RBAC, local PII detection and masking, and the protected masking endpoint are implemented.
+- The RAG API is disabled by default and requires an explicit local corpus, prepared embedding model, running Qdrant service, and LLM provider configuration.
 - PII detection is probabilistic and may produce false positives or false negatives, especially for person names and ambiguous number formats. It does not guarantee exhaustive identification of sensitive data.
 - False negatives remain unmasked in transformed text. The masking service and endpoint reduce exposure risk without guaranteeing complete anonymization or regulatory compliance.
 - Character chunking can split words and semantic units because it does not understand tokens, sentences, or document structure.
@@ -636,7 +839,11 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Local embedding inference increases installation size, startup time, CPU use, and RAM use; performance has not been benchmarked for this project.
 - The multilingual FlashRank model adds approximately 150 MB and has not been evaluated on French banking or regulatory benchmarks.
 - FlashRank reranking is not yet connected automatically to `HybridRetriever`.
-- There is no token generation, user directory, token revocation, hybrid retrieval API, RAG generation pipeline, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- LLM generation has no semantic evidence validation. PII masking reduces exposure but cannot guarantee that every sensitive value is detected.
+- Enabling RAG transmits masked questions and passages to the configured LLM provider. False negatives can expose original values, so provider hosting, retention, access, and confidentiality controls must be assessed before use.
+- RAG PII integration has been tested with synthetic fakes only; no real OpenAI call or live Qdrant RAG flow has been performed.
+- Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
+- There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, observability, frontend, or deployment configuration.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
 - Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.

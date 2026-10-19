@@ -1,0 +1,28 @@
+{
+  "documents": [
+    {
+      "id": "integration-credit-delay",
+      "title": "Délai de traitement d'un crédit synthétique",
+      "source": "synthetic://integration/credit-delay",
+      "content": "Un dossier de crédit synthétique complet est traité dans un délai indicatif de cinq jours ouvrés. Une pièce manquante suspend ce délai."
+    },
+    {
+      "id": "integration-transfer-limit",
+      "title": "Plafond de virement synthétique",
+      "source": "synthetic://integration/transfer-limit",
+      "content": "Le plafond quotidien fictif des virements en ligne est de 25000 CHF. Toute hausse requiert une validation renforcée."
+    },
+    {
+      "id": "integration-kyc-renewal",
+      "title": "Renouvellement KYC synthétique",
+      "source": "synthetic://integration/kyc-renewal",
+      "content": "Le dossier KYC synthétique est réexaminé tous les deux ans. Un changement significatif peut déclencher un contrôle anticipé."
+    },
+    {
+      "id": "integration-adviser-contact",
+      "title": "Conseiller conseiller.integration@example.com",
+      "source": "conseiller.integration@example.com",
+      "content": "Pour une question sur le dossier synthétique, le conseiller répond à conseiller.integration@example.com pendant les heures ouvrées."
+    }
+  ]
+}
