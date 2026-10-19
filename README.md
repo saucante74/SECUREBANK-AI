@@ -433,6 +433,25 @@ python -m scripts.demo_rag_retrieval
 
 The demonstration runs BM25 and local MiniLM/Qdrant retrieval, combines their rankings with RRF, and passes a broader candidate set to local FlashRank for the final ranking. It prints RRF and FlashRank scores separately because their numeric scales are not comparable. Stable Qdrant point identifiers make repeated indexing idempotent, and the script verifies that the exact point count matches the synthetic chunks after each run. The demonstration uses three synthetic documents and three sample questions; it does not evaluate retrieval recall, score calibration, evidence quality, latency under load, or answer generation.
 
+### Local End-to-End RAG Integration Test
+
+The explicit integration script exercises the real local corpus loader, character chunking, BM25 retrieval, CPU MiniLM embeddings, Qdrant vector search, reciprocal rank fusion, Presidio/spaCy PII masking, citation validation, and `RagGenerationService`. It never constructs `OpenAILLMService` and makes no OpenAI or other external LLM call. A deterministic `FakeLLM` inspects only the masked question and masked passages, returns the existing structured JSON contract, cites matching evidence, and abstains when its small rule set finds no supported answer.
+
+The dedicated `backend/data/rag_integration_corpus.json` contains four short, entirely synthetic documents about credit processing time, transfer limits, KYC renewal, and adviser contact details. Its synthetic e-mail values exercise masking in passage content and textual metadata. The script resets only the explicitly reserved `securebank_rag_integration_chunks` collection, indexes the current chunks, then indexes the same chunks again and asserts that the exact point count remains stable.
+
+Prepare the local embedding and French spaCy models, then start Qdrant and run the script from the repository root:
+
+```bash
+docker compose up -d qdrant
+cd backend
+python -m scripts.prepare_embedding_model
+python -m scripts.run_rag_integration
+```
+
+The asserted scenarios cover a factual cited answer, a masked PII-bearing question, PII masking in a retrieved passage and its metadata, masking of a generated synthetic e-mail while preserving its citation, explicit abstention for an unsupported question, and idempotent Qdrant reindexing. Console output contains only masked questions, answers, citation identifiers, source counts, and collection counts. On a PII-control failure, the script stops with a generic message.
+
+This integration command is intentionally excluded from the default pytest suite because it needs Qdrant plus prepared local embedding, Presidio, and spaCy resources. The lightweight tests use substitutes and require no Docker, Qdrant server, model loading, or network. The `FakeLLM` supports only the demonstration's fixed evidence rules and cannot measure language-model quality, general grounding, or real-world abstention. Presidio and spaCy can produce false positives or false negatives, so successful masking in these scenarios does not prove exhaustive anonymization or legal compliance.
+
 ### Synthetic Retrieval Evaluation
 
 The benchmark corpus contains 30 fictitious French banking documents: five each for mortgage credit, consumer credit, insurance, savings, accounts and payments, and security and compliance. The 180-character chunk size with a 30-character overlap produces 137 deterministic chunks. The separate demonstration corpus remains limited to its original three documents.
