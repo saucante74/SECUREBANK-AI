@@ -52,3 +52,5 @@ logs/
 .cache/
 .huggingface/
 backend/models/
+
+.env.langfuse
