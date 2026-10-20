@@ -27,7 +27,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval, and FlashRank reranking orchestration | Semantic evidence validation |
 | Generation | Configurable OpenAI-compatible LLM service, lazy RAG factory, RAG context, citation mapping, and explicit abstention | Semantic evidence validation |
 | Orchestration and tools | None | LangGraph, FastMCP |
-| Observability | None | Langfuse |
+| Observability | Typed privacy-preserving RAG observer contract and no-op implementation | Langfuse SDK integration and pipeline instrumentation |
 | Frontend | None | React 19, TypeScript, Vite |
 | Deployment | None | Render backend, Vercel frontend |
 
@@ -35,7 +35,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, a protected PII masking endpoint, and a protected generative RAG endpoint that is disabled by default. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. When enabled and configured, the generative RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates and fuses both rankings with RRF. FlashRank remains available as an independent retrieval experiment but is not part of the default generative pipeline.
+The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, a protected PII masking endpoint, and a protected generative RAG endpoint that is disabled by default. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. When enabled and configured, the generative RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates and fuses both rankings with RRF. FlashRank remains available as an independent retrieval experiment but is not part of the default generative pipeline. A separate typed RAG observer contract and no-op implementation prepare a privacy-preserving observability boundary without instrumenting the runtime pipeline.
 
 ## Repository Structure
 
@@ -83,6 +83,7 @@ SECUREBANK-AI/
 │   │   │   ├── qdrant.py
 │   │   │   ├── rag_corpus.py
 │   │   │   ├── rag_generation.py
+│   │   │   ├── rag_observer.py
 │   │   │   ├── rag_retrieval.py
 │   │   │   ├── reranking.py
 │   │   │   ├── retrieval_evaluation.py
@@ -203,12 +204,18 @@ The implemented configuration accepts these variables:
 | `LLM_MODEL` | `gpt-4.1-mini` | Model identifier sent to the LLM provider |
 | `LLM_BASE_URL` | None | Optional base URL for an OpenAI-compatible provider |
 | `LLM_TIMEOUT_SECONDS` | `30` | Positive request timeout in seconds |
+| `LANGFUSE_ENABLED` | `false` | Enables future Langfuse integration after it is implemented |
+| `LANGFUSE_PUBLIC_KEY` | None | Public project key required only when observability is enabled |
+| `LANGFUSE_SECRET_KEY` | None | Secret project key required only when observability is enabled |
+| `LANGFUSE_HOST` | `http://localhost:3000` | Configurable Langfuse HTTP endpoint |
 
 Environment variables override values loaded from `backend/.env`, which override the development defaults. Do not commit `.env` or place real banking data in it.
 
 JWT settings remain optional at application startup, so the public health endpoint works without them. Access to protected endpoints is denied until a secret of at least 32 characters, an issuer, and an audience are configured. Replace every example value before using authentication outside local development.
 
 The LLM API key is also optional at application startup. Creating a real LLM client requires it. To use an OpenAI-compatible provider, set `LLM_API_KEY`, set the provider's model identifier in `LLM_MODEL`, and set `LLM_BASE_URL` to its API base URL. Leave `LLM_BASE_URL` empty for the official OpenAI endpoint. Keep provider credentials only in the untracked `.env` file or a deployment secret store.
+
+Langfuse observability is disabled by default. When `LANGFUSE_ENABLED=false`, both keys may remain empty and the application creates no Langfuse client or network connection. Enabling the setting requires both keys and a valid HTTP or HTTPS host, but configuration validation itself performs no connection. Both keys are represented with Pydantic `SecretStr`, and configuration errors hide their input values. This preparation does not install the Langfuse SDK or make Langfuse operational.
 
 The generative pipeline remains disabled while `RAG_ENABLED=false`. Enabling it also requires `RAG_CORPUS_PATH`, `LLM_API_KEY`, the existing Qdrant settings, a running Qdrant service, and the locally prepared MiniLM and Presidio models. The application loads none of these resources during import or startup. The first authorized RAG request loads and chunks the corpus, creates its local embeddings, upserts the same chunks into Qdrant, builds BM25, Qdrant, RRF, PII, and LLM services, and caches the resulting pipeline for later requests. Concurrent first requests are serialized during construction so only one cached instance is published. The standalone PII endpoint also initializes its cached masker only on first use.
 
@@ -329,6 +336,14 @@ Example response:
 The application does not construct an OpenAI client, load an embedding or Presidio model, read the RAG corpus, or connect to Qdrant at startup. With `RAG_ENABLED=false`, the endpoint returns HTTP 503 before calling the factory. When enabled, missing configuration, unavailable construction dependencies, and PII protection failures return HTTP 503 with non-sensitive messages. Malformed provider output and LLM failures return HTTP 502, while authentication, authorization, and request-validation failures follow the existing 401, 403, and 422 contracts.
 
 The endpoint masks detected PII in questions, retrieved passage text, exposed source metadata, and generated answers. Only masked prompt data is sent to the configured LLM provider. Presidio is probabilistic, so undetected values may still be transmitted or returned. Provider hosting, retention, access, and confidentiality controls must still be assessed. The implementation does not guarantee anonymization, GDPR compliance, Swiss data-protection compliance, or suitability for real banking data. Unit and API tests use synthetic fakes; no real OpenAI request or live Qdrant RAG request has been tested.
+
+### Observability Preparation
+
+The future Langfuse integration is intended to measure RAG execution health and latency without collecting request content. The implemented `RagObserver` boundary permits only request start, retrieval duration and passage count, generation duration and model identifier, and a closed success-or-error completion status. `NoOpRagObserver` implements the same boundary without storing data, constructing an external client, or transmitting anything.
+
+Questions, prompts, answers, document content, document titles and sources, personal data, JWTs, API keys, and arbitrary metadata dictionaries are explicitly forbidden from this observability boundary. Model identifiers must remain technical configuration values and must not contain user or document data.
+
+No observer is connected to `RagGenerationService`, `HybridRetriever`, or `OpenAILLMService` yet. A later iteration must add the SDK dependency, implement an adapter behind the existing contract, assess Langfuse hosting and retention controls, connect instrumentation at explicit composition boundaries, and add offline adapter tests before any authorized integration test. Timing metadata alone can still reveal usage patterns, and the current no-op preparation provides no traces, dashboards, alerts, or proof of regulatory compliance.
 
 ## Running the Backend
 
@@ -751,6 +766,7 @@ Missing, invalid, or expired credentials return HTTP 401 with `WWW-Authenticate:
 - Token generation is not implemented.
 - In production, a trusted identity system must assign roles. Permission changes may require token revocation or short expiration because an issued JWT retains its embedded role until it expires or is revoked.
 - Future authorization decisions will remain deterministic and outside LLM control.
+- The observability contract accepts only explicitly typed technical measurements and excludes request, response, document, identity, authentication, and credential content.
 - Sensitive data must be anonymized before transmission to external services.
 - The prototype must not be represented as FINMA-certified or as guaranteeing LPD compliance.
 
@@ -775,7 +791,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII detection and masking, security tests | In Progress: health check, settings, JWT authentication, RBAC, PII detection, masking, and protected PII API completed |
 | Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, BM25, local embeddings, Qdrant vector search, RRF, hybrid orchestration, and independent FlashRank reranking completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
-| Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | Planned |
+| Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | In Progress: privacy-preserving observer contract, disabled configuration, and no-op implementation prepared; SDK integration remains planned |
 
 ## Current Implementation Status
 
@@ -814,6 +830,8 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
 - Pull Request-only backend GitHub Actions workflow.
+- Disabled-by-default Langfuse configuration with conditional credential validation and no network initialization.
+- Typed privacy-preserving `RagObserver` contract and stateless `NoOpRagObserver` implementation.
 
 ### In Progress
 
@@ -824,7 +842,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Token generation and token revocation.
 - Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
-- Langfuse observability.
+- Langfuse SDK adapter, RAG pipeline instrumentation, traces, and dashboards.
 - React frontend and cloud deployment.
 
 ## Known Limitations
@@ -843,7 +861,8 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Enabling RAG transmits masked questions and passages to the configured LLM provider. False negatives can expose original values, so provider hosting, retention, access, and confidentiality controls must be assessed before use.
 - RAG PII integration has been tested with synthetic fakes only; no real OpenAI call or live Qdrant RAG flow has been performed.
 - Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
-- There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, operational observability, frontend, or deployment configuration.
+- The observer contract is not connected to the RAG pipeline, and the Langfuse SDK is not installed; no traces, remote export, dashboards, or alerts exist.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
 - Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.

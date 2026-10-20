@@ -2,7 +2,7 @@ import math
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr, field_validator
+from pydantic import AnyHttpUrl, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     llm_model: str = "gpt-4.1-mini"
     llm_base_url: str | None = None
     llm_timeout_seconds: float = 30.0
+    langfuse_enabled: bool = False
+    langfuse_public_key: SecretStr | None = None
+    langfuse_secret_key: SecretStr | None = None
+    langfuse_host: AnyHttpUrl = AnyHttpUrl("http://localhost:3000")
 
     @field_validator("jwt_secret_key")
     @classmethod
@@ -81,10 +85,28 @@ class Settings(BaseSettings):
             raise ValueError("LLM timeout must be a finite positive number")
         return value
 
+    @field_validator("langfuse_public_key", "langfuse_secret_key", mode="before")
+    @classmethod
+    def validate_optional_langfuse_key(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @model_validator(mode="after")
+    def validate_langfuse_configuration(self) -> "Settings":
+        if self.langfuse_enabled and (
+            self.langfuse_public_key is None or self.langfuse_secret_key is None
+        ):
+            raise ValueError(
+                "Langfuse public and secret keys are required when observability is enabled"
+            )
+        return self
+
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        hide_input_in_errors=True,
     )
 
 
