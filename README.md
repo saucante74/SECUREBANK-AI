@@ -46,6 +46,8 @@ SECUREBANK-AI/
 │       └── backend-ci.yml
 ├── AGENTS.md
 ├── README.md
+├── .env.langfuse.example
+├── compose.langfuse.yml
 ├── compose.yml
 ├── backend/
 │   ├── app/
@@ -147,6 +149,8 @@ SECUREBANK-AI/
 - `python3.12-venv`
 - `curl`
 - Docker Engine for containerized execution
+- Docker Compose v2 for the application and isolated Langfuse stacks
+- OpenSSL for generating local Langfuse secrets
 
 Node.js is not required until frontend development begins.
 
@@ -419,6 +423,58 @@ docker compose down
 ```
 
 The frontend will be added to Docker Compose after the React application is initialized.
+
+### Running Langfuse Locally
+
+The dedicated `compose.langfuse.yml` follows the current Langfuse v4 self-hosting architecture. It runs independently from `compose.yml` under the `securebank-langfuse` Compose project, so its containers, default network, and named volumes do not overlap with the backend and Qdrant stack.
+
+Langfuse v4 requires six services: the web application, an asynchronous worker, PostgreSQL for transactional data, ClickHouse for traces and analytics, Redis for queues and caching, and MinIO for event and media object storage. For a VM deployment, the official Langfuse guide recommends at least 4 CPU cores, 16 GiB of memory, and sufficient disk for accumulated traces, with 100 GiB given as an example. Local evaluation requirements depend on workload, but all six containers must fit in available memory and disk.
+
+Create the ignored local configuration:
+
+```bash
+cp .env.langfuse.example .env.langfuse
+```
+
+Replace every `replace-with-...` value in `.env.langfuse`. Generate independent local values with commands such as:
+
+```bash
+openssl rand -base64 32
+openssl rand -hex 32
+openssl rand -hex 24
+```
+
+Use URL-safe hexadecimal output for `POSTGRES_PASSWORD` because it is embedded in the PostgreSQL connection URL. Do not reuse credentials, commit `.env.langfuse`, paste its contents into logs, or use these local values in another environment.
+
+Validate the resolved Compose model without printing its environment:
+
+```bash
+docker compose --project-name securebank-langfuse \
+  --env-file .env.langfuse \
+  -f compose.langfuse.yml config --quiet
+```
+
+Starting the stack downloads several large images and requires explicit approval in this project workflow:
+
+```bash
+docker compose --project-name securebank-langfuse \
+  --env-file .env.langfuse \
+  -f compose.langfuse.yml up -d
+```
+
+Allow approximately two to three minutes for the initial startup, then open `http://localhost:3000`. There is no default account. Create the first local user, organization, and project through the UI. Project public and secret API keys are created later from the project settings and must remain in ignored local configuration or an appropriate secret store.
+
+Only `127.0.0.1:3000` for the web UI and `127.0.0.1:9090` for browser access to MinIO objects are published. PostgreSQL, ClickHouse, Redis, the worker, and the MinIO console remain accessible only inside the dedicated Compose network.
+
+Stop and remove the Langfuse containers and network while preserving all named volumes:
+
+```bash
+docker compose --project-name securebank-langfuse \
+  --env-file .env.langfuse \
+  -f compose.langfuse.yml down
+```
+
+Do not add `--volumes` or `-v` unless permanent deletion of all local Langfuse data is explicitly intended and approved. This local Compose deployment provides no high availability, horizontal scaling, automated backup, TLS, disaster recovery, or production security guarantee. Docker logging and persistent data retention must be monitored to prevent disk exhaustion.
 
 ## Running the Frontend
 
@@ -767,6 +823,7 @@ Missing, invalid, or expired credentials return HTTP 401 with `WWW-Authenticate:
 - In production, a trusted identity system must assign roles. Permission changes may require token revocation or short expiration because an issued JWT retains its embedded role until it expires or is revoked.
 - Future authorization decisions will remain deterministic and outside LLM control.
 - The observability contract accepts only explicitly typed technical measurements and excludes request, response, document, identity, authentication, and credential content.
+- The local Langfuse stack binds its only published ports to the loopback interface and stores credentials in the ignored `.env.langfuse` file.
 - Sensitive data must be anonymized before transmission to external services.
 - The prototype must not be represented as FINMA-certified or as guaranteeing LPD compliance.
 
@@ -782,7 +839,7 @@ The workflow configuration and all equivalent checks have been validated locally
 
 ## Deployment
 
-The backend has a production-oriented Docker image and a local Docker Compose service. Cloud deployment remains **planned**, with Render targeted for the backend and Vercel for the frontend. Hosted environments are not implemented.
+The backend has a production-oriented Docker image and a local Docker Compose service. An isolated Langfuse v4 Compose definition is prepared for local deployment but has not been started or connected to the application. Cloud deployment remains **planned**, with Render targeted for the backend and Vercel for the frontend. Hosted environments are not implemented.
 
 ## Development Roadmap
 
@@ -832,6 +889,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Pull Request-only backend GitHub Actions workflow.
 - Disabled-by-default Langfuse configuration with conditional credential validation and no network initialization.
 - Typed privacy-preserving `RagObserver` contract and stateless `NoOpRagObserver` implementation.
+- Isolated Langfuse v4 Docker Compose definition with loopback-only published ports and persistent local volumes.
 
 ### In Progress
 
@@ -863,6 +921,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
 - There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, operational observability, frontend, or deployment configuration.
 - The observer contract is not connected to the RAG pipeline, and the Langfuse SDK is not installed; no traces, remote export, dashboards, or alerts exist.
+- The Langfuse Compose stack has not been pulled, started, health-checked, or exercised through its UI; local capacity and image compatibility remain unverified.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
 - Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
