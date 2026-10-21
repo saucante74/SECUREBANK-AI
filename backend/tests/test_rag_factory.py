@@ -122,6 +122,7 @@ def test_factory_composes_bm25_qdrant_rrf_and_generation(
     assert retriever._rank_fusion is reciprocal_rank_fusion
     assert service._llm_service is llm_service
     assert service._pii_masker is pii_masker
+    assert service._model_name == "gpt-4.1-mini"
     embeddings.embed_chunks.assert_called_once_with([chunk])
     vector_store.store_chunks.assert_called_once_with(
         [chunk], embeddings.embed_chunks.return_value

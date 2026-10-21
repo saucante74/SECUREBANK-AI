@@ -61,6 +61,7 @@ def create_rag_generation_service(settings: Settings) -> RagGenerationService:
         retriever=retriever,
         llm_service=create_openai_llm_service(settings),
         pii_masker=pii_masker,
+        model_name=settings.llm_model,
     )
 
 

@@ -27,7 +27,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval, and FlashRank reranking orchestration | Semantic evidence validation |
 | Generation | Configurable OpenAI-compatible LLM service, lazy RAG factory, RAG context, citation mapping, and explicit abstention | Semantic evidence validation |
 | Orchestration and tools | None | LangGraph, FastMCP |
-| Observability | Typed privacy-preserving RAG observer contract and no-op implementation | Langfuse SDK integration and pipeline instrumentation |
+| Observability | Privacy-preserving RAG pipeline instrumentation with a typed observer and no-op default | Langfuse SDK adapter and trace export |
 | Frontend | None | React 19, TypeScript, Vite |
 | Deployment | None | Render backend, Vercel frontend |
 
@@ -35,7 +35,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, a protected PII masking endpoint, and a protected generative RAG endpoint that is disabled by default. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. When enabled and configured, the generative RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates and fuses both rankings with RRF. FlashRank remains available as an independent retrieval experiment but is not part of the default generative pipeline. A separate typed RAG observer contract and no-op implementation prepare a privacy-preserving observability boundary without instrumenting the runtime pipeline.
+The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, a protected PII masking endpoint, and a protected generative RAG endpoint that is disabled by default. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. When enabled and configured, the generative RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates and fuses both rankings with RRF. FlashRank remains available as an independent retrieval experiment but is not part of the default generative pipeline. `RagGenerationService` emits privacy-preserving lifecycle measurements through an injected typed observer and uses a stateless no-op observer by default.
 
 ## Repository Structure
 
@@ -341,13 +341,15 @@ The application does not construct an OpenAI client, load an embedding or Presid
 
 The endpoint masks detected PII in questions, retrieved passage text, exposed source metadata, and generated answers. Only masked prompt data is sent to the configured LLM provider. Presidio is probabilistic, so undetected values may still be transmitted or returned. Provider hosting, retention, access, and confidentiality controls must still be assessed. The implementation does not guarantee anonymization, GDPR compliance, Swiss data-protection compliance, or suitability for real banking data. Unit and API tests use synthetic fakes; no real OpenAI request or live Qdrant RAG request has been tested.
 
-### Observability Preparation
+### RAG Pipeline Instrumentation
 
-The future Langfuse integration is intended to measure RAG execution health and latency without collecting request content. The implemented `RagObserver` boundary permits only request start, retrieval duration and passage count, generation duration and model identifier, and a closed success-or-error completion status. `NoOpRagObserver` implements the same boundary without storing data, constructing an external client, or transmitting anything.
+`RagGenerationService` emits four ordered lifecycle events through the injected `RagObserver`: request started; retrieval completed with its `time.perf_counter()` duration and passage count; generation completed with its duration and safe configured model name; and request completed with the closed `success` or `error` status. A no-passage abstention omits the generation event because no LLM call occurs. Retrieval, LLM, response-validation, and later pipeline failures produce an `error` completion event while preserving the original exception.
+
+`NoOpRagObserver` is injected when callers provide no observer. It stores and transmits nothing, so observability remains disabled by default. Each observer callback is isolated from the pipeline: an observer exception is ignored, does not alter the RAG result or business error, and never retries generation.
 
 Questions, prompts, answers, document content, document titles and sources, personal data, JWTs, API keys, and arbitrary metadata dictionaries are explicitly forbidden from this observability boundary. Model identifiers must remain technical configuration values and must not contain user or document data.
 
-No observer is connected to `RagGenerationService`, `HybridRetriever`, or `OpenAILLMService` yet. A later iteration must add the SDK dependency, implement an adapter behind the existing contract, assess Langfuse hosting and retention controls, connect instrumentation at explicit composition boundaries, and add offline adapter tests before any authorized integration test. Timing metadata alone can still reveal usage patterns, and the current no-op preparation provides no traces, dashboards, alerts, or proof of regulatory compliance.
+The instrumentation has no Langfuse SDK, client, network export, trace persistence, dashboards, or alerts. A later iteration must implement an adapter behind the existing contract and assess Langfuse hosting, retention, access, and confidentiality controls before any authorized integration test. Timing and passage-count metadata can still reveal usage patterns, and these measurements provide no proof of regulatory compliance.
 
 ## Running the Backend
 
@@ -848,7 +850,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII detection and masking, security tests | In Progress: health check, settings, JWT authentication, RBAC, PII detection, masking, and protected PII API completed |
 | Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, BM25, local embeddings, Qdrant vector search, RRF, hybrid orchestration, and independent FlashRank reranking completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
-| Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | In Progress: privacy-preserving observer contract, disabled configuration, and no-op implementation prepared; SDK integration remains planned |
+| Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | In Progress: privacy-preserving RAG instrumentation and no-op default implemented; SDK integration remains planned |
 
 ## Current Implementation Status
 
@@ -889,6 +891,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Pull Request-only backend GitHub Actions workflow.
 - Disabled-by-default Langfuse configuration with conditional credential validation and no network initialization.
 - Typed privacy-preserving `RagObserver` contract and stateless `NoOpRagObserver` implementation.
+- Injected RAG lifecycle instrumentation for retrieval and generation durations, passage count, safe model name, and completion status.
 - Isolated Langfuse v4 Docker Compose definition with loopback-only published ports and persistent local volumes.
 
 ### In Progress
@@ -900,7 +903,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Token generation and token revocation.
 - Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
-- Langfuse SDK adapter, RAG pipeline instrumentation, traces, and dashboards.
+- Langfuse SDK adapter, trace export, dashboards, and alerts.
 - React frontend and cloud deployment.
 
 ## Known Limitations
@@ -920,7 +923,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - RAG PII integration has been tested with synthetic fakes only; no real OpenAI call or live Qdrant RAG flow has been performed.
 - Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
 - There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, operational observability, frontend, or deployment configuration.
-- The observer contract is not connected to the RAG pipeline, and the Langfuse SDK is not installed; no traces, remote export, dashboards, or alerts exist.
+- The RAG observer is no-op by default, and the Langfuse SDK is not installed; no traces, remote export, dashboards, or alerts exist.
 - The Langfuse Compose stack has not been pulled, started, health-checked, or exercised through its UI; local capacity and image compatibility remain unverified.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
 - Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
