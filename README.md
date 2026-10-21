@@ -347,9 +347,15 @@ The endpoint masks detected PII in questions, retrieved passage text, exposed so
 
 `NoOpRagObserver` is injected when callers provide no observer. It stores and transmits nothing, so observability remains disabled by default. Each observer callback is isolated from the pipeline: an observer exception is ignored, does not alter the RAG result or business error, and never retries generation.
 
+`LangfuseRagObserver` is an optional offline adapter behind the same observer contract. It translates the lifecycle callbacks into calls on the injected `LangfuseObservationClient`. This small typed client protocol is an internal application boundary, not the official Langfuse SDK API. Its explicit methods accept only a random trace identifier, retrieval or generation measurements, the safe configured model name, and the closed completion status. Tests inject an in-memory client; the production factory does not construct or enable this adapter.
+
+The adapter creates one random technical trace identifier at request start and stores it in a private Python `ContextVar`. Retrieval, generation, and completion operations reuse that identifier. Context-local state keeps concurrent threads and asynchronous tasks independent without global mutable state, provided every callback for one request remains in the same execution context. The current synchronous RAG pipeline satisfies this condition. An abstention is represented as a successful trace because the existing observer contract intentionally contains no answer outcome or business content; a no-passage result has retrieval and successful completion operations without a generation operation.
+
+Every internal client operation is isolated. A client failure is discarded without changing the RAG result, replacing a business exception, or retrying the LLM. The adapter does not log client exceptions.
+
 Questions, prompts, answers, document content, document titles and sources, personal data, JWTs, API keys, and arbitrary metadata dictionaries are explicitly forbidden from this observability boundary. Model identifiers must remain technical configuration values and must not contain user or document data.
 
-The instrumentation has no Langfuse SDK, client, network export, trace persistence, dashboards, or alerts. A later iteration must implement an adapter behind the existing contract and assess Langfuse hosting, retention, access, and confidentiality controls before any authorized integration test. Timing and passage-count metadata can still reveal usage patterns, and these measurements provide no proof of regulatory compliance.
+The adapter does not import or call the Langfuse SDK and provides no network export, trace persistence, dashboards, or alerts. A later iteration must implement an official-SDK client behind the internal protocol and assess Langfuse hosting, retention, access, and confidentiality controls before any authorized integration test. Timing, passage counts, and model names can still reveal usage patterns, and these measurements provide no proof of regulatory compliance.
 
 ## Running the Backend
 
@@ -892,6 +898,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Disabled-by-default Langfuse configuration with conditional credential validation and no network initialization.
 - Typed privacy-preserving `RagObserver` contract and stateless `NoOpRagObserver` implementation.
 - Injected RAG lifecycle instrumentation for retrieval and generation durations, passage count, safe model name, and completion status.
+- Offline `LangfuseRagObserver` adapter with an injected internal client contract and context-local trace correlation.
 - Isolated Langfuse v4 Docker Compose definition with loopback-only published ports and persistent local volumes.
 
 ### In Progress
@@ -903,7 +910,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Token generation and token revocation.
 - Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
-- Langfuse SDK adapter, trace export, dashboards, and alerts.
+- Official Langfuse SDK client, trace export, dashboards, and alerts.
 - React frontend and cloud deployment.
 
 ## Known Limitations
@@ -923,7 +930,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - RAG PII integration has been tested with synthetic fakes only; no real OpenAI call or live Qdrant RAG flow has been performed.
 - Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
 - There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, operational observability, frontend, or deployment configuration.
-- The RAG observer is no-op by default, and the Langfuse SDK is not installed; no traces, remote export, dashboards, or alerts exist.
+- The RAG observer is no-op by default, and the offline Langfuse adapter has no official SDK client; no traces, remote export, dashboards, or alerts exist.
 - The Langfuse Compose stack has not been pulled, started, health-checked, or exercised through its UI; local capacity and image compatibility remain unverified.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
 - Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
