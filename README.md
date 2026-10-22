@@ -357,6 +357,8 @@ The concrete client creates one `rag-request` root observation, a `rag-retrieval
 
 The client uses direct SDK observation calls only. It does not enable the Langfuse OpenAI wrapper, decorators, prompt management, or automatic application instrumentation, so it does not automatically capture prompts or responses through this integration. The SDK export filter is explicitly restricted with its official `is_langfuse_span` predicate instead of the broader default filter that also accepts known third-party LLM instrumentation spans. SDK import and client construction occur only inside the enabled lazy factory path; importing the application performs neither action. Tests inject a fake SDK and perform no network request. No trace has been validated against a real Langfuse server, so server ingestion, persistence, dashboards, retention, access controls, and failure behavior remain unverified. Timing, passage counts, model names, and request status can still reveal usage patterns, and these measurements provide no proof of regulatory compliance.
 
+The first local server validation remains an explicit manual operation. Follow [Local Langfuse Validation](docs/langfuse-local-validation.md) to prepare ignored secrets, start and stop the isolated stack without deleting volumes, submit one content-free synthetic trace without OpenAI, inspect its fields, and disable observability again. Langfuse is optional, and telemetry is not a complete business, security, or compliance audit.
+
 ## Running the Backend
 
 From the repository root with the virtual environment active:

@@ -247,18 +247,27 @@ def test_enabled_observability_constructs_sdk_client_with_explicit_settings(
 
 def test_sdk_initialization_failure_falls_back_to_noop(
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
+    sensitive_public_key = "public-key-that-must-not-be-logged"
+    sensitive_secret_key = "secret-key-that-must-not-be-logged"
     monkeypatch.setattr(
         rag_factory,
         "create_langfuse_sdk_observation_client",
-        MagicMock(side_effect=RuntimeError("sensitive SDK failure")),
+        MagicMock(
+            side_effect=RuntimeError(
+                f"SDK failure {sensitive_public_key} {sensitive_secret_key}"
+            )
+        ),
     )
     settings = create_settings(
         langfuse_enabled=True,
-        langfuse_public_key=SecretStr("synthetic-public-key"),
-        langfuse_secret_key=SecretStr("synthetic-secret-key"),
+        langfuse_public_key=SecretStr(sensitive_public_key),
+        langfuse_secret_key=SecretStr(sensitive_secret_key),
     )
 
     observer = create_rag_observer(settings)
 
     assert isinstance(observer, NoOpRagObserver)
+    assert sensitive_public_key not in caplog.text
+    assert sensitive_secret_key not in caplog.text
