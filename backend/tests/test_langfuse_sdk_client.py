@@ -41,7 +41,7 @@ def test_factory_constructs_confirmed_langfuse_v4_client_explicitly() -> None:
     sdk_factory.assert_called_once_with(
         public_key="synthetic-public-key",
         secret_key="synthetic-secret-key",
-        base_url="https://langfuse.example.test/",
+        base_url="https://langfuse.example.test",
         debug=False,
         should_export_span=span_filter,
     )

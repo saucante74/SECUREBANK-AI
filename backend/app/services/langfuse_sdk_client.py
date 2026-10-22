@@ -121,7 +121,7 @@ def create_langfuse_sdk_observation_client(
     sdk = sdk_factory(
         public_key=public_key,
         secret_key=secret_key,
-        base_url=host,
+        base_url=host.rstrip("/"),
         debug=False,
         should_export_span=span_filter,
     )
