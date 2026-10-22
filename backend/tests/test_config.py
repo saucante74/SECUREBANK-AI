@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from pydantic import SecretStr, ValidationError
 
 from app.core.config import Settings
 
@@ -21,6 +22,10 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("LLM_MODEL", raising=False)
     monkeypatch.delenv("LLM_BASE_URL", raising=False)
     monkeypatch.delenv("LLM_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("LANGFUSE_ENABLED", raising=False)
+    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
+    monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
+    monkeypatch.delenv("LANGFUSE_HOST", raising=False)
 
     settings = Settings(_env_file=None)
 
@@ -39,6 +44,10 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.llm_model == "gpt-4.1-mini"
     assert settings.llm_base_url is None
     assert settings.llm_timeout_seconds == 30.0
+    assert settings.langfuse_enabled is False
+    assert settings.langfuse_public_key is None
+    assert settings.langfuse_secret_key is None
+    assert str(settings.langfuse_host) == "http://localhost:3000/"
 
 
 def test_settings_environment_override(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -57,6 +66,10 @@ def test_settings_environment_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LLM_MODEL", "synthetic-model")
     monkeypatch.setenv("LLM_BASE_URL", "https://llm.example.test/v1")
     monkeypatch.setenv("LLM_TIMEOUT_SECONDS", "12.5")
+    monkeypatch.setenv("LANGFUSE_ENABLED", "true")
+    monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "synthetic-public-key")
+    monkeypatch.setenv("LANGFUSE_SECRET_KEY", "synthetic-secret-key")
+    monkeypatch.setenv("LANGFUSE_HOST", "https://langfuse.example.test")
 
     settings = Settings(_env_file=None)
 
@@ -80,6 +93,12 @@ def test_settings_environment_override(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.llm_model == "synthetic-model"
     assert settings.llm_base_url == "https://llm.example.test/v1"
     assert settings.llm_timeout_seconds == 12.5
+    assert settings.langfuse_enabled is True
+    assert isinstance(settings.langfuse_public_key, SecretStr)
+    assert settings.langfuse_public_key.get_secret_value() == "synthetic-public-key"
+    assert isinstance(settings.langfuse_secret_key, SecretStr)
+    assert settings.langfuse_secret_key.get_secret_value() == "synthetic-secret-key"
+    assert str(settings.langfuse_host) == "https://langfuse.example.test/"
 
 
 @pytest.mark.parametrize("timeout", ["0", "-1", "inf", "nan"])
@@ -91,3 +110,66 @@ def test_settings_reject_invalid_llm_timeout(
 
     with pytest.raises(ValueError, match="LLM timeout"):
         Settings(_env_file=None)
+
+
+def test_langfuse_keys_are_optional_when_disabled() -> None:
+    settings = Settings(
+        _env_file=None,
+        langfuse_enabled=False,
+        langfuse_public_key=None,
+        langfuse_secret_key=None,
+    )
+
+    assert settings.langfuse_public_key is None
+    assert settings.langfuse_secret_key is None
+
+
+@pytest.mark.parametrize(
+    ("public_key", "secret_key"),
+    [(None, "synthetic-secret-key"), ("synthetic-public-key", None)],
+)
+def test_enabled_langfuse_requires_both_keys(
+    public_key: str | None,
+    secret_key: str | None,
+) -> None:
+    with pytest.raises(ValidationError, match="Langfuse public and secret keys"):
+        Settings(
+            _env_file=None,
+            langfuse_enabled=True,
+            langfuse_public_key=public_key,
+            langfuse_secret_key=secret_key,
+        )
+
+
+def test_langfuse_validation_error_does_not_expose_keys() -> None:
+    public_key = "public-value-that-must-stay-hidden"
+    secret_key = "secret-value-that-must-stay-hidden"
+
+    with pytest.raises(ValidationError) as captured_error:
+        Settings(
+            _env_file=None,
+            langfuse_enabled=True,
+            langfuse_public_key=public_key,
+            langfuse_secret_key=secret_key,
+            langfuse_host="invalid-host",
+        )
+
+    error_message = str(captured_error.value)
+    assert public_key not in error_message
+    assert secret_key not in error_message
+
+
+def test_langfuse_keys_are_hidden_in_settings_representation() -> None:
+    public_key = "public-value-that-must-stay-hidden"
+    secret_key = "secret-value-that-must-stay-hidden"
+
+    settings = Settings(
+        _env_file=None,
+        langfuse_enabled=True,
+        langfuse_public_key=public_key,
+        langfuse_secret_key=secret_key,
+    )
+
+    settings_representation = repr(settings)
+    assert public_key not in settings_representation
+    assert secret_key not in settings_representation

@@ -1,6 +1,7 @@
 import json
 import re
-from collections.abc import Sequence
+import time
+from collections.abc import Callable, Sequence
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
@@ -10,6 +11,7 @@ from app.schemas.rag_generation import RagCitation, RagGenerationResult
 from app.schemas.retrieval import RetrievalResult
 from app.services.llm import LLMService
 from app.services.pii_masking import PiiMaskingError
+from app.services.rag_observer import NoOpRagObserver, RagObserver, RagRequestStatus
 
 NO_PASSAGES_ANSWER = (
     "Je ne dispose d'aucun passage pertinent pour répondre à cette question."
@@ -133,54 +135,105 @@ class RagGenerationService:
         llm_service: LLMService,
         pii_masker: PiiProtectionService,
         top_k: int = 3,
+        observer: RagObserver | None = None,
+        model_name: str = "unavailable",
     ) -> None:
         self._validate_top_k(top_k)
         self._retriever = retriever
         self._llm_service = llm_service
         self._pii_masker = pii_masker
         self._top_k = top_k
+        self._observer = observer if observer is not None else NoOpRagObserver()
+        self._model_name = model_name
 
     def generate(
         self,
         question: str,
         top_k: int | None = None,
     ) -> RagGenerationResult:
-        if not isinstance(question, str) or not question.strip():
-            raise ValueError("question must contain non-whitespace characters")
+        self._notify(self._observer.on_request_started)
+        try:
+            if not isinstance(question, str) or not question.strip():
+                raise ValueError("question must contain non-whitespace characters")
 
-        effective_top_k = self._top_k if top_k is None else top_k
-        self._validate_top_k(effective_top_k)
-        masked_question = self._mask_text(question)
-        retrieval_results = self._retriever.search(
-            masked_question,
-            top_k=effective_top_k,
-        )
-        masked_chunks = [self._mask_chunk(result.chunk) for result in retrieval_results]
-        if not masked_chunks:
-            return RagGenerationResult(
-                question=masked_question,
-                answer=self._mask_text(NO_PASSAGES_ANSWER),
-                sources=[],
-                citations=[],
-                abstained=True,
+            effective_top_k = self._top_k if top_k is None else top_k
+            self._validate_top_k(effective_top_k)
+            masked_question = self._mask_text(question)
+            retrieval_started = time.perf_counter()
+            retrieval_results = self._retriever.search(
+                masked_question,
+                top_k=effective_top_k,
             )
+            retrieval_duration = time.perf_counter() - retrieval_started
+            self._notify(
+                lambda: self._observer.on_retrieval_completed(
+                    duration_seconds=retrieval_duration,
+                    passage_count=len(retrieval_results),
+                )
+            )
+            masked_chunks = [
+                self._mask_chunk(result.chunk) for result in retrieval_results
+            ]
+            if not masked_chunks:
+                result = RagGenerationResult(
+                    question=masked_question,
+                    answer=self._mask_text(NO_PASSAGES_ANSWER),
+                    sources=[],
+                    citations=[],
+                    abstained=True,
+                )
+                self._notify(
+                    lambda: self._observer.on_request_completed(
+                        status=RagRequestStatus.SUCCESS
+                    )
+                )
+                return result
 
-        prompt = build_rag_prompt(masked_question, masked_chunks)
-        response_text = self._llm_service.generate(prompt)
-        answer, abstained, citations = parse_llm_response(
-            response_text,
-            masked_chunks,
+            prompt = build_rag_prompt(masked_question, masked_chunks)
+            generation_started = time.perf_counter()
+            response_text = self._llm_service.generate(prompt)
+            generation_duration = time.perf_counter() - generation_started
+            self._notify(
+                lambda: self._observer.on_generation_completed(
+                    duration_seconds=generation_duration,
+                    model=self._model_name,
+                )
+            )
+            answer, abstained, citations = parse_llm_response(
+                response_text,
+                masked_chunks,
+            )
+            masked_answer = self._mask_text(answer)
+            if CITATION_PATTERN.findall(masked_answer) != CITATION_PATTERN.findall(
+                answer
+            ):
+                raise RagPiiProtectionError("PII masking altered citation references")
+            result = RagGenerationResult(
+                question=masked_question,
+                answer=masked_answer,
+                sources=masked_chunks,
+                citations=citations,
+                abstained=abstained,
+            )
+        except Exception:
+            self._notify(
+                lambda: self._observer.on_request_completed(
+                    status=RagRequestStatus.ERROR
+                )
+            )
+            raise
+
+        self._notify(
+            lambda: self._observer.on_request_completed(status=RagRequestStatus.SUCCESS)
         )
-        masked_answer = self._mask_text(answer)
-        if CITATION_PATTERN.findall(masked_answer) != CITATION_PATTERN.findall(answer):
-            raise RagPiiProtectionError("PII masking altered citation references")
-        return RagGenerationResult(
-            question=masked_question,
-            answer=masked_answer,
-            sources=masked_chunks,
-            citations=citations,
-            abstained=abstained,
-        )
+        return result
+
+    @staticmethod
+    def _notify(callback: Callable[[], None]) -> None:
+        try:
+            callback()
+        except Exception:
+            return None
 
     def _mask_chunk(self, chunk: Chunk) -> Chunk:
         return chunk.model_copy(

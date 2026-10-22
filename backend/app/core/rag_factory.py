@@ -7,11 +7,14 @@ from app.core.config import Settings
 from app.services.bm25 import BM25Retriever
 from app.services.embeddings import LocalEmbeddingService
 from app.services.hybrid import HybridRetriever
+from app.services.langfuse_rag_observer import LangfuseRagObserver
+from app.services.langfuse_sdk_client import create_langfuse_sdk_observation_client
 from app.services.llm import create_openai_llm_service
 from app.services.pii_masking import PiiMasker
 from app.services.qdrant import QdrantVectorStore, QdrantVectorStoreError
 from app.services.rag_corpus import create_rag_chunks, load_rag_corpus
 from app.services.rag_generation import RagGenerationService
+from app.services.rag_observer import NoOpRagObserver, RagObserver
 
 
 class RagConfigurationError(RuntimeError):
@@ -20,6 +23,22 @@ class RagConfigurationError(RuntimeError):
 
 class RagDependencyUnavailableError(RuntimeError):
     pass
+
+
+def create_rag_observer(settings: Settings) -> RagObserver:
+    if not settings.langfuse_enabled:
+        return NoOpRagObserver()
+    if settings.langfuse_public_key is None or settings.langfuse_secret_key is None:
+        return NoOpRagObserver()
+    try:
+        client = create_langfuse_sdk_observation_client(
+            public_key=settings.langfuse_public_key.get_secret_value(),
+            secret_key=settings.langfuse_secret_key.get_secret_value(),
+            host=str(settings.langfuse_host),
+        )
+    except Exception:
+        return NoOpRagObserver()
+    return LangfuseRagObserver(client)
 
 
 def create_rag_generation_service(settings: Settings) -> RagGenerationService:
@@ -61,6 +80,8 @@ def create_rag_generation_service(settings: Settings) -> RagGenerationService:
         retriever=retriever,
         llm_service=create_openai_llm_service(settings),
         pii_masker=pii_masker,
+        model_name=settings.llm_model,
+        observer=create_rag_observer(settings),
     )
 
 

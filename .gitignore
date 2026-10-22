@@ -21,6 +21,7 @@ htmlcov/
 .env
 .env.*
 !.env.example
+!.env.langfuse.example
 
 node_modules/
 dist/
@@ -51,3 +52,5 @@ logs/
 .cache/
 .huggingface/
 backend/models/
+
+.env.langfuse

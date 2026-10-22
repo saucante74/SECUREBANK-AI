@@ -14,6 +14,7 @@ from app.services.rag_generation import (
     RagGenerationService,
     RagPiiProtectionError,
 )
+from app.services.rag_observer import NoOpRagObserver, RagObserver, RagRequestStatus
 
 
 class FakeRetriever:
@@ -67,17 +68,54 @@ class FakePiiMasker:
         return masked
 
 
+class RecordingObserver:
+    def __init__(self, fail: bool = False) -> None:
+        self.events: list[tuple[str, object]] = []
+        self._fail = fail
+
+    def _record(self, name: str, value: object = None) -> None:
+        self.events.append((name, value))
+        if self._fail:
+            raise RuntimeError("synthetic observer failure")
+
+    def on_request_started(self) -> None:
+        self._record("request_started")
+
+    def on_retrieval_completed(
+        self,
+        *,
+        duration_seconds: float,
+        passage_count: int,
+    ) -> None:
+        self._record("retrieval_completed", (duration_seconds, passage_count))
+
+    def on_generation_completed(
+        self,
+        *,
+        duration_seconds: float,
+        model: str,
+    ) -> None:
+        self._record("generation_completed", (duration_seconds, model))
+
+    def on_request_completed(self, *, status: RagRequestStatus) -> None:
+        self._record("request_completed", status)
+
+
 def create_generation_service(
     retriever: FakeRetriever,
     llm_service: FakeLLMService,
     top_k: int = 3,
     pii_masker: FakePiiMasker | None = None,
+    observer: RagObserver | None = None,
+    model_name: str = "synthetic-model",
 ) -> RagGenerationService:
     return RagGenerationService(
         retriever,
         llm_service,
         pii_masker or FakePiiMasker(),
         top_k=top_k,
+        observer=observer,
+        model_name=model_name,
     )
 
 
@@ -590,3 +628,171 @@ def test_masking_cannot_silently_alter_citation_references() -> None:
             FakeLLMService(),
             pii_masker=masker,
         ).generate("Question")
+
+
+def test_observer_is_optional_and_defaults_to_noop() -> None:
+    service = RagGenerationService(
+        FakeRetriever([]),
+        FakeLLMService(),
+        FakePiiMasker(),
+    )
+
+    generated = service.generate("Question synthétique")
+
+    assert isinstance(service._observer, NoOpRagObserver)
+    assert generated.abstained is True
+
+
+def test_observer_records_successful_cited_generation_in_order() -> None:
+    observer = RecordingObserver()
+    results = [create_result("one"), create_result("two")]
+
+    generated = create_generation_service(
+        FakeRetriever(results),
+        FakeLLMService(),
+        observer=observer,
+    ).generate("Question synthétique")
+
+    assert generated.abstained is False
+    assert [name for name, value in observer.events] == [
+        "request_started",
+        "retrieval_completed",
+        "generation_completed",
+        "request_completed",
+    ]
+    retrieval_duration, passage_count = observer.events[1][1]
+    generation_duration, model = observer.events[2][1]
+    assert isinstance(retrieval_duration, float)
+    assert retrieval_duration >= 0
+    assert passage_count == 2
+    assert isinstance(generation_duration, float)
+    assert generation_duration >= 0
+    assert model == "synthetic-model"
+    assert observer.events[3][1] is RagRequestStatus.SUCCESS
+
+
+def test_observer_records_successful_llm_abstention() -> None:
+    observer = RecordingObserver()
+
+    generated = create_generation_service(
+        FakeRetriever([create_result("one")]),
+        FakeLLMService(llm_response("Texte variable.", abstained=True)),
+        observer=observer,
+    ).generate("Question synthétique")
+
+    assert generated.abstained is True
+    assert [name for name, value in observer.events] == [
+        "request_started",
+        "retrieval_completed",
+        "generation_completed",
+        "request_completed",
+    ]
+    assert observer.events[-1][1] is RagRequestStatus.SUCCESS
+
+
+def test_observer_records_retrieval_error() -> None:
+    observer = RecordingObserver()
+    retriever = FakeRetriever([])
+    error = RuntimeError("private retrieval failure")
+    retriever.error = error
+
+    with pytest.raises(RuntimeError) as raised:
+        create_generation_service(
+            retriever,
+            FakeLLMService(),
+            observer=observer,
+        ).generate("Private question")
+
+    assert raised.value is error
+    assert observer.events == [
+        ("request_started", None),
+        ("request_completed", RagRequestStatus.ERROR),
+    ]
+
+
+def test_observer_records_llm_error_without_second_llm_call() -> None:
+    observer = RecordingObserver()
+    llm = FakeLLMService()
+    error = RuntimeError("private generation failure")
+    llm.error = error
+
+    with pytest.raises(RuntimeError) as raised:
+        create_generation_service(
+            FakeRetriever([create_result("one")]),
+            llm,
+            observer=observer,
+        ).generate("Private question")
+
+    assert raised.value is error
+    assert len(llm.prompts) == 1
+    assert [name for name, value in observer.events] == [
+        "request_started",
+        "retrieval_completed",
+        "request_completed",
+    ]
+    assert observer.events[-1][1] is RagRequestStatus.ERROR
+
+
+def test_observer_records_response_validation_error_without_second_llm_call() -> None:
+    observer = RecordingObserver()
+    llm = FakeLLMService("private invalid response")
+
+    with pytest.raises(RagGenerationResponseError):
+        create_generation_service(
+            FakeRetriever([create_result("one")]),
+            llm,
+            observer=observer,
+        ).generate("Private question")
+
+    assert len(llm.prompts) == 1
+    assert [name for name, value in observer.events] == [
+        "request_started",
+        "retrieval_completed",
+        "generation_completed",
+        "request_completed",
+    ]
+    assert observer.events[-1][1] is RagRequestStatus.ERROR
+
+
+def test_observer_failure_does_not_change_pipeline_result_or_repeat_llm_call() -> None:
+    observer = RecordingObserver(fail=True)
+    llm = FakeLLMService()
+
+    generated = create_generation_service(
+        FakeRetriever([create_result("one")]),
+        llm,
+        observer=observer,
+    ).generate("Question synthétique")
+
+    assert generated.answer == "Réponse bancaire synthétique [1]"
+    assert len(llm.prompts) == 1
+    assert [name for name, value in observer.events] == [
+        "request_started",
+        "retrieval_completed",
+        "generation_completed",
+        "request_completed",
+    ]
+
+
+def test_observer_events_exclude_sensitive_pipeline_data() -> None:
+    observer = RecordingObserver()
+    question = "Private question with JWT synthetic.jwt.value"
+    passage = "Private passage with API key synthetic-api-key"
+    answer = "Private answer [1]"
+
+    create_generation_service(
+        FakeRetriever([create_result("one", content=passage)]),
+        FakeLLMService(llm_response(answer)),
+        observer=observer,
+    ).generate(question)
+
+    recorded = repr(observer.events)
+    sensitive_values = (
+        question,
+        passage,
+        answer,
+        "synthetic.jwt.value",
+        "synthetic-api-key",
+    )
+    for sensitive_value in sensitive_values:
+        assert sensitive_value not in recorded
