@@ -13,7 +13,7 @@ passlib[bcrypt]==1.7.4
 langchain-community==0.4.2
 langchain-core>=0.3.0
 langgraph>=0.2.0
-langfuse>=2.50.0
+langfuse==4.17.0
 
 fastmcp>=0.2.0
 

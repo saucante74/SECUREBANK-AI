@@ -13,3 +13,4 @@ torch==2.14.1+cpu
 sentence-transformers==6.1.0
 flashrank==0.2.10
 openai==3.16.2
+langfuse==4.17.0
