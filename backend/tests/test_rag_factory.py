@@ -12,6 +12,7 @@ from app.core.rag_factory import (
     RagDependencyUnavailableError,
     RagGenerationServiceProvider,
     create_rag_generation_service,
+    create_rag_observer,
     rag_generation_service_provider,
 )
 from app.schemas.documents import Chunk, Document
@@ -23,6 +24,7 @@ from app.services.pii_masking import PiiMasker
 from app.services.qdrant import QdrantVectorStore, QdrantVectorStoreError
 from app.services.rag_corpus import RagCorpus
 from app.services.rag_generation import RagGenerationService
+from app.services.rag_observer import NoOpRagObserver
 from app.services.rrf import reciprocal_rank_fusion
 
 
@@ -122,6 +124,7 @@ def test_factory_composes_bm25_qdrant_rrf_and_generation(
     assert retriever._rank_fusion is reciprocal_rank_fusion
     assert service._llm_service is llm_service
     assert service._pii_masker is pii_masker
+    assert service._model_name == "gpt-4.1-mini"
     embeddings.embed_chunks.assert_called_once_with([chunk])
     vector_store.store_chunks.assert_called_once_with(
         [chunk], embeddings.embed_chunks.return_value
@@ -207,3 +210,64 @@ def test_provider_builds_lazily_once_and_reuses_service() -> None:
 
 def test_module_import_does_not_construct_pipeline() -> None:
     assert rag_generation_service_provider._service is None
+
+
+def test_observability_is_disabled_by_default() -> None:
+    observer = create_rag_observer(create_settings())
+
+    assert isinstance(observer, NoOpRagObserver)
+
+
+def test_enabled_observability_constructs_sdk_client_with_explicit_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = MagicMock()
+    client_factory = MagicMock(return_value=client)
+    monkeypatch.setattr(
+        rag_factory,
+        "create_langfuse_sdk_observation_client",
+        client_factory,
+    )
+    settings = create_settings(
+        langfuse_enabled=True,
+        langfuse_public_key=SecretStr("synthetic-public-key"),
+        langfuse_secret_key=SecretStr("synthetic-secret-key"),
+        langfuse_host="https://langfuse.example.test",
+    )
+
+    observer = create_rag_observer(settings)
+
+    client_factory.assert_called_once_with(
+        public_key="synthetic-public-key",
+        secret_key="synthetic-secret-key",
+        host="https://langfuse.example.test/",
+    )
+    assert observer._client is client
+
+
+def test_sdk_initialization_failure_falls_back_to_noop(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    sensitive_public_key = "public-key-that-must-not-be-logged"
+    sensitive_secret_key = "secret-key-that-must-not-be-logged"
+    monkeypatch.setattr(
+        rag_factory,
+        "create_langfuse_sdk_observation_client",
+        MagicMock(
+            side_effect=RuntimeError(
+                f"SDK failure {sensitive_public_key} {sensitive_secret_key}"
+            )
+        ),
+    )
+    settings = create_settings(
+        langfuse_enabled=True,
+        langfuse_public_key=SecretStr(sensitive_public_key),
+        langfuse_secret_key=SecretStr(sensitive_secret_key),
+    )
+
+    observer = create_rag_observer(settings)
+
+    assert isinstance(observer, NoOpRagObserver)
+    assert sensitive_public_key not in caplog.text
+    assert sensitive_secret_key not in caplog.text

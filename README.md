@@ -27,7 +27,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval, and FlashRank reranking orchestration | Semantic evidence validation |
 | Generation | Configurable OpenAI-compatible LLM service, lazy RAG factory, RAG context, citation mapping, and explicit abstention | Semantic evidence validation |
 | Orchestration and tools | None | LangGraph, FastMCP |
-| Observability | None | Langfuse |
+| Observability | Privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse Python SDK 4.17.0 client | Live-server validation, dashboards, and alerts |
 | Frontend | None | React 19, TypeScript, Vite |
 | Deployment | None | Render backend, Vercel frontend |
 
@@ -35,7 +35,7 @@ The backend requirements file already declares packages for later iterations. A 
 
 ## System Architecture
 
-The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, a protected PII masking endpoint, and a protected generative RAG endpoint that is disabled by default. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. When enabled and configured, the generative RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates and fuses both rankings with RRF. FlashRank remains available as an independent retrieval experiment but is not part of the default generative pipeline.
+The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, a protected PII masking endpoint, and a protected generative RAG endpoint that is disabled by default. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. When enabled and configured, the generative RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates and fuses both rankings with RRF. FlashRank remains available as an independent retrieval experiment but is not part of the default generative pipeline. `RagGenerationService` emits privacy-preserving lifecycle measurements through an injected typed observer and uses a stateless no-op observer by default.
 
 ## Repository Structure
 
@@ -46,6 +46,8 @@ SECUREBANK-AI/
 │       └── backend-ci.yml
 ├── AGENTS.md
 ├── README.md
+├── .env.langfuse.example
+├── compose.langfuse.yml
 ├── compose.yml
 ├── backend/
 │   ├── app/
@@ -83,6 +85,7 @@ SECUREBANK-AI/
 │   │   │   ├── qdrant.py
 │   │   │   ├── rag_corpus.py
 │   │   │   ├── rag_generation.py
+│   │   │   ├── rag_observer.py
 │   │   │   ├── rag_retrieval.py
 │   │   │   ├── reranking.py
 │   │   │   ├── retrieval_evaluation.py
@@ -146,6 +149,8 @@ SECUREBANK-AI/
 - `python3.12-venv`
 - `curl`
 - Docker Engine for containerized execution
+- Docker Compose v2 for the application and isolated Langfuse stacks
+- OpenSSL for generating local Langfuse secrets
 
 Node.js is not required until frontend development begins.
 
@@ -203,12 +208,18 @@ The implemented configuration accepts these variables:
 | `LLM_MODEL` | `gpt-4.1-mini` | Model identifier sent to the LLM provider |
 | `LLM_BASE_URL` | None | Optional base URL for an OpenAI-compatible provider |
 | `LLM_TIMEOUT_SECONDS` | `30` | Positive request timeout in seconds |
+| `LANGFUSE_ENABLED` | `false` | Enables construction of the Langfuse SDK client with the lazy RAG pipeline |
+| `LANGFUSE_PUBLIC_KEY` | None | Public project key required only when observability is enabled |
+| `LANGFUSE_SECRET_KEY` | None | Secret project key required only when observability is enabled |
+| `LANGFUSE_HOST` | `http://localhost:3000` | Configurable Langfuse HTTP endpoint |
 
 Environment variables override values loaded from `backend/.env`, which override the development defaults. Do not commit `.env` or place real banking data in it.
 
 JWT settings remain optional at application startup, so the public health endpoint works without them. Access to protected endpoints is denied until a secret of at least 32 characters, an issuer, and an audience are configured. Replace every example value before using authentication outside local development.
 
 The LLM API key is also optional at application startup. Creating a real LLM client requires it. To use an OpenAI-compatible provider, set `LLM_API_KEY`, set the provider's model identifier in `LLM_MODEL`, and set `LLM_BASE_URL` to its API base URL. Leave `LLM_BASE_URL` empty for the official OpenAI endpoint. Keep provider credentials only in the untracked `.env` file or a deployment secret store.
+
+Langfuse observability is disabled by default. When `LANGFUSE_ENABLED=false`, both keys may remain empty and the application creates no Langfuse client or network connection. Enabling the setting requires both keys and a valid HTTP or HTTPS host. The lazy RAG factory then constructs the official Langfuse Python SDK 4.17.0 client explicitly with those values. Both keys are represented with Pydantic `SecretStr`, and configuration errors hide their input values. An SDK initialization failure falls back to the no-op observer and does not prevent construction of the RAG pipeline.
 
 The generative pipeline remains disabled while `RAG_ENABLED=false`. Enabling it also requires `RAG_CORPUS_PATH`, `LLM_API_KEY`, the existing Qdrant settings, a running Qdrant service, and the locally prepared MiniLM and Presidio models. The application loads none of these resources during import or startup. The first authorized RAG request loads and chunks the corpus, creates its local embeddings, upserts the same chunks into Qdrant, builds BM25, Qdrant, RRF, PII, and LLM services, and caches the resulting pipeline for later requests. Concurrent first requests are serialized during construction so only one cached instance is published. The standalone PII endpoint also initializes its cached masker only on first use.
 
@@ -330,6 +341,24 @@ The application does not construct an OpenAI client, load an embedding or Presid
 
 The endpoint masks detected PII in questions, retrieved passage text, exposed source metadata, and generated answers. Only masked prompt data is sent to the configured LLM provider. Presidio is probabilistic, so undetected values may still be transmitted or returned. Provider hosting, retention, access, and confidentiality controls must still be assessed. The implementation does not guarantee anonymization, GDPR compliance, Swiss data-protection compliance, or suitability for real banking data. Unit and API tests use synthetic fakes; no real OpenAI request or live Qdrant RAG request has been tested.
 
+### RAG Pipeline Instrumentation
+
+`RagGenerationService` emits four ordered lifecycle events through the injected `RagObserver`: request started; retrieval completed with its `time.perf_counter()` duration and passage count; generation completed with its duration and safe configured model name; and request completed with the closed `success` or `error` status. A no-passage abstention omits the generation event because no LLM call occurs. Retrieval, LLM, response-validation, and later pipeline failures produce an `error` completion event while preserving the original exception.
+
+`NoOpRagObserver` is injected when callers provide no observer. It stores and transmits nothing, so observability remains disabled by default. Each observer callback is isolated from the pipeline: an observer exception is ignored, does not alter the RAG result or business error, and never retries generation.
+
+`LangfuseRagObserver` is an optional adapter behind the same observer contract. It translates lifecycle callbacks into calls on the injected `LangfuseObservationClient`. This small typed client protocol remains an internal application boundary. `LangfuseSdkObservationClient` implements it with the official Langfuse Python SDK 4.17.0 API. The selected package declares Python 3.10 through 3.x support, Pydantic 2.x, and HTTPX below 1.0, which are compatible with the pinned Python 3.12, Pydantic 2.13.5, and HTTPX 0.28.1 environment.
+
+The adapter creates one random technical trace identifier at request start and stores it in a private Python `ContextVar`. Retrieval, generation, and completion operations reuse that identifier. Context-local state keeps concurrent threads and asynchronous tasks independent without global mutable state, provided every callback for one request remains in the same execution context. The current synchronous RAG pipeline satisfies this condition. An abstention is represented as a successful trace because the existing observer contract intentionally contains no answer outcome or business content; a no-passage result has retrieval and successful completion operations without a generation operation.
+
+Every internal client operation is isolated. A client failure is discarded without changing the RAG result, replacing a business exception, or retrying the LLM. The adapter does not log client exceptions. The concrete client removes completed trace state even when final status recording fails.
+
+The concrete client creates one `rag-request` root observation, a `rag-retrieval` child, and, when generation occurs, a `rag-generation` child. It exports only the technical trace identifier, fixed numeric `duration_seconds` and `passage_count` metadata, the configured model name, and the closed `success` or `error` status. Questions, prompts, answers, document content, document titles and sources, citations, personal data, JWTs, API keys, raw exceptions, and arbitrary metadata dictionaries are explicitly forbidden. The client supplies no `input` or `output` value. Model identifiers must remain technical configuration values and must not contain user or document data.
+
+The client uses direct SDK observation calls only. It does not enable the Langfuse OpenAI wrapper, decorators, prompt management, or automatic application instrumentation, so it does not automatically capture prompts or responses through this integration. The SDK export filter is explicitly restricted with its official `is_langfuse_span` predicate instead of the broader default filter that also accepts known third-party LLM instrumentation spans. SDK import and client construction occur only inside the enabled lazy factory path; importing the application performs neither action. Tests inject a fake SDK and perform no network request. No trace has been validated against a real Langfuse server, so server ingestion, persistence, dashboards, retention, access controls, and failure behavior remain unverified. Timing, passage counts, model names, and request status can still reveal usage patterns, and these measurements provide no proof of regulatory compliance.
+
+The first local server validation remains an explicit manual operation. Follow [Local Langfuse Validation](docs/langfuse-local-validation.md) to prepare ignored secrets, start and stop the isolated stack without deleting volumes, submit one content-free synthetic trace without OpenAI, inspect its fields, and disable observability again. Langfuse is optional, and telemetry is not a complete business, security, or compliance audit.
+
 ## Running the Backend
 
 From the repository root with the virtual environment active:
@@ -404,6 +433,58 @@ docker compose down
 ```
 
 The frontend will be added to Docker Compose after the React application is initialized.
+
+### Running Langfuse Locally
+
+The dedicated `compose.langfuse.yml` follows the current Langfuse v4 self-hosting architecture. It runs independently from `compose.yml` under the `securebank-langfuse` Compose project, so its containers, default network, and named volumes do not overlap with the backend and Qdrant stack.
+
+Langfuse v4 requires six services: the web application, an asynchronous worker, PostgreSQL for transactional data, ClickHouse for traces and analytics, Redis for queues and caching, and MinIO for event and media object storage. For a VM deployment, the official Langfuse guide recommends at least 4 CPU cores, 16 GiB of memory, and sufficient disk for accumulated traces, with 100 GiB given as an example. Local evaluation requirements depend on workload, but all six containers must fit in available memory and disk.
+
+Create the ignored local configuration:
+
+```bash
+cp .env.langfuse.example .env.langfuse
+```
+
+Replace every `replace-with-...` value in `.env.langfuse`. Generate independent local values with commands such as:
+
+```bash
+openssl rand -base64 32
+openssl rand -hex 32
+openssl rand -hex 24
+```
+
+Use URL-safe hexadecimal output for `POSTGRES_PASSWORD` because it is embedded in the PostgreSQL connection URL. Do not reuse credentials, commit `.env.langfuse`, paste its contents into logs, or use these local values in another environment.
+
+Validate the resolved Compose model without printing its environment:
+
+```bash
+docker compose --project-name securebank-langfuse \
+  --env-file .env.langfuse \
+  -f compose.langfuse.yml config --quiet
+```
+
+Starting the stack downloads several large images and requires explicit approval in this project workflow:
+
+```bash
+docker compose --project-name securebank-langfuse \
+  --env-file .env.langfuse \
+  -f compose.langfuse.yml up -d
+```
+
+Allow approximately two to three minutes for the initial startup, then open `http://localhost:3000`. There is no default account. Create the first local user, organization, and project through the UI. Project public and secret API keys are created later from the project settings and must remain in ignored local configuration or an appropriate secret store.
+
+Only `127.0.0.1:3000` for the web UI and `127.0.0.1:9090` for browser access to MinIO objects are published. PostgreSQL, ClickHouse, Redis, the worker, and the MinIO console remain accessible only inside the dedicated Compose network.
+
+Stop and remove the Langfuse containers and network while preserving all named volumes:
+
+```bash
+docker compose --project-name securebank-langfuse \
+  --env-file .env.langfuse \
+  -f compose.langfuse.yml down
+```
+
+Do not add `--volumes` or `-v` unless permanent deletion of all local Langfuse data is explicitly intended and approved. This local Compose deployment provides no high availability, horizontal scaling, automated backup, TLS, disaster recovery, or production security guarantee. Docker logging and persistent data retention must be monitored to prevent disk exhaustion.
 
 ## Running the Frontend
 
@@ -751,6 +832,8 @@ Missing, invalid, or expired credentials return HTTP 401 with `WWW-Authenticate:
 - Token generation is not implemented.
 - In production, a trusted identity system must assign roles. Permission changes may require token revocation or short expiration because an issued JWT retains its embedded role until it expires or is revoked.
 - Future authorization decisions will remain deterministic and outside LLM control.
+- The observability contract accepts only explicitly typed technical measurements and excludes request, response, document, identity, authentication, and credential content.
+- The local Langfuse stack binds its only published ports to the loopback interface and stores credentials in the ignored `.env.langfuse` file.
 - Sensitive data must be anonymized before transmission to external services.
 - The prototype must not be represented as FINMA-certified or as guaranteeing LPD compliance.
 
@@ -766,7 +849,7 @@ The workflow configuration and all equivalent checks have been validated locally
 
 ## Deployment
 
-The backend has a production-oriented Docker image and a local Docker Compose service. Cloud deployment remains **planned**, with Render targeted for the backend and Vercel for the frontend. Hosted environments are not implemented.
+The backend has a production-oriented Docker image and a local Docker Compose service. An isolated Langfuse v4 Compose definition is prepared for local deployment but has not been started or connected to the application. Cloud deployment remains **planned**, with Render targeted for the backend and Vercel for the frontend. Hosted environments are not implemented.
 
 ## Development Roadmap
 
@@ -775,7 +858,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day 1 | FastAPI gateway, health check, settings, JWT, RBAC, PII detection and masking, security tests | In Progress: health check, settings, JWT authentication, RBAC, PII detection, masking, and protected PII API completed |
 | Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, BM25, local embeddings, Qdrant vector search, RRF, hybrid orchestration, and independent FlashRank reranking completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
-| Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | Planned |
+| Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | In Progress: privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse SDK client implemented; live integration remains planned |
 
 ## Current Implementation Status
 
@@ -814,6 +897,12 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend Docker Compose service exposed on local port `8000`.
 - Pull Request-only backend GitHub Actions workflow.
+- Disabled-by-default Langfuse configuration with conditional credential validation and no network initialization.
+- Typed privacy-preserving `RagObserver` contract and stateless `NoOpRagObserver` implementation.
+- Injected RAG lifecycle instrumentation for retrieval and generation durations, passage count, safe model name, and completion status.
+- Offline `LangfuseRagObserver` adapter with an injected internal client contract and context-local trace correlation.
+- Conditional official Langfuse Python SDK 4.17.0 client with correlated root, retrieval, and generation observations.
+- Isolated Langfuse v4 Docker Compose definition with loopback-only published ports and persistent local volumes.
 
 ### In Progress
 
@@ -824,7 +913,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Token generation and token revocation.
 - Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
-- Langfuse observability.
+- Live Langfuse trace export validation, dashboards, and alerts.
 - React frontend and cloud deployment.
 
 ## Known Limitations
@@ -843,7 +932,9 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Enabling RAG transmits masked questions and passages to the configured LLM provider. False negatives can expose original values, so provider hosting, retention, access, and confidentiality controls must be assessed before use.
 - RAG PII integration has been tested with synthetic fakes only; no real OpenAI call or live Qdrant RAG flow has been performed.
 - Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
-- There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, observability, frontend, or deployment configuration.
+- There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, operational observability, frontend, or deployment configuration.
+- The RAG observer is no-op by default. The official SDK client has only been exercised with offline fakes; no real trace ingestion, persistence, dashboard, or alert behavior has been validated.
+- The Langfuse Compose stack has not been pulled, started, health-checked, or exercised through its UI; local capacity and image compatibility remain unverified.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
 - Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
