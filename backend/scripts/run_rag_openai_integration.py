@@ -15,7 +15,7 @@ from app.schemas.rag_generation import RagGenerationResult
 from app.services.bm25 import BM25Retriever
 from app.services.embeddings import LocalEmbeddingService
 from app.services.hybrid import HybridRetriever
-from app.services.llm import LLMService, LLMServiceError
+from app.services.llm import LLMGeneration, LLMService, LLMServiceError
 from app.services.pii_masking import PiiMasker
 from app.services.qdrant import QdrantVectorStore, QdrantVectorStoreError
 from app.services.rag_corpus import RagCorpus, create_rag_chunks, load_rag_corpus
@@ -90,7 +90,7 @@ class PreflightLLMService:
     def call_count(self) -> int:
         return self._call_count
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str) -> LLMGeneration:
         if self._call_count >= self._max_calls:
             raise IntegrationSafetyError("OpenAI call budget exhausted")
         self._validate_prompt(prompt)

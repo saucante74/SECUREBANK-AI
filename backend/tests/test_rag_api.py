@@ -20,7 +20,7 @@ from app.schemas.auth import AuthenticatedIdentity
 from app.schemas.documents import Chunk
 from app.schemas.rag_generation import RagCitation, RagGenerationResult
 from app.schemas.retrieval import RetrievalResult
-from app.services.llm import LLMProviderError
+from app.services.llm import LLMGeneration, LLMProviderError
 from app.services.qdrant import QdrantVectorStoreError
 from app.services.rag_generation import (
     RagGenerationResponseError,
@@ -183,8 +183,8 @@ def test_http_response_exposes_only_masked_rag_text() -> None:
     retriever = MagicMock()
     retriever.search.return_value = [RetrievalResult(chunk=chunk, score=0.8)]
     llm = MagicMock()
-    llm.generate.return_value = (
-        f'{{"answer":"Réponse pour {sensitive_name} [1]","abstained":false}}'
+    llm.generate.return_value = LLMGeneration(
+        text=f'{{"answer":"Réponse pour {sensitive_name} [1]","abstained":false}}'
     )
     masker = MagicMock()
     masker.mask.side_effect = lambda text: text.replace(

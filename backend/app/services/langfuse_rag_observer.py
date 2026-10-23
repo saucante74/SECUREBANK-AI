@@ -23,6 +23,9 @@ class LangfuseObservationClient(Protocol):
         trace_id: str,
         duration_seconds: float,
         model: str,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        total_tokens: int | None,
     ) -> None: ...
 
     def finish_trace(
@@ -30,6 +33,8 @@ class LangfuseObservationClient(Protocol):
         *,
         trace_id: str,
         status: RagRequestStatus,
+        total_duration_seconds: float,
+        abstained: bool | None,
     ) -> None: ...
 
 
@@ -84,6 +89,9 @@ class LangfuseRagObserver:
         *,
         duration_seconds: float,
         model: str,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        total_tokens: int | None,
     ) -> None:
         trace_id = self._trace_id.get()
         if trace_id is None:
@@ -93,10 +101,19 @@ class LangfuseRagObserver:
                 trace_id=trace_id,
                 duration_seconds=duration_seconds,
                 model=model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens,
             )
         )
 
-    def on_request_completed(self, *, status: RagRequestStatus) -> None:
+    def on_request_completed(
+        self,
+        *,
+        status: RagRequestStatus,
+        total_duration_seconds: float,
+        abstained: bool | None,
+    ) -> None:
         trace_id = self._trace_id.get()
         self._trace_id.set(None)
         if trace_id is None:
@@ -105,6 +122,8 @@ class LangfuseRagObserver:
             lambda: self._client.finish_trace(
                 trace_id=trace_id,
                 status=status,
+                total_duration_seconds=total_duration_seconds,
+                abstained=abstained,
             )
         )
 

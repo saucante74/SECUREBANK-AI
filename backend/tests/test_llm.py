@@ -11,15 +11,22 @@ from app.services.llm import (
     LLMConnectionError,
     LLMEmptyResponseError,
     LLMProviderError,
+    LLMTokenUsage,
     OpenAILLMService,
 )
 
 API_KEY = "synthetic-secret-api-key"
 
 
-def create_client(output_text: object = "Réponse synthétique") -> MagicMock:
+def create_client(
+    output_text: object = "Réponse synthétique",
+    usage: object = None,
+) -> MagicMock:
     client = MagicMock()
-    client.responses.create.return_value = SimpleNamespace(output_text=output_text)
+    client.responses.create.return_value = SimpleNamespace(
+        output_text=output_text,
+        usage=usage,
+    )
     return client
 
 
@@ -28,7 +35,30 @@ def test_successful_generation_returns_text() -> None:
 
     result = service.generate("Question synthétique")
 
-    assert result == "Réponse synthétique"
+    assert result.text == "Réponse synthétique"
+    assert result.usage is None
+
+
+def test_generation_extracts_complete_token_usage() -> None:
+    usage = SimpleNamespace(input_tokens=120, output_tokens=30, total_tokens=150)
+    service = OpenAILLMService(create_client(usage=usage), "synthetic-model")
+
+    result = service.generate("Question synthétique")
+
+    assert result.usage == LLMTokenUsage(
+        input_tokens=120,
+        output_tokens=30,
+        total_tokens=150,
+    )
+
+
+def test_generation_omits_inconsistent_token_usage() -> None:
+    usage = SimpleNamespace(input_tokens=120, output_tokens=30, total_tokens=999)
+    service = OpenAILLMService(create_client(usage=usage), "synthetic-model")
+
+    result = service.generate("Question synthétique")
+
+    assert result.usage is None
 
 
 def test_generation_transmits_prompt_model_and_system_prompt() -> None:

@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from pydantic import SecretStr
 
 from app.core.config import Settings
-from app.services.llm import LLMProviderError, OpenAILLMService
+from app.services.llm import LLMGeneration, LLMProviderError, OpenAILLMService
 from scripts.run_openai_smoke_test import (
     ALLOW_REAL_CALL_FLAG,
     SMOKE_PROMPT,
@@ -17,6 +17,7 @@ from scripts.run_openai_smoke_test import (
 class FakeResponse:
     def __init__(self, output_text: str) -> None:
         self.output_text = output_text
+        self.usage = None
 
 
 class FakeResponsesClient:
@@ -46,11 +47,11 @@ class FakeSmokeService:
         self.error = error
         self.prompts: list[str] = []
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str) -> LLMGeneration:
         self.prompts.append(prompt)
         if self.error is not None:
             raise self.error
-        return self.output
+        return LLMGeneration(text=self.output)
 
 
 class RecordingClientFactory:
@@ -152,7 +153,8 @@ def test_smoke_service_disables_retries_and_uses_fixed_timeout() -> None:
     service = create_smoke_service(make_settings(), client_factory)
     result = service.generate(SMOKE_PROMPT)
 
-    assert result == "synthetic response"
+    assert result.text == "synthetic response"
+    assert result.usage is None
     assert client_factory.calls == [
         {
             "api_key": "synthetic-smoke-key",
