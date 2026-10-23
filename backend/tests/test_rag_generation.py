@@ -97,8 +97,17 @@ class RecordingObserver:
     ) -> None:
         self._record("generation_completed", (duration_seconds, model))
 
-    def on_request_completed(self, *, status: RagRequestStatus) -> None:
-        self._record("request_completed", status)
+    def on_request_completed(
+        self,
+        *,
+        status: RagRequestStatus,
+        total_duration_seconds: float,
+        abstained: bool | None,
+    ) -> None:
+        self._record(
+            "request_completed",
+            (status, total_duration_seconds, abstained),
+        )
 
 
 def create_generation_service(
@@ -668,7 +677,11 @@ def test_observer_records_successful_cited_generation_in_order() -> None:
     assert isinstance(generation_duration, float)
     assert generation_duration >= 0
     assert model == "synthetic-model"
-    assert observer.events[3][1] is RagRequestStatus.SUCCESS
+    status, total_duration, abstained = observer.events[3][1]
+    assert status is RagRequestStatus.SUCCESS
+    assert isinstance(total_duration, float)
+    assert total_duration >= 0
+    assert abstained is False
 
 
 def test_observer_records_successful_llm_abstention() -> None:
@@ -687,7 +700,11 @@ def test_observer_records_successful_llm_abstention() -> None:
         "generation_completed",
         "request_completed",
     ]
-    assert observer.events[-1][1] is RagRequestStatus.SUCCESS
+    status, total_duration, abstained = observer.events[-1][1]
+    assert status is RagRequestStatus.SUCCESS
+    assert isinstance(total_duration, float)
+    assert total_duration >= 0
+    assert abstained is True
 
 
 def test_observer_records_retrieval_error() -> None:
@@ -704,10 +721,15 @@ def test_observer_records_retrieval_error() -> None:
         ).generate("Private question")
 
     assert raised.value is error
-    assert observer.events == [
-        ("request_started", None),
-        ("request_completed", RagRequestStatus.ERROR),
+    assert [name for name, value in observer.events] == [
+        "request_started",
+        "request_completed",
     ]
+    status, total_duration, abstained = observer.events[-1][1]
+    assert status is RagRequestStatus.ERROR
+    assert isinstance(total_duration, float)
+    assert total_duration >= 0
+    assert abstained is None
 
 
 def test_observer_records_llm_error_without_second_llm_call() -> None:
@@ -730,7 +752,11 @@ def test_observer_records_llm_error_without_second_llm_call() -> None:
         "retrieval_completed",
         "request_completed",
     ]
-    assert observer.events[-1][1] is RagRequestStatus.ERROR
+    status, total_duration, abstained = observer.events[-1][1]
+    assert status is RagRequestStatus.ERROR
+    assert isinstance(total_duration, float)
+    assert total_duration >= 0
+    assert abstained is None
 
 
 def test_observer_records_response_validation_error_without_second_llm_call() -> None:
@@ -751,7 +777,11 @@ def test_observer_records_response_validation_error_without_second_llm_call() ->
         "generation_completed",
         "request_completed",
     ]
-    assert observer.events[-1][1] is RagRequestStatus.ERROR
+    status, total_duration, abstained = observer.events[-1][1]
+    assert status is RagRequestStatus.ERROR
+    assert isinstance(total_duration, float)
+    assert total_duration >= 0
+    assert abstained is None
 
 
 def test_observer_failure_does_not_change_pipeline_result_or_repeat_llm_call() -> None:

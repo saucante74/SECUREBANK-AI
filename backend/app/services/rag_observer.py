@@ -24,7 +24,13 @@ class RagObserver(Protocol):
         model: str,
     ) -> None: ...
 
-    def on_request_completed(self, *, status: RagRequestStatus) -> None: ...
+    def on_request_completed(
+        self,
+        *,
+        status: RagRequestStatus,
+        total_duration_seconds: float,
+        abstained: bool | None,
+    ) -> None: ...
 
 
 class NoOpRagObserver:
@@ -47,5 +53,11 @@ class NoOpRagObserver:
     ) -> None:
         return None
 
-    def on_request_completed(self, *, status: RagRequestStatus) -> None:
+    def on_request_completed(
+        self,
+        *,
+        status: RagRequestStatus,
+        total_duration_seconds: float,
+        abstained: bool | None,
+    ) -> None:
         return None

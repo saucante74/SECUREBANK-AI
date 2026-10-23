@@ -13,7 +13,11 @@ def use_observer(observer: RagObserver) -> None:
     observer.on_request_started()
     observer.on_retrieval_completed(duration_seconds=0.25, passage_count=3)
     observer.on_generation_completed(duration_seconds=0.5, model="synthetic-model")
-    observer.on_request_completed(status=RagRequestStatus.SUCCESS)
+    observer.on_request_completed(
+        status=RagRequestStatus.SUCCESS,
+        total_duration_seconds=0.75,
+        abstained=False,
+    )
 
 
 def test_noop_rag_observer_accepts_only_technical_measurements() -> None:
@@ -32,7 +36,12 @@ def test_rag_observer_contract_has_no_sensitive_content_fields() -> None:
             "passage_count",
         },
         "on_generation_completed": {"self", "duration_seconds", "model"},
-        "on_request_completed": {"self", "status"},
+        "on_request_completed": {
+            "self",
+            "status",
+            "total_duration_seconds",
+            "abstained",
+        },
     }
 
     for method_name, parameter_names in expected_parameters.items():

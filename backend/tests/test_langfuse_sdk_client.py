@@ -89,6 +89,8 @@ def test_sdk_client_maps_correlated_successful_trace_without_business_data() -> 
     client.finish_trace(
         trace_id="0123456789abcdef0123456789abcdef",
         status=RagRequestStatus.SUCCESS,
+        total_duration_seconds=0.8,
+        abstained=False,
     )
 
     sdk.start_observation.assert_called_once_with(
@@ -111,7 +113,11 @@ def test_sdk_client_maps_correlated_successful_trace_without_business_data() -> 
     ]
     retrieval.end.assert_called_once_with()
     generation.end.assert_called_once_with()
-    trace.update.assert_called_once_with(level="DEFAULT", status_message="success")
+    trace.update.assert_called_once_with(
+        level="DEFAULT",
+        status_message="success",
+        metadata={"total_duration_seconds": 0.8, "abstained": False},
+    )
     trace.end.assert_called_once_with()
 
     exported_values = repr(
@@ -145,9 +151,15 @@ def test_sdk_client_maps_error_status_without_exception_details() -> None:
     client.finish_trace(
         trace_id="trace-error",
         status=RagRequestStatus.ERROR,
+        total_duration_seconds=0.3,
+        abstained=None,
     )
 
-    trace.update.assert_called_once_with(level="ERROR", status_message="error")
+    trace.update.assert_called_once_with(
+        level="ERROR",
+        status_message="error",
+        metadata={"total_duration_seconds": 0.3},
+    )
     trace.end.assert_called_once_with()
 
 
@@ -165,6 +177,8 @@ def test_sdk_client_no_passages_trace_has_no_generation() -> None:
     client.finish_trace(
         trace_id="trace-no-passages",
         status=RagRequestStatus.SUCCESS,
+        total_duration_seconds=0.1,
+        abstained=True,
     )
 
     trace.start_observation.assert_called_once_with(
@@ -192,9 +206,15 @@ def test_sdk_client_supports_successful_abstention_lifecycle() -> None:
     client.finish_trace(
         trace_id="trace-abstention",
         status=RagRequestStatus.SUCCESS,
+        total_duration_seconds=0.4,
+        abstained=True,
     )
 
-    trace.update.assert_called_once_with(level="DEFAULT", status_message="success")
+    trace.update.assert_called_once_with(
+        level="DEFAULT",
+        status_message="success",
+        metadata={"total_duration_seconds": 0.4, "abstained": True},
+    )
 
 
 def test_finished_trace_is_removed_even_when_sdk_update_fails() -> None:
@@ -206,6 +226,8 @@ def test_finished_trace_is_removed_even_when_sdk_update_fails() -> None:
         client.finish_trace(
             trace_id="trace-failure",
             status=RagRequestStatus.ERROR,
+            total_duration_seconds=0.3,
+            abstained=None,
         )
 
     trace.end.assert_called_once_with()

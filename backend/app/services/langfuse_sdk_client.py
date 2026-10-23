@@ -20,6 +20,7 @@ class LangfuseSdkObservation(Protocol):
         *,
         level: str,
         status_message: str,
+        metadata: dict[str, float | bool],
     ) -> "LangfuseSdkObservation": ...
 
     def end(self) -> "LangfuseSdkObservation": ...
@@ -89,12 +90,23 @@ class LangfuseSdkObservationClient:
         *,
         trace_id: str,
         status: RagRequestStatus,
+        total_duration_seconds: float,
+        abstained: bool | None,
     ) -> None:
         with self._lock:
             trace = self._traces.pop(trace_id)
-        level = "ERROR" if status is RagRequestStatus.ERROR else "DEFAULT"
+        level = "ERROR" if status == RagRequestStatus.ERROR else "DEFAULT"
+        metadata: dict[str, float | bool] = {
+            "total_duration_seconds": total_duration_seconds
+        }
+        if abstained is not None:
+            metadata["abstained"] = abstained
         try:
-            trace.update(level=level, status_message=status.value)
+            trace.update(
+                level=level,
+                status_message=status.value,
+                metadata=metadata,
+            )
         finally:
             trace.end()
 

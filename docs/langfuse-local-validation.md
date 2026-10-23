@@ -103,6 +103,7 @@ Run this command from `backend/`. It performs a local Langfuse request only afte
 ```bash
 ./venv/bin/python - <<'PY'
 import sys
+import time
 from uuid import uuid4
 
 from langfuse import Langfuse, is_langfuse_span
@@ -129,6 +130,7 @@ try:
     )
     client = LangfuseSdkObservationClient(sdk)
     trace_id = uuid4().hex
+    request_started = time.perf_counter()
     client.start_trace(trace_id=trace_id)
     client.record_retrieval(
         trace_id=trace_id,
@@ -140,7 +142,12 @@ try:
         duration_seconds=0.001,
         model="synthetic-local-validation-model",
     )
-    client.finish_trace(trace_id=trace_id, status=RagRequestStatus.SUCCESS)
+    client.finish_trace(
+        trace_id=trace_id,
+        status=RagRequestStatus.SUCCESS,
+        total_duration_seconds=time.perf_counter() - request_started,
+        abstained=False,
+    )
     sdk.flush()
 except Exception:
     print("Synthetic Langfuse validation failed", file=sys.stderr)
@@ -158,8 +165,10 @@ In the local Langfuse interface, find the newest `rag-request` trace and confirm
 
 - one `rag-retrieval` child with numeric `duration_seconds` and `passage_count=0`;
 - one `rag-generation` child with numeric `duration_seconds` and model `synthetic-local-validation-model`;
-- final status `success`;
+- final status `success`, numeric non-negative `total_duration_seconds`, and boolean `abstained=false` on `rag-request`;
 - one shared technical trace identifier.
+
+`total_duration_seconds` measures the complete RAG request with a monotonic clock and is not calculated by adding retrieval and generation durations. `abstained` records the final business outcome only when it is known; failed requests omit it. `passage_count` is the integer number of retrieval results and remains attached only to `rag-retrieval`.
 
 If no trace appears, inspect container status and sanitized logs. Do not paste full logs into external systems because SDK or infrastructure diagnostics may contain endpoints or operational identifiers.
 
@@ -171,6 +180,8 @@ Inspect the root and both child observations. Confirm that none contains:
 - a JWT, API key, password, personal identifier, or raw exception;
 - arbitrary application metadata;
 - populated business `input` or `output` fields.
+
+The application exports only the status and the three technical metrics described above, plus the existing observation names, durations, and model identifier. It never adds questions, answers, prompts, passages, documents, titles, sources, citations, personal identifiers, JWTs, secret keys, or raw exceptions to Langfuse metadata.
 
 The SDK and OpenTelemetry protocol still add transport and tracing fields such as observation names, types, timestamps, span identifiers, SDK version, and authentication headers required by the local Langfuse server. The application-level allowlist cannot remove protocol-required fields. The `is_langfuse_span` filter excludes known third-party LLM instrumentation spans, but the exact server-side representation cannot be guaranteed until this visual inspection is completed.
 

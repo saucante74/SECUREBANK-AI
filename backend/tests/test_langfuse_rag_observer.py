@@ -54,8 +54,16 @@ class MemoryObservationClient:
         *,
         trace_id: str,
         status: RagRequestStatus,
+        total_duration_seconds: float,
+        abstained: bool | None,
     ) -> None:
-        self._record("finish", trace_id, status)
+        self._record(
+            "finish",
+            trace_id,
+            status,
+            total_duration_seconds,
+            abstained,
+        )
 
 
 def create_observer(
@@ -88,13 +96,17 @@ def test_successful_generation_records_one_ordered_trace() -> None:
         duration_seconds=0.5,
         model="synthetic-model",
     )
-    observer.on_request_completed(status=RagRequestStatus.SUCCESS)
+    observer.on_request_completed(
+        status=RagRequestStatus.SUCCESS,
+        total_duration_seconds=0.8,
+        abstained=False,
+    )
 
     assert client.events == [
         ("start", "trace-1"),
         ("retrieval", "trace-1", 0.25, 2),
         ("generation", "trace-1", 0.5, "synthetic-model"),
-        ("finish", "trace-1", RagRequestStatus.SUCCESS),
+        ("finish", "trace-1", RagRequestStatus.SUCCESS, 0.8, False),
     ]
 
 
@@ -108,13 +120,19 @@ def test_abstention_uses_the_same_successful_trace_lifecycle() -> None:
         duration_seconds=0.2,
         model="synthetic-model",
     )
-    observer.on_request_completed(status=RagRequestStatus.SUCCESS)
+    observer.on_request_completed(
+        status=RagRequestStatus.SUCCESS,
+        total_duration_seconds=0.4,
+        abstained=True,
+    )
 
     assert {event[1] for event in client.events} == {"trace-abstention"}
     assert client.events[-1] == (
         "finish",
         "trace-abstention",
         RagRequestStatus.SUCCESS,
+        0.4,
+        True,
     )
 
 
@@ -124,12 +142,16 @@ def test_no_passages_finishes_without_generation_event() -> None:
 
     observer.on_request_started()
     observer.on_retrieval_completed(duration_seconds=0.1, passage_count=0)
-    observer.on_request_completed(status=RagRequestStatus.SUCCESS)
+    observer.on_request_completed(
+        status=RagRequestStatus.SUCCESS,
+        total_duration_seconds=0.1,
+        abstained=True,
+    )
 
     assert client.events == [
         ("start", "trace-no-passages"),
         ("retrieval", "trace-no-passages", 0.1, 0),
-        ("finish", "trace-no-passages", RagRequestStatus.SUCCESS),
+        ("finish", "trace-no-passages", RagRequestStatus.SUCCESS, 0.1, True),
     ]
 
 
@@ -146,12 +168,18 @@ def test_pipeline_failures_finish_the_trace_with_error(failed_stage: str) -> Non
             duration_seconds=0.2,
             model="synthetic-model",
         )
-    observer.on_request_completed(status=RagRequestStatus.ERROR)
+    observer.on_request_completed(
+        status=RagRequestStatus.ERROR,
+        total_duration_seconds=0.3,
+        abstained=None,
+    )
 
     assert client.events[-1] == (
         "finish",
         f"trace-{failed_stage}",
         RagRequestStatus.ERROR,
+        0.3,
+        None,
     )
 
 
@@ -165,7 +193,11 @@ def test_client_failures_are_isolated_for_every_operation() -> None:
         duration_seconds=0.2,
         model="synthetic-model",
     )
-    observer.on_request_completed(status=RagRequestStatus.SUCCESS)
+    observer.on_request_completed(
+        status=RagRequestStatus.SUCCESS,
+        total_duration_seconds=0.4,
+        abstained=False,
+    )
 
     assert [event[0] for event in client.events] == [
         "start",
@@ -190,7 +222,13 @@ def test_internal_client_contract_excludes_sensitive_and_arbitrary_fields() -> N
             "duration_seconds",
             "model",
         },
-        "finish_trace": {"self", "trace_id", "status"},
+        "finish_trace": {
+            "self",
+            "trace_id",
+            "status",
+            "total_duration_seconds",
+            "abstained",
+        },
     }
 
     for method_name, parameter_names in expected_parameters.items():
@@ -216,7 +254,11 @@ def test_observation_events_exclude_sensitive_pipeline_data() -> None:
         duration_seconds=0.2,
         model="synthetic-model",
     )
-    observer.on_request_completed(status=RagRequestStatus.SUCCESS)
+    observer.on_request_completed(
+        status=RagRequestStatus.SUCCESS,
+        total_duration_seconds=0.4,
+        abstained=False,
+    )
 
     recorded_events = repr(client.events)
     for sensitive_value in sensitive_values:
@@ -239,7 +281,11 @@ def test_concurrent_requests_keep_independent_trace_contexts() -> None:
             duration_seconds=0.2,
             model="synthetic-model",
         )
-        observer.on_request_completed(status=RagRequestStatus.SUCCESS)
+        observer.on_request_completed(
+            status=RagRequestStatus.SUCCESS,
+            total_duration_seconds=0.4,
+            abstained=False,
+        )
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = [executor.submit(record_request, count) for count in (1, 2)]

@@ -151,6 +151,7 @@ class RagGenerationService:
         question: str,
         top_k: int | None = None,
     ) -> RagGenerationResult:
+        request_started = time.perf_counter()
         self._notify(self._observer.on_request_started)
         try:
             if not isinstance(question, str) or not question.strip():
@@ -184,7 +185,9 @@ class RagGenerationService:
                 )
                 self._notify(
                     lambda: self._observer.on_request_completed(
-                        status=RagRequestStatus.SUCCESS
+                        status=RagRequestStatus.SUCCESS,
+                        total_duration_seconds=time.perf_counter() - request_started,
+                        abstained=result.abstained,
                     )
                 )
                 return result
@@ -218,13 +221,19 @@ class RagGenerationService:
         except Exception:
             self._notify(
                 lambda: self._observer.on_request_completed(
-                    status=RagRequestStatus.ERROR
+                    status=RagRequestStatus.ERROR,
+                    total_duration_seconds=time.perf_counter() - request_started,
+                    abstained=None,
                 )
             )
             raise
 
         self._notify(
-            lambda: self._observer.on_request_completed(status=RagRequestStatus.SUCCESS)
+            lambda: self._observer.on_request_completed(
+                status=RagRequestStatus.SUCCESS,
+                total_duration_seconds=time.perf_counter() - request_started,
+                abstained=result.abstained,
+            )
         )
         return result
 
