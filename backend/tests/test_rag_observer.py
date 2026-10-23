@@ -12,7 +12,13 @@ from app.services.rag_observer import NoOpRagObserver, RagObserver, RagRequestSt
 def use_observer(observer: RagObserver) -> None:
     observer.on_request_started()
     observer.on_retrieval_completed(duration_seconds=0.25, passage_count=3)
-    observer.on_generation_completed(duration_seconds=0.5, model="synthetic-model")
+    observer.on_generation_completed(
+        duration_seconds=0.5,
+        model="synthetic-model",
+        input_tokens=100,
+        output_tokens=25,
+        total_tokens=125,
+    )
     observer.on_request_completed(
         status=RagRequestStatus.SUCCESS,
         total_duration_seconds=0.75,
@@ -35,7 +41,14 @@ def test_rag_observer_contract_has_no_sensitive_content_fields() -> None:
             "duration_seconds",
             "passage_count",
         },
-        "on_generation_completed": {"self", "duration_seconds", "model"},
+        "on_generation_completed": {
+            "self",
+            "duration_seconds",
+            "model",
+            "input_tokens",
+            "output_tokens",
+            "total_tokens",
+        },
         "on_request_completed": {
             "self",
             "status",

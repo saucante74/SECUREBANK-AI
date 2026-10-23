@@ -46,8 +46,19 @@ class MemoryObservationClient:
         trace_id: str,
         duration_seconds: float,
         model: str,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        total_tokens: int | None,
     ) -> None:
-        self._record("generation", trace_id, duration_seconds, model)
+        self._record(
+            "generation",
+            trace_id,
+            duration_seconds,
+            model,
+            input_tokens,
+            output_tokens,
+            total_tokens,
+        )
 
     def finish_trace(
         self,
@@ -95,6 +106,9 @@ def test_successful_generation_records_one_ordered_trace() -> None:
     observer.on_generation_completed(
         duration_seconds=0.5,
         model="synthetic-model",
+        input_tokens=100,
+        output_tokens=25,
+        total_tokens=125,
     )
     observer.on_request_completed(
         status=RagRequestStatus.SUCCESS,
@@ -105,7 +119,7 @@ def test_successful_generation_records_one_ordered_trace() -> None:
     assert client.events == [
         ("start", "trace-1"),
         ("retrieval", "trace-1", 0.25, 2),
-        ("generation", "trace-1", 0.5, "synthetic-model"),
+        ("generation", "trace-1", 0.5, "synthetic-model", 100, 25, 125),
         ("finish", "trace-1", RagRequestStatus.SUCCESS, 0.8, False),
     ]
 
@@ -119,6 +133,9 @@ def test_abstention_uses_the_same_successful_trace_lifecycle() -> None:
     observer.on_generation_completed(
         duration_seconds=0.2,
         model="synthetic-model",
+        input_tokens=None,
+        output_tokens=None,
+        total_tokens=None,
     )
     observer.on_request_completed(
         status=RagRequestStatus.SUCCESS,
@@ -167,6 +184,9 @@ def test_pipeline_failures_finish_the_trace_with_error(failed_stage: str) -> Non
         observer.on_generation_completed(
             duration_seconds=0.2,
             model="synthetic-model",
+            input_tokens=None,
+            output_tokens=None,
+            total_tokens=None,
         )
     observer.on_request_completed(
         status=RagRequestStatus.ERROR,
@@ -192,6 +212,9 @@ def test_client_failures_are_isolated_for_every_operation() -> None:
     observer.on_generation_completed(
         duration_seconds=0.2,
         model="synthetic-model",
+        input_tokens=None,
+        output_tokens=None,
+        total_tokens=None,
     )
     observer.on_request_completed(
         status=RagRequestStatus.SUCCESS,
@@ -221,6 +244,9 @@ def test_internal_client_contract_excludes_sensitive_and_arbitrary_fields() -> N
             "trace_id",
             "duration_seconds",
             "model",
+            "input_tokens",
+            "output_tokens",
+            "total_tokens",
         },
         "finish_trace": {
             "self",
@@ -253,6 +279,9 @@ def test_observation_events_exclude_sensitive_pipeline_data() -> None:
     observer.on_generation_completed(
         duration_seconds=0.2,
         model="synthetic-model",
+        input_tokens=None,
+        output_tokens=None,
+        total_tokens=None,
     )
     observer.on_request_completed(
         status=RagRequestStatus.SUCCESS,
@@ -280,6 +309,9 @@ def test_concurrent_requests_keep_independent_trace_contexts() -> None:
         observer.on_generation_completed(
             duration_seconds=0.2,
             model="synthetic-model",
+            input_tokens=None,
+            output_tokens=None,
+            total_tokens=None,
         )
         observer.on_request_completed(
             status=RagRequestStatus.SUCCESS,

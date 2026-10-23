@@ -141,6 +141,9 @@ try:
         trace_id=trace_id,
         duration_seconds=0.001,
         model="synthetic-local-validation-model",
+        input_tokens=None,
+        output_tokens=None,
+        total_tokens=None,
     )
     client.finish_trace(
         trace_id=trace_id,
@@ -170,6 +173,10 @@ In the local Langfuse interface, find the newest `rag-request` trace and confirm
 
 `total_duration_seconds` measures the complete RAG request with a monotonic clock and is not calculated by adding retrieval and generation durations. `abstained` records the final business outcome only when it is known; failed requests omit it. `passage_count` is the integer number of retrieval results and remains attached only to `rag-retrieval`.
 
+For real OpenAI Responses API calls, `rag-generation` also receives `input_tokens`, `output_tokens`, and `total_tokens` from `response.usage` through Langfuse `usage_details`. The application exports them only when OpenAI returns a complete, non-negative, internally consistent set of integer counters. If usage is absent or inconsistent, all three counters are omitted rather than replaced with zero.
+
+Langfuse can use the generation model and `usage_details` with its server-side model and pricing configuration to display calculated costs. SecureBank-AI does not send `cost_details`, does not hard-code provider prices, and does not create `estimated_cost_usd`. A cost may therefore remain unavailable when the local Langfuse model catalog has no matching price. Any calculated value is an estimate based on Langfuse configuration, not an invoiced OpenAI amount.
+
 If no trace appears, inspect container status and sanitized logs. Do not paste full logs into external systems because SDK or infrastructure diagnostics may contain endpoints or operational identifiers.
 
 ## H. Verify the absence of sensitive data
@@ -181,7 +188,7 @@ Inspect the root and both child observations. Confirm that none contains:
 - arbitrary application metadata;
 - populated business `input` or `output` fields.
 
-The application exports only the status and the three technical metrics described above, plus the existing observation names, durations, and model identifier. It never adds questions, answers, prompts, passages, documents, titles, sources, citations, personal identifiers, JWTs, secret keys, or raw exceptions to Langfuse metadata.
+The application exports only the status, technical timing and count metrics, token usage when available, observation names, and model identifier. It never adds questions, answers, prompts, passages, documents, titles, sources, citations, personal identifiers, JWTs, secret keys, or raw exceptions to Langfuse metadata.
 
 The SDK and OpenTelemetry protocol still add transport and tracing fields such as observation names, types, timestamps, span identifiers, SDK version, and authentication headers required by the local Langfuse server. The application-level allowlist cannot remove protocol-required fields. The `is_langfuse_span` filter excludes known third-party LLM instrumentation spans, but the exact server-side representation cannot be guaranteed until this visual inspection is completed.
 

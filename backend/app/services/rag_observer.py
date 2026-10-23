@@ -22,6 +22,9 @@ class RagObserver(Protocol):
         *,
         duration_seconds: float,
         model: str,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        total_tokens: int | None,
     ) -> None: ...
 
     def on_request_completed(
@@ -50,6 +53,9 @@ class NoOpRagObserver:
         *,
         duration_seconds: float,
         model: str,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        total_tokens: int | None,
     ) -> None:
         return None
 

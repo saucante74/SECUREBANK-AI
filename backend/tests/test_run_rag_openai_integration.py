@@ -7,7 +7,7 @@ from pydantic import SecretStr
 
 from app.core.config import Settings
 from app.schemas.documents import Chunk
-from app.services.llm import LLMProviderError
+from app.services.llm import LLMGeneration, LLMProviderError
 from app.services.rag_generation import RagGenerationResponseError, build_rag_prompt
 from scripts.run_openai_smoke_test import ALLOW_REAL_CALL_FLAG
 from scripts.run_rag_integration import CORPUS_PATH
@@ -32,11 +32,11 @@ class FakeLLM:
         self.error = error
         self.prompts: list[str] = []
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str) -> LLMGeneration:
         self.prompts.append(prompt)
         if self.error is not None:
             raise self.error
-        return self.response
+        return LLMGeneration(text=self.response)
 
 
 def make_settings(api_key: str | None = "synthetic-rag-openai-key") -> Settings:

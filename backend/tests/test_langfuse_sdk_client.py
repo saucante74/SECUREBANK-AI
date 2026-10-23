@@ -85,6 +85,9 @@ def test_sdk_client_maps_correlated_successful_trace_without_business_data() -> 
         trace_id="0123456789abcdef0123456789abcdef",
         duration_seconds=0.5,
         model="synthetic-model",
+        input_tokens=100,
+        output_tokens=25,
+        total_tokens=125,
     )
     client.finish_trace(
         trace_id="0123456789abcdef0123456789abcdef",
@@ -109,6 +112,11 @@ def test_sdk_client_maps_correlated_successful_trace_without_business_data() -> 
             as_type="generation",
             metadata={"duration_seconds": 0.5},
             model="synthetic-model",
+            usage_details={
+                "input_tokens": 100,
+                "output_tokens": 25,
+                "total_tokens": 125,
+            },
         ),
     ]
     retrieval.end.assert_called_once_with()
@@ -140,8 +148,14 @@ def test_sdk_client_maps_correlated_successful_trace_without_business_data() -> 
         "raw exception",
     ):
         assert sensitive_value not in exported_values
-    assert "input" not in exported_values
-    assert "output" not in exported_values
+    exported_calls = [
+        sdk.start_observation.call_args,
+        *trace.start_observation.call_args_list,
+        trace.update.call_args,
+    ]
+    for exported_call in exported_calls:
+        assert "input" not in exported_call.kwargs
+        assert "output" not in exported_call.kwargs
 
 
 def test_sdk_client_maps_error_status_without_exception_details() -> None:
@@ -202,6 +216,9 @@ def test_sdk_client_supports_successful_abstention_lifecycle() -> None:
         trace_id="trace-abstention",
         duration_seconds=0.2,
         model="synthetic-model",
+        input_tokens=None,
+        output_tokens=None,
+        total_tokens=None,
     )
     client.finish_trace(
         trace_id="trace-abstention",
@@ -214,6 +231,13 @@ def test_sdk_client_supports_successful_abstention_lifecycle() -> None:
         level="DEFAULT",
         status_message="success",
         metadata={"total_duration_seconds": 0.4, "abstained": True},
+    )
+    trace.start_observation.assert_any_call(
+        name="rag-generation",
+        as_type="generation",
+        metadata={"duration_seconds": 0.2},
+        model="synthetic-model",
+        usage_details=None,
     )
 
 

@@ -23,6 +23,9 @@ class LangfuseObservationClient(Protocol):
         trace_id: str,
         duration_seconds: float,
         model: str,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        total_tokens: int | None,
     ) -> None: ...
 
     def finish_trace(
@@ -86,6 +89,9 @@ class LangfuseRagObserver:
         *,
         duration_seconds: float,
         model: str,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        total_tokens: int | None,
     ) -> None:
         trace_id = self._trace_id.get()
         if trace_id is None:
@@ -95,6 +101,9 @@ class LangfuseRagObserver:
                 trace_id=trace_id,
                 duration_seconds=duration_seconds,
                 model=model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens,
             )
         )
 

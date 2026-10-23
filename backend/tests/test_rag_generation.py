@@ -6,6 +6,7 @@ import pytest
 
 from app.schemas.documents import Chunk
 from app.schemas.retrieval import RetrievalResult
+from app.services.llm import LLMGeneration, LLMTokenUsage
 from app.services.pii_masking import PiiMaskingError
 from app.services.rag_generation import (
     INSUFFICIENT_EVIDENCE_ANSWER,
@@ -38,12 +39,13 @@ class FakeLLMService:
         self.answer = answer
         self.prompts: list[str] = []
         self.error: Exception | None = None
+        self.usage: LLMTokenUsage | None = None
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str) -> LLMGeneration:
         self.prompts.append(prompt)
         if self.error is not None:
             raise self.error
-        return self.answer
+        return LLMGeneration(text=self.answer, usage=self.usage)
 
 
 class FakePiiMasker:
@@ -94,8 +96,20 @@ class RecordingObserver:
         *,
         duration_seconds: float,
         model: str,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        total_tokens: int | None,
     ) -> None:
-        self._record("generation_completed", (duration_seconds, model))
+        self._record(
+            "generation_completed",
+            (
+                duration_seconds,
+                model,
+                input_tokens,
+                output_tokens,
+                total_tokens,
+            ),
+        )
 
     def on_request_completed(
         self,
@@ -655,10 +669,16 @@ def test_observer_is_optional_and_defaults_to_noop() -> None:
 def test_observer_records_successful_cited_generation_in_order() -> None:
     observer = RecordingObserver()
     results = [create_result("one"), create_result("two")]
+    llm = FakeLLMService()
+    llm.usage = LLMTokenUsage(
+        input_tokens=100,
+        output_tokens=25,
+        total_tokens=125,
+    )
 
     generated = create_generation_service(
         FakeRetriever(results),
-        FakeLLMService(),
+        llm,
         observer=observer,
     ).generate("Question synthétique")
 
@@ -670,13 +690,18 @@ def test_observer_records_successful_cited_generation_in_order() -> None:
         "request_completed",
     ]
     retrieval_duration, passage_count = observer.events[1][1]
-    generation_duration, model = observer.events[2][1]
+    generation_duration, model, input_tokens, output_tokens, total_tokens = (
+        observer.events[2][1]
+    )
     assert isinstance(retrieval_duration, float)
     assert retrieval_duration >= 0
     assert passage_count == 2
     assert isinstance(generation_duration, float)
     assert generation_duration >= 0
     assert model == "synthetic-model"
+    assert input_tokens == 100
+    assert output_tokens == 25
+    assert total_tokens == 125
     status, total_duration, abstained = observer.events[3][1]
     assert status is RagRequestStatus.SUCCESS
     assert isinstance(total_duration, float)

@@ -27,6 +27,7 @@ PROVIDER_SECRET = "synthetic-provider-secret"
 @dataclass(frozen=True)
 class FakeLLMResponse:
     output_text: object
+    usage: object = None
 
 
 class FakeResponsesClient:
@@ -144,7 +145,8 @@ def test_provider_transmits_responses_parameters_and_extracts_text() -> None:
 
     generated = provider.generate("Prompt synthétique")
 
-    assert generated == "Réponse synthétique"
+    assert generated.text == "Réponse synthétique"
+    assert generated.usage is None
     assert responses.calls == [
         {
             "model": MODEL_NAME,
