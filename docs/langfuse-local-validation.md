@@ -174,6 +174,23 @@ Inspect the root and both child observations. Confirm that none contains:
 
 The SDK and OpenTelemetry protocol still add transport and tracing fields such as observation names, types, timestamps, span identifiers, SDK version, and authentication headers required by the local Langfuse server. The application-level allowlist cannot remove protocol-required fields. The `is_langfuse_span` filter excludes known third-party LLM instrumentation spans, but the exact server-side representation cannot be guaranteed until this visual inspection is completed.
 
+### Public key in technical metadata
+
+Langfuse Python SDK 4.17.0 creates its OpenTelemetry tracer with the project public key in the instrumentation scope attributes. The Langfuse span processor reads this attribute before export to associate SDK spans with the correct client and prevent cross-project export. OpenTelemetry serializes the resulting instrumentation scope as `scope.attributes.public_key`; OpenTelemetry does not create the value itself.
+
+The public key identifies the Langfuse project but does not grant access without the corresponding secret key. The secret key is used with the public key in the OTLP authentication header and must never appear in trace metadata, logs, documentation, screenshots, or diagnostics. The public key remains operational metadata and should still be disclosed only where needed.
+
+Langfuse 4.17.0 provides no public API that removes instrumentation scope attributes. Its public `mask_otel_spans` hook can change span attributes only and explicitly cannot change the instrumentation scope. A custom span exporter would require application-owned reconstruction of OpenTelemetry spans and manual preservation of the Langfuse endpoint, authentication headers, batching, and compatibility behavior. This validation therefore keeps `scope.attributes.public_key` unchanged rather than depending on SDK internals, a monkey patch, or a fragile exporter wrapper.
+
+Apply the following confidentiality policy:
+
+- treat the public key as a project identifier with limited disclosure, not as an authentication secret;
+- keep the secret key restricted to the ignored backend environment file and transport authentication;
+- restrict access to Langfuse traces, exports, screenshots, and diagnostic logs;
+- avoid copying raw trace payloads into external systems;
+- rotate the project credentials if project identifiers or authentication material are disclosed beyond the intended environment;
+- reassess this decision when upgrading Langfuse if a documented instrumentation-scope filtering API becomes available.
+
 ## I. Disable Langfuse
 
 Restore this value in `backend/.env`:
