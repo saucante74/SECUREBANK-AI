@@ -441,7 +441,7 @@ Stop and remove the Compose resources:
 docker compose down
 ```
 
-The frontend will be added to Docker Compose after the React application is initialized.
+The frontend is included in Docker Compose and is served locally through Nginx on port `8080`.
 
 ### Running Langfuse Locally
 
@@ -505,7 +505,7 @@ npm install
 npm run dev
 ```
 
-The current frontend displays a static responsive home page. During local development, Vite forwards `/api/*` requests to `http://127.0.0.1:8000/*` and removes the `/api` prefix. The home page makes no API request yet. See [Frontend README](frontend/README.md) for the focused frontend instructions and current limitations.
+The current frontend displays a responsive presentation dashboard inside a reusable application shell. During local development, Vite forwards `/api/*` requests to `http://127.0.0.1:8000/*` and removes the `/api` prefix. The dashboard makes no API request yet. See [Frontend README](frontend/README.md) for the focused frontend instructions and current limitations.
 
 For the Dockerized local stack, build and start the frontend with its backend dependency:
 
@@ -897,7 +897,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, BM25, local embeddings, Qdrant vector search, RRF, hybrid orchestration, and independent FlashRank reranking completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | In Progress: privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse SDK client implemented; live integration remains planned |
-| Phase 6 | React frontend | In Progress: Vite, TypeScript, Tailwind CSS, static responsive home page, ESLint, and Vitest initialized |
+| Phase 6 | React frontend | In Progress: Vite, TypeScript, Tailwind CSS design system, responsive application shell, presentation dashboard, ESLint, Vitest, and Docker integration implemented |
 
 ## Current Implementation Status
 
@@ -943,7 +943,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Conditional official Langfuse Python SDK 4.17.0 client with correlated root, retrieval, and generation observations.
 - Isolated Langfuse v4 Docker Compose definition with loopback-only published ports and persistent local volumes.
 - React 19 frontend initialized with strict TypeScript, Vite, Tailwind CSS, ESLint, and Vitest.
-- Responsive SecureBank-AI demonstration home page with no API or authentication behavior.
+- Responsive SecureBank-AI presentation dashboard with a reusable shell, accessible mobile navigation, and no API or authentication behavior.
 - Local Vite `/api` proxy prepared for the FastAPI backend without changing backend routes or CORS.
 - Multi-stage frontend image with a Node.js build stage and an Nginx runtime serving the SPA and reverse-proxying `/api` to the backend service.
 

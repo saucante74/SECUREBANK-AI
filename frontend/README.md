@@ -69,4 +69,4 @@ docker compose down
 
 ## Current limitations
 
-The frontend currently contains one static home page. It has no authentication flow, application-level API integration, routing, business interface, or production CORS configuration. The Docker proxy provides same-origin access locally but does not define the future cloud deployment architecture. The frontend uses no real banking data and does not claim an active RAG connection.
+The frontend currently contains a responsive presentation dashboard inside a reusable application shell. The navigation identifies future sections without linking to unavailable routes. There is no authentication flow, application-level API integration, routing, business interface, or production CORS configuration. The Docker proxy provides same-origin access locally but does not define the future cloud deployment architecture. The frontend uses no real banking data and does not claim an active RAG connection.

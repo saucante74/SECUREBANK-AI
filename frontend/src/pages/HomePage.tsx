@@ -1,30 +1,78 @@
+import { InfoCard } from "../components/InfoCard";
+
 export function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--color-surface)] text-[var(--color-ink)]">
-      <main className="relative isolate flex flex-1 items-center overflow-hidden px-6 py-16 sm:px-10 lg:px-16">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,rgba(20,184,166,0.16),transparent_38%)]" />
-        <section className="mx-auto w-full max-w-6xl">
-          <div className="max-w-3xl">
-            <p className="mb-8 inline-flex rounded-full border border-teal-600/25 bg-white/70 px-4 py-2 text-sm font-semibold tracking-wide text-teal-800 shadow-sm backdrop-blur">
-              Interface en préparation
+    <div className="space-y-8 sm:space-y-10">
+      <section aria-labelledby="welcome-title">
+        <p className="text-sm font-semibold text-accent-strong">
+          Bienvenue sur SecureBank-AI
+        </p>
+        <h1
+          id="welcome-title"
+          className="mt-3 max-w-4xl text-balance text-3xl font-semibold leading-tight tracking-tight text-brand-navy sm:text-4xl lg:text-5xl"
+        >
+          Assistant bancaire intelligent et sécurisé
+        </h1>
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-muted">
+          Une interface dédiée à l’exploration de connaissances bancaires
+          synthétiques, avec des réponses documentées et une attention
+          particulière à la confidentialité.
+        </p>
+      </section>
+
+      <section
+        className="relative overflow-hidden rounded-3xl bg-brand-navy px-6 py-8 text-white shadow-panel sm:px-8 sm:py-10 lg:px-10"
+        aria-labelledby="assistant-title"
+      >
+        <div className="absolute -right-20 -top-24 size-72 rounded-full bg-accent/15 blur-3xl" />
+        <div className="relative max-w-3xl">
+          <span className="inline-flex rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
+            Interface en préparation
+          </span>
+          <h2 id="assistant-title" className="mt-5 text-2xl font-semibold sm:text-3xl">
+            Un espace conçu pour l’assistance documentaire
+          </h2>
+          <p className="mt-4 max-w-2xl leading-7 text-white/70">
+            Les futures expériences permettront de consulter des connaissances
+            synthétiques et d’examiner les éléments associés aux réponses. Ces
+            fonctionnalités ne sont pas encore disponibles dans l’interface.
+          </p>
+        </div>
+      </section>
+
+      <section className="grid gap-5 md:grid-cols-2" aria-label="Principes du projet">
+        <InfoCard
+          eyebrow="Protection des données"
+          title="Confidentialité"
+          description="Le prototype privilégie les données synthétiques et une présentation sobre des informations. Il ne doit pas être utilisé avec des données bancaires réelles."
+        />
+        <InfoCard
+          eyebrow="Qualité de l’information"
+          title="Réponses sourcées"
+          description="L’expérience prévue mettra en avant les éléments documentaires associés aux réponses, sans présenter aujourd’hui de résultat fictif ni de connexion active."
+        />
+      </section>
+
+      <section className="rounded-2xl border border-dashed border-border bg-white/55 p-6 sm:p-8" aria-labelledby="future-title">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+              Prochaines étapes
             </p>
-            <p className="mb-5 text-sm font-bold uppercase tracking-[0.24em] text-teal-700">
-              SecureBank-AI
-            </p>
-            <h1 className="text-balance text-4xl font-semibold leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-7xl">
-              Assistant bancaire intelligent et sécurisé
-            </h1>
-            <p className="mt-8 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">
-              Une interface dédiée à l’exploration de connaissances bancaires
-              synthétiques, avec des réponses documentées et une attention
-              particulière à la confidentialité.
-            </p>
+            <h2 id="future-title" className="mt-2 text-xl font-semibold text-brand-navy">
+              Fonctionnalités à venir
+            </h2>
           </div>
-        </section>
-      </main>
-      <footer className="border-t border-slate-200/80 px-6 py-6 text-center text-sm text-slate-500 sm:px-10">
-        SecureBank-AI — Environnement de démonstration
-      </footer>
+          <div className="flex flex-wrap gap-2" aria-label="Fonctionnalités planifiées">
+            <span className="rounded-full border border-border bg-white px-3 py-1.5 text-sm font-medium text-muted">
+              Assistant
+            </span>
+            <span className="rounded-full border border-border bg-white px-3 py-1.5 text-sm font-medium text-muted">
+              Navigation documentaire
+            </span>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
