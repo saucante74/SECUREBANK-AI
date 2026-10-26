@@ -141,6 +141,8 @@ SECUREBANK-AI/
 │   │   ├── pages/
 │   │   └── test/
 │   ├── README.md
+│   ├── Dockerfile
+│   ├── nginx.conf
 │   ├── package.json
 │   └── vite.config.ts
 └── main.py
@@ -504,6 +506,18 @@ npm run dev
 ```
 
 The current frontend displays a static responsive home page. During local development, Vite forwards `/api/*` requests to `http://127.0.0.1:8000/*` and removes the `/api` prefix. The home page makes no API request yet. See [Frontend README](frontend/README.md) for the focused frontend instructions and current limitations.
+
+For the Dockerized local stack, build and start the frontend with its backend dependency:
+
+```bash
+docker compose up --build frontend
+```
+
+Open `http://localhost:8080`. Nginx serves the compiled SPA and forwards `/api/*` to the `backend` service over the internal Compose network after removing the prefix. Stop the stack without deleting the existing Qdrant volume:
+
+```bash
+docker compose down
+```
 
 ## Running Tests
 
@@ -920,7 +934,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Fail-closed PII masking for RAG questions, retrieved source text and metadata, and generated answers.
 - Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
-- Backend Docker Compose service exposed on local port `8000`.
+- Backend and frontend Docker Compose services exposed on local ports `8000` and `8080`.
 - Pull Request-only backend GitHub Actions workflow.
 - Disabled-by-default Langfuse configuration with conditional credential validation and no network initialization.
 - Typed privacy-preserving `RagObserver` contract and stateless `NoOpRagObserver` implementation.
@@ -931,6 +945,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - React 19 frontend initialized with strict TypeScript, Vite, Tailwind CSS, ESLint, and Vitest.
 - Responsive SecureBank-AI demonstration home page with no API or authentication behavior.
 - Local Vite `/api` proxy prepared for the FastAPI backend without changing backend routes or CORS.
+- Multi-stage frontend image with a Node.js build stage and an Nginx runtime serving the SPA and reverse-proxying `/api` to the backend service.
 
 ### In Progress
 
@@ -964,7 +979,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - The RAG observer is no-op by default. The official SDK client has only been exercised with offline fakes; no real trace ingestion, persistence, dashboard, or alert behavior has been validated.
 - The Langfuse Compose stack has not been pulled, started, health-checked, or exercised through its UI; local capacity and image compatibility remain unverified.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
-- Docker Compose currently starts only the backend and Qdrant; the initialized frontend is not containerized or integrated into Compose.
+- Docker Compose starts the frontend, backend, and Qdrant; the frontend container depends on backend startup but not on backend health because the backend service has no Compose health check.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.
 - The existing backend virtual environment reports Python 3.12.13; the project supports Python 3.12.x.

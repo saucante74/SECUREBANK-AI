@@ -34,6 +34,39 @@ Requests sent by the frontend to `/api/*` are forwarded to `http://127.0.0.1:800
 
 Start FastAPI on port `8000` before using the proxy. The current home page does not make API requests.
 
+## Docker image
+
+Build the production-style Nginx image from the repository root:
+
+```bash
+docker compose build frontend
+```
+
+The build stage uses Node.js 24, installs the locked dependencies with `npm ci`, and creates the static Vite bundle. The runtime stage contains only Nginx, its configuration, and the compiled files. It does not contain `node_modules` or local environment files.
+
+Start the application stack:
+
+```bash
+docker compose up --build frontend
+```
+
+Open `http://localhost:8080`. The Compose backend must be able to start successfully. The frontend container reaches it through the Compose network with the service name `backend`.
+
+Inside Docker, Nginx forwards `/api/*` to `http://backend:8000/*` and removes the `/api` prefix. It disables API response caching and API access logging. In local npm development, Vite provides the equivalent proxy to `http://127.0.0.1:8000` instead.
+
+Verify the running frontend and public health proxy:
+
+```bash
+curl --fail http://localhost:8080/
+curl --fail http://localhost:8080/api/health
+```
+
+Stop the stack without removing volumes:
+
+```bash
+docker compose down
+```
+
 ## Current limitations
 
-The frontend currently contains one static home page. It has no authentication flow, API integration, routing, business interface, or production CORS configuration. It uses no real banking data and does not claim an active RAG connection.
+The frontend currently contains one static home page. It has no authentication flow, application-level API integration, routing, business interface, or production CORS configuration. The Docker proxy provides same-origin access locally but does not define the future cloud deployment architecture. The frontend uses no real banking data and does not claim an active RAG connection.
