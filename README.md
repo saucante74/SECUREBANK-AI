@@ -28,7 +28,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Generation | Configurable OpenAI-compatible LLM service, lazy RAG factory, RAG context, citation mapping, and explicit abstention | Semantic evidence validation |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | Privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse Python SDK 4.17.0 client | Live-server validation, dashboards, and alerts |
-| Frontend | None | React 19, TypeScript, Vite |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS, Vitest | Routing, API integration, and business interfaces |
 | Deployment | None | Render backend, Vercel frontend |
 
 The backend requirements file already declares packages for later iterations. A declared dependency does not mean that its related capability is implemented.
@@ -136,6 +136,15 @@ SECUREBANK-AI/
 │   │   └── test_rrf.py
 │   └── venv/
 ├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   ├── pages/
+│   │   └── test/
+│   ├── README.md
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── package.json
+│   └── vite.config.ts
 └── main.py
 ```
 
@@ -152,7 +161,7 @@ SECUREBANK-AI/
 - Docker Compose v2 for the application and isolated Langfuse stacks
 - OpenSSL for generating local Langfuse secrets
 
-Node.js is not required until frontend development begins.
+- Node.js 24 or later and npm 11 or later for frontend development
 
 ## Installation
 
@@ -432,7 +441,7 @@ Stop and remove the Compose resources:
 docker compose down
 ```
 
-The frontend will be added to Docker Compose after the React application is initialized.
+The frontend is included in Docker Compose and is served locally through Nginx on port `8080`.
 
 ### Running Langfuse Locally
 
@@ -488,7 +497,27 @@ Do not add `--volumes` or `-v` unless permanent deletion of all local Langfuse d
 
 ## Running the Frontend
 
-**Planned.** The `frontend/` directory is currently empty, so there is no frontend installation or start command yet.
+Install the locked dependencies and start the Vite development server:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The current frontend displays a responsive presentation dashboard inside a reusable application shell. During local development, Vite forwards `/api/*` requests to `http://127.0.0.1:8000/*` and removes the `/api` prefix. The dashboard makes no API request yet. See [Frontend README](frontend/README.md) for the focused frontend instructions and current limitations.
+
+For the Dockerized local stack, build and start the frontend with its backend dependency:
+
+```bash
+docker compose up --build frontend
+```
+
+Open `http://localhost:8080`. Nginx serves the compiled SPA and forwards `/api/*` to the `backend` service over the internal Compose network after removing the prefix. Stop the stack without deleting the existing Qdrant volume:
+
+```bash
+docker compose down
+```
 
 ## Running Tests
 
@@ -500,6 +529,15 @@ python -m pytest
 ```
 
 The tests cover configuration defaults, environment overrides, the health endpoint contract, JWT validation, Bearer authentication and RBAC, local PII detection and masking, deterministic document chunking, in-memory BM25 retrieval, local embeddings, and Qdrant vector storage.
+
+Run the frontend quality checks separately:
+
+```bash
+cd frontend
+npm run build
+npm run lint
+npm run test
+```
 
 ### Local FlashRank Reranking Demonstration
 
@@ -859,6 +897,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, BM25, local embeddings, Qdrant vector search, RRF, hybrid orchestration, and independent FlashRank reranking completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | In Progress: privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse SDK client implemented; live integration remains planned |
+| Phase 6 | React frontend | In Progress: Vite, TypeScript, Tailwind CSS design system, responsive application shell, presentation dashboard, ESLint, Vitest, and Docker integration implemented |
 
 ## Current Implementation Status
 
@@ -895,7 +934,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Fail-closed PII masking for RAG questions, retrieved source text and metadata, and generated answers.
 - Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
-- Backend Docker Compose service exposed on local port `8000`.
+- Backend and frontend Docker Compose services exposed on local ports `8000` and `8080`.
 - Pull Request-only backend GitHub Actions workflow.
 - Disabled-by-default Langfuse configuration with conditional credential validation and no network initialization.
 - Typed privacy-preserving `RagObserver` contract and stateless `NoOpRagObserver` implementation.
@@ -903,6 +942,10 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Offline `LangfuseRagObserver` adapter with an injected internal client contract and context-local trace correlation.
 - Conditional official Langfuse Python SDK 4.17.0 client with correlated root, retrieval, and generation observations.
 - Isolated Langfuse v4 Docker Compose definition with loopback-only published ports and persistent local volumes.
+- React 19 frontend initialized with strict TypeScript, Vite, Tailwind CSS, ESLint, and Vitest.
+- Responsive SecureBank-AI presentation dashboard with a reusable shell, accessible mobile navigation, and no API or authentication behavior.
+- Local Vite `/api` proxy prepared for the FastAPI backend without changing backend routes or CORS.
+- Multi-stage frontend image with a Node.js build stage and an Nginx runtime serving the SPA and reverse-proxying `/api` to the backend service.
 
 ### In Progress
 
@@ -914,7 +957,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
 - Live Langfuse trace export validation, dashboards, and alerts.
-- React frontend and cloud deployment.
+- Frontend routing, API integration, authentication design, business interfaces, and cloud deployment.
 
 ## Known Limitations
 
@@ -932,11 +975,11 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Enabling RAG transmits masked questions and passages to the configured LLM provider. False negatives can expose original values, so provider hosting, retention, access, and confidentiality controls must be assessed before use.
 - RAG PII integration has been tested with synthetic fakes only; no real OpenAI call or live Qdrant RAG flow has been performed.
 - Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
-- There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, operational observability, frontend, or deployment configuration.
+- There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, operational observability, frontend business integration, or deployment configuration.
 - The RAG observer is no-op by default. The official SDK client has only been exercised with offline fakes; no real trace ingestion, persistence, dashboard, or alert behavior has been validated.
 - The Langfuse Compose stack has not been pulled, started, health-checked, or exercised through its UI; local capacity and image compatibility remain unverified.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
-- Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
+- Docker Compose starts the frontend, backend, and Qdrant; the frontend container depends on backend startup but not on backend health because the backend service has no Compose health check.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.
 - The existing backend virtual environment reports Python 3.12.13; the project supports Python 3.12.x.
