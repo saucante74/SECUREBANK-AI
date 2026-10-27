@@ -1,0 +1,88 @@
+{
+  "app": {
+    "name": "SecureBank-AI",
+    "securedInterface": "Interfaccia sicura",
+    "dashboard": "Pannello di controllo",
+    "demoEnvironment": "Ambiente dimostrativo",
+    "footer": "SecureBank-AI — Ambiente dimostrativo",
+    "demo": "Dimostrazione",
+    "demoDescription": "Interfaccia dimostrativa che utilizza esclusivamente dati sintetici.",
+    "languageLabel": "Lingua dell’interfaccia",
+    "languages": {
+      "fr": "Français",
+      "en": "English",
+      "it": "Italiano"
+    }
+  },
+  "navigation": {
+    "title": "Navigazione",
+    "home": "Home",
+    "assistant": "Assistente",
+    "about": "Informazioni",
+    "comingSoon": "Prossimamente"
+  },
+  "home": {
+    "eyebrow": "Benvenuti in SecureBank-AI",
+    "title": "Assistente bancario intelligente e sicuro",
+    "description": "Un’interfaccia dedicata all’esplorazione di conoscenze bancarie sintetiche, con risposte documentate e particolare attenzione alla riservatezza.",
+    "assistantStatus": "Interfaccia disponibile",
+    "assistantTitle": "Uno spazio progettato per l’assistenza documentale",
+    "assistantDescription": "Lo spazio Assistente prepara la consultazione di conoscenze sintetiche e la presentazione degli elementi associati alle risposte. L’invio al backend rimane disabilitato in questa fase.",
+    "privacyEyebrow": "Protezione dei dati",
+    "privacyTitle": "Riservatezza",
+    "privacyDescription": "Il prototipo privilegia i dati sintetici e una presentazione sobria delle informazioni. Non deve essere utilizzato con dati bancari reali.",
+    "evidenceEyebrow": "Qualità dell’informazione",
+    "evidenceTitle": "Risposte con fonti",
+    "evidenceDescription": "L’esperienza prevista metterà in evidenza gli elementi documentali associati alle risposte, senza presentare oggi risultati fittizi o una connessione attiva.",
+    "nextEyebrow": "Prossimi passi",
+    "nextTitle": "Funzionalità future",
+    "backendConnection": "Connessione al backend",
+    "documentNavigation": "Navigazione documentale"
+  },
+  "assistant": {
+    "eyebrow": "Ricerca documentale",
+    "title": "Assistente documentale",
+    "description": "Fai una domanda sui documenti disponibili in SecureBank-AI.",
+    "questionSection": "La tua domanda",
+    "questionLabel": "Domanda documentale",
+    "placeholder": "Inserisci qui la tua domanda.",
+    "characterCount": "{{current}} / {{maximum}} caratteri",
+    "send": "Invia",
+    "availability": "Interfaccia dimostrativa. L’invio non è al momento disponibile."
+  },
+  "rag": {
+    "emptyTitle": "Conversazione vuota",
+    "emptyDescription": "Le risposte documentali appariranno in questo spazio quando l’invio sarà disponibile.",
+    "normalStatus": "Risposta documentale",
+    "abstainedStatus": "Risposta con astensione",
+    "abstainedDescription": "Gli elementi disponibili non consentono di fornire una risposta sufficientemente fondata.",
+    "answerTitle": "Risposta",
+    "sourcesTitle": "Fonti",
+    "noSources": "Nessuna fonte disponibile.",
+    "citationsTitle": "Citazioni",
+    "noCitations": "Nessuna citazione disponibile.",
+    "reference": "Riferimento {{reference}}",
+    "document": "Documento: {{documentId}}",
+    "unmatchedSource": "Fonte associata non disponibile."
+  },
+  "errors": {
+    "unauthenticated": "È richiesta l’autenticazione.",
+    "forbidden": "Non sei autorizzato a eseguire questa azione.",
+    "validation": "Le informazioni inviate non sono valide.",
+    "upstreamService": "Il servizio di generazione non può rispondere al momento.",
+    "serviceUnavailable": "Il servizio è temporaneamente non disponibile.",
+    "network": "La connessione al servizio non è riuscita.",
+    "aborted": "La richiesta è stata annullata.",
+    "unexpectedResponse": "Il servizio ha restituito una risposta inattesa.",
+    "http": "Non è stato possibile completare la richiesta."
+  },
+  "accessibility": {
+    "primaryNavigation": "Navigazione principale",
+    "sectionsNavigation": "Sezioni dell’applicazione",
+    "openNavigation": "Apri la navigazione",
+    "closeMenu": "Chiudi il menu",
+    "closeNavigation": "Chiudi la navigazione",
+    "projectPrinciples": "Principi del progetto",
+    "plannedFeatures": "Funzionalità pianificate"
+  }
+}

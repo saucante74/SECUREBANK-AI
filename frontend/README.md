@@ -63,6 +63,14 @@ The Assistant page provides an accessible controlled textarea with a 2,000-chara
 
 The Send button is disabled. The page does not call the API, create a token, persist the question, or display a simulated answer. Connecting the interface to the typed API client is planned for micro-iteration 6.4.
 
+## Internationalization
+
+The complete interface is available in French, English, and Italian through local `i18next` catalogs. French is the default and fallback language. The language selector in the header changes the interface without reloading the page, changing its URL, resetting navigation, or clearing the current Assistant question.
+
+Only the validated language code is stored under `securebank.language` in `localStorage`. Missing, invalid, or unavailable storage safely falls back to French. The root HTML `lang` attribute follows every language change.
+
+Internationalization applies only to interface labels, accessibility text, presentation states, and the future mapping of API error categories. User questions, generated answers, document titles, excerpts, source references, and citation identifiers are never translated automatically. The backend API contracts and requests contain no language parameter, and the backend is not presented as multilingual.
+
 ## Docker image
 
 Build the production-style Nginx image from the repository root:
@@ -98,4 +106,4 @@ docker compose down
 
 ## Current limitations
 
-The frontend currently contains a responsive presentation dashboard, native browser navigation, a non-operational Assistant interface, reusable RAG response presentation components, and a typed API client that is not connected to the interface. There is no authentication flow, enabled question submission, backend UI integration, or production CORS configuration. The Docker proxy provides same-origin access locally but does not define the future cloud deployment architecture. The frontend uses no real banking data and does not claim an active RAG connection.
+The frontend currently contains a responsive presentation dashboard, native browser navigation, a French/English/Italian interface, a non-operational Assistant interface, reusable RAG response presentation components, and a typed API client that is not connected to the interface. There is no authentication flow, enabled question submission, backend UI integration, automatic RAG content translation, or production CORS configuration. The Docker proxy provides same-origin access locally but does not define the future cloud deployment architecture. The frontend uses no real banking data and does not claim an active RAG connection.

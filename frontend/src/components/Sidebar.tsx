@@ -1,4 +1,5 @@
 import type { MouseEvent, RefObject } from "react";
+import { useTranslation } from "react-i18next";
 
 import { pathForPage, type PageId } from "../app/navigation";
 
@@ -10,9 +11,9 @@ interface SidebarProps {
   onNavigate: (page: PageId) => void;
 }
 
-const navigationItems: { label: string; page: PageId }[] = [
-  { label: "Accueil", page: "home" },
-  { label: "Assistant", page: "assistant" },
+const navigationItems: { labelKey: string; page: PageId }[] = [
+  { labelKey: "navigation.home", page: "home" },
+  { labelKey: "navigation.assistant", page: "assistant" },
 ];
 
 export function Sidebar({
@@ -22,6 +23,7 @@ export function Sidebar({
   onClose,
   onNavigate,
 }: SidebarProps) {
+  const { t } = useTranslation();
   const visibilityClass = isOpen ? "translate-x-0" : "-translate-x-full";
 
   const navigate = (event: MouseEvent<HTMLAnchorElement>, page: PageId) => {
@@ -42,20 +44,20 @@ export function Sidebar({
     <aside
       id="app-navigation"
       className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-brand-navy text-white shadow-panel transition-transform duration-200 ease-out lg:translate-x-0 ${visibilityClass}`}
-      aria-label="Navigation principale"
+      aria-label={t("accessibility.primaryNavigation")}
     >
       <div className="flex items-center justify-between border-b border-white/10 px-6 py-6">
         <div>
-          <p className="text-xl font-semibold tracking-tight">SecureBank-AI</p>
+          <p className="text-xl font-semibold tracking-tight">{t("app.name")}</p>
           <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-white/60">
-            Interface sécurisée
+            {t("app.securedInterface")}
           </p>
         </div>
         <button
           ref={closeButtonRef}
           type="button"
           className="inline-flex size-10 items-center justify-center rounded-xl border border-white/15 text-white lg:hidden"
-          aria-label="Fermer le menu"
+          aria-label={t("accessibility.closeMenu")}
           tabIndex={isOpen ? 0 : -1}
           onClick={onClose}
         >
@@ -73,12 +75,15 @@ export function Sidebar({
         </button>
       </div>
 
-      <nav className="flex-1 px-4 py-6" aria-label="Sections de l’application">
+      <nav
+        className="flex-1 px-4 py-6"
+        aria-label={t("accessibility.sectionsNavigation")}
+      >
         <p className="px-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/45">
-          Navigation
+          {t("navigation.title")}
         </p>
         <ul className="mt-3 space-y-2">
-          {navigationItems.map(({ label, page }) => {
+          {navigationItems.map(({ labelKey, page }) => {
             const isCurrent = currentPage === page;
             const stateClass = isCurrent
               ? "bg-white/12 font-semibold text-white ring-1 ring-inset ring-white/15"
@@ -94,7 +99,7 @@ export function Sidebar({
                     navigate(event, page);
                   }}
                 >
-                  <span>{label}</span>
+                  <span>{t(labelKey)}</span>
                   {isCurrent && (
                     <span
                       className="size-2 rounded-full bg-accent"
@@ -107,9 +112,9 @@ export function Sidebar({
           })}
           <li>
             <div className="flex cursor-not-allowed items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-white/55">
-              <span>À propos</span>
+              <span>{t("navigation.about")}</span>
               <span className="rounded-full border border-white/10 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-white/45">
-                À venir
+                {t("navigation.comingSoon")}
               </span>
             </div>
           </li>
@@ -119,11 +124,10 @@ export function Sidebar({
       <div className="border-t border-white/10 p-6">
         <div className="rounded-2xl bg-brand-deep p-4 ring-1 ring-inset ring-white/10">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-accent">
-            Démonstration
+            {t("app.demo")}
           </p>
           <p className="mt-2 text-sm leading-6 text-white/65">
-            Interface de présentation utilisant exclusivement des données
-            synthétiques.
+            {t("app.demoDescription")}
           </p>
         </div>
       </div>

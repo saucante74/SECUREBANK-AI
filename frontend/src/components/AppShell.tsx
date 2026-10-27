@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { PageId } from "../app/navigation";
 import { Header } from "./Header";
@@ -17,6 +18,7 @@ export function AppShell({
   onNavigate,
   pageTitle,
 }: AppShellProps) {
+  const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -63,7 +65,7 @@ export function AppShell({
         <button
           type="button"
           className="fixed inset-0 z-30 bg-brand-navy/55 lg:hidden"
-          aria-label="Fermer la navigation"
+          aria-label={t("accessibility.closeNavigation")}
           onClick={closeMenu}
         />
       )}
@@ -85,7 +87,7 @@ export function AppShell({
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
         <footer className="border-t border-border bg-white px-5 py-5 text-center text-sm text-muted sm:px-8 lg:text-left">
-          SecureBank-AI — Environnement de démonstration
+          {t("app.footer")}
         </footer>
       </div>
     </div>

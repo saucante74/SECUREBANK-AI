@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { HomePage } from "../pages/HomePage";
 import { AssistantPage } from "../pages/AssistantPage";
@@ -6,6 +7,7 @@ import { AppShell } from "../components/AppShell";
 import { pageFromPath, pathForPage, type PageId } from "./navigation";
 
 export function App() {
+  const { t } = useTranslation();
   const [currentPage, setCurrentPage] = useState<PageId>(() =>
     pageFromPath(window.location.pathname),
   );
@@ -29,7 +31,10 @@ export function App() {
     setCurrentPage(page);
   }, []);
 
-  const pageTitle = currentPage === "assistant" ? "Assistant" : "Accueil";
+  const pageTitle =
+    currentPage === "assistant"
+      ? t("navigation.assistant")
+      : t("navigation.home");
 
   return (
     <AppShell

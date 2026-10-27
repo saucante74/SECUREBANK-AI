@@ -1,4 +1,5 @@
 import type { RagCitation, RagSource } from "../api/types";
+import { useTranslation } from "react-i18next";
 
 interface RagSourcesProps {
   citations: RagCitation[];
@@ -17,14 +18,16 @@ function matchingSourceIndex(
 }
 
 export function RagSources({ citations, sources }: RagSourcesProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.55fr)]">
       <section aria-labelledby="sources-title">
         <h3 id="sources-title" className="text-lg font-semibold text-brand-navy">
-          Sources
+          {t("rag.sourcesTitle")}
         </h3>
         {sources.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">Aucune source disponible.</p>
+          <p className="mt-3 text-sm text-muted">{t("rag.noSources")}</p>
         ) : (
           <ol className="mt-4 space-y-4">
             {sources.map((source, index) => (
@@ -50,15 +53,17 @@ export function RagSources({ citations, sources }: RagSourcesProps) {
 
       <section aria-labelledby="citations-title">
         <h3 id="citations-title" className="text-lg font-semibold text-brand-navy">
-          Citations
+          {t("rag.citationsTitle")}
         </h3>
         {citations.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">Aucune citation disponible.</p>
+          <p className="mt-3 text-sm text-muted">{t("rag.noCitations")}</p>
         ) : (
           <ol className="mt-4 space-y-3">
             {citations.map((citation) => {
               const sourceIndex = matchingSourceIndex(citation, sources);
-              const citationLabel = `Référence ${String(citation.reference)}`;
+              const citationLabel = t("rag.reference", {
+                reference: citation.reference,
+              });
 
               return (
                 <li
@@ -78,11 +83,11 @@ export function RagSources({ citations, sources }: RagSourcesProps) {
                     </span>
                   )}
                   <p className="mt-2 break-all text-xs leading-5 text-muted">
-                    Document : {citation.document_id}
+                    {t("rag.document", { documentId: citation.document_id })}
                   </p>
                   {sourceIndex < 0 && (
                     <p className="mt-2 text-xs text-muted">
-                      Source associée non disponible.
+                      {t("rag.unmatchedSource")}
                     </p>
                   )}
                 </li>

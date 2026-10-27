@@ -1,10 +1,12 @@
 import { useState, type SyntheticEvent } from "react";
+import { useTranslation } from "react-i18next";
 
 import { RagResponsePanel } from "../components/RagResponsePanel";
 
 const questionLimit = 2_000;
 
 export function AssistantPage() {
+  const { t } = useTranslation();
   const [question, setQuestion] = useState("");
 
   const preventSubmission = (event: SyntheticEvent<HTMLFormElement>) => {
@@ -15,16 +17,16 @@ export function AssistantPage() {
     <div className="space-y-8 sm:space-y-10">
       <section aria-labelledby="assistant-page-title">
         <p className="text-sm font-semibold text-accent-strong">
-          Recherche documentaire
+          {t("assistant.eyebrow")}
         </p>
         <h1
           id="assistant-page-title"
           className="mt-3 text-3xl font-semibold tracking-tight text-brand-navy sm:text-4xl"
         >
-          Assistant documentaire
+          {t("assistant.title")}
         </h1>
         <p className="mt-4 max-w-3xl text-lg leading-8 text-muted">
-          Posez une question sur les documents disponibles dans SecureBank-AI.
+          {t("assistant.description")}
         </p>
       </section>
 
@@ -35,21 +37,21 @@ export function AssistantPage() {
         aria-labelledby="question-form-title"
       >
         <h2 id="question-form-title" className="text-xl font-semibold text-brand-navy">
-          Votre question
+          {t("assistant.questionSection")}
         </h2>
         <form className="mt-5" onSubmit={preventSubmission}>
           <label
             className="block text-sm font-semibold text-brand-navy"
             htmlFor="rag-question"
           >
-            Question documentaire
+            {t("assistant.questionLabel")}
           </label>
           <textarea
             id="rag-question"
             className="mt-2 min-h-36 w-full resize-y rounded-xl border border-border bg-white px-4 py-3 leading-7 text-ink shadow-inner placeholder:text-muted/75"
             value={question}
             maxLength={questionLimit}
-            placeholder="Saisissez votre question ici."
+            placeholder={t("assistant.placeholder")}
             aria-describedby="question-counter assistant-availability"
             onChange={(event) => {
               setQuestion(event.target.value);
@@ -61,21 +63,24 @@ export function AssistantPage() {
               className="text-sm text-muted"
               aria-live="polite"
             >
-              {question.length} / {questionLimit} caractères
+              {t("assistant.characterCount", {
+                current: question.length,
+                maximum: questionLimit,
+              })}
             </p>
             <button
               type="submit"
               className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-navy px-6 py-3 text-sm font-semibold text-white opacity-55"
               disabled
             >
-              Envoyer
+              {t("assistant.send")}
             </button>
           </div>
           <p
             id="assistant-availability"
             className="mt-5 rounded-xl border border-accent/25 bg-accent-soft px-4 py-3 text-sm leading-6 text-accent-strong"
           >
-            Interface de démonstration. Envoi non disponible pour le moment.
+            {t("assistant.availability")}
           </p>
         </form>
       </section>

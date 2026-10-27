@@ -1,4 +1,5 @@
 import type { RagAskResponse } from "../api/types";
+import { useTranslation } from "react-i18next";
 import { RagSources } from "./RagSources";
 
 interface RagResponsePanelProps {
@@ -6,6 +7,8 @@ interface RagResponsePanelProps {
 }
 
 export function RagResponsePanel({ response }: RagResponsePanelProps) {
+  const { t } = useTranslation();
+
   if (response === undefined) {
     return (
       <section
@@ -17,11 +20,10 @@ export function RagResponsePanel({ response }: RagResponsePanelProps) {
             id="empty-conversation-title"
             className="text-xl font-semibold text-brand-navy"
           >
-            Conversation vide
+            {t("rag.emptyTitle")}
           </h2>
           <p className="mt-3 leading-7 text-muted">
-            Les réponses documentaires apparaîtront dans cet espace lorsque
-            l’envoi sera disponible.
+            {t("rag.emptyDescription")}
           </p>
         </div>
       </section>
@@ -39,21 +41,18 @@ export function RagResponsePanel({ response }: RagResponsePanelProps) {
         role="status"
       >
         <p className="text-sm font-semibold">
-          {response.abstained
-            ? "Réponse avec abstention"
-            : "Réponse documentaire"}
+          {response.abstained ? t("rag.abstainedStatus") : t("rag.normalStatus")}
         </p>
         {response.abstained && (
           <p className="mt-1 text-sm leading-6">
-            Les éléments disponibles ne permettent pas de fournir une réponse
-            suffisamment étayée.
+            {t("rag.abstainedDescription")}
           </p>
         )}
       </div>
 
       <section aria-labelledby="answer-title">
         <h2 id="answer-title" className="text-xl font-semibold text-brand-navy">
-          Réponse
+          {t("rag.answerTitle")}
         </h2>
         <p className="mt-4 whitespace-pre-wrap leading-7 text-ink">
           {response.answer}
