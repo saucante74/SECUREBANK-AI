@@ -48,7 +48,25 @@
     "placeholder": "Enter your question here.",
     "characterCount": "{{current}} / {{maximum}} characters",
     "send": "Send",
-    "availability": "Demonstration interface. Submission is not available at this time."
+    "loading": "Searching for a documented answer…",
+    "errorTitle": "The request was not completed",
+    "developmentToken": {
+      "title": "Development JWT access",
+      "warning": "This panel is reserved for local testing with Vite. The token is kept in memory only and is not a production authentication solution.",
+      "label": "Test JWT",
+      "placeholder": "Enter a test JWT",
+      "use": "Use",
+      "clear": "Clear",
+      "active": "A development token is active in memory.",
+      "missing": "No active development token.",
+      "ready": "The next submission will use the token held in memory.",
+      "required": "Add a development JWT to enable submission."
+    },
+    "productionAuth": {
+      "title": "Authentication unavailable",
+      "description": "No user authentication mechanism is available in this version. The test JWT panel is limited to the Vite development server.",
+      "formDisabled": "Submission remains disabled until production authentication is available."
+    }
   },
   "rag": {
     "emptyTitle": "Empty conversation",

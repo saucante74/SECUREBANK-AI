@@ -48,7 +48,25 @@
     "placeholder": "Saisissez votre question ici.",
     "characterCount": "{{current}} / {{maximum}} caractères",
     "send": "Envoyer",
-    "availability": "Interface de démonstration. Envoi non disponible pour le moment."
+    "loading": "Recherche d’une réponse documentée…",
+    "errorTitle": "La requête n’a pas abouti",
+    "developmentToken": {
+      "title": "Accès JWT de développement",
+      "warning": "Ce panneau est réservé aux essais locaux avec Vite. Le jeton est conservé uniquement en mémoire et ne constitue pas une authentification de production.",
+      "label": "JWT de test",
+      "placeholder": "Saisissez un JWT de test",
+      "use": "Utiliser",
+      "clear": "Effacer",
+      "active": "Un jeton de développement est actif en mémoire.",
+      "missing": "Aucun jeton de développement actif.",
+      "ready": "Le prochain envoi utilisera le jeton conservé en mémoire.",
+      "required": "Ajoutez un JWT de développement pour activer l’envoi."
+    },
+    "productionAuth": {
+      "title": "Authentification indisponible",
+      "description": "Aucun mécanisme d’authentification utilisateur n’est disponible dans cette version. Le panneau JWT de test est limité au serveur Vite de développement.",
+      "formDisabled": "L’envoi reste désactivé tant qu’une authentification de production n’est pas disponible."
+    }
   },
   "rag": {
     "emptyTitle": "Conversation vide",

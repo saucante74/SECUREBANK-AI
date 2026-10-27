@@ -48,7 +48,25 @@
     "placeholder": "Inserisci qui la tua domanda.",
     "characterCount": "{{current}} / {{maximum}} caratteri",
     "send": "Invia",
-    "availability": "Interfaccia dimostrativa. L’invio non è al momento disponibile."
+    "loading": "Ricerca di una risposta documentata…",
+    "errorTitle": "La richiesta non è stata completata",
+    "developmentToken": {
+      "title": "Accesso JWT di sviluppo",
+      "warning": "Questo pannello è riservato ai test locali con Vite. Il token viene conservato solo in memoria e non costituisce una soluzione di autenticazione di produzione.",
+      "label": "JWT di test",
+      "placeholder": "Inserisci un JWT di test",
+      "use": "Usa",
+      "clear": "Cancella",
+      "active": "Un token di sviluppo è attivo in memoria.",
+      "missing": "Nessun token di sviluppo attivo.",
+      "ready": "Il prossimo invio utilizzerà il token conservato in memoria.",
+      "required": "Aggiungi un JWT di sviluppo per abilitare l’invio."
+    },
+    "productionAuth": {
+      "title": "Autenticazione non disponibile",
+      "description": "In questa versione non è disponibile alcun meccanismo di autenticazione utente. Il pannello JWT di test è limitato al server di sviluppo Vite.",
+      "formDisabled": "L’invio rimane disabilitato finché non sarà disponibile un’autenticazione di produzione."
+    }
   },
   "rag": {
     "emptyTitle": "Conversazione vuota",

@@ -50,7 +50,7 @@ describe("AssistantPage", () => {
     expect(screen.getByRole("button", { name: "Envoyer" })).toBeDisabled();
     expect(
       screen.getByText(
-        "Interface de démonstration. Envoi non disponible pour le moment.",
+        "Ajoutez un JWT de développement pour activer l’envoi.",
       ),
     ).toBeInTheDocument();
   });

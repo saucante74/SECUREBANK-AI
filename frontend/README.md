@@ -61,7 +61,17 @@ Navigation uses native browser history and supports direct access, reload, and p
 
 The Assistant page provides an accessible controlled textarea with a 2,000-character limit, a character counter, an empty conversation area, and reusable presentation components for typed RAG answers, sources, citations, and abstentions. Long source excerpts are visually limited while their text remains in the document, and citations link only to sources whose document and chunk identifiers match.
 
-The Send button is disabled. The page does not call the API, create a token, persist the question, or display a simulated answer. Connecting the interface to the typed API client is planned for micro-iteration 6.4.
+The Assistant connects to `POST /api/rag/ask` through the existing typed `askRag` service. A valid non-blank question and a Bearer token are required. While a request is active, the question remains visible, duplicate submission is disabled, and an accessible loading state is shown. Successful responses, sources, citations, and business abstentions use the existing typed presentation components. Structured API failures are mapped to localized safe messages without exposing server response bodies.
+
+Active requests use `AbortController`. They are cancelled when the Assistant unmounts, when navigation leaves the page, or when the development token is cleared or replaced. Request sequencing prevents a late or obsolete response from updating the interface.
+
+## Development JWT access
+
+The Vite development interface exposes a clearly identified panel for manually supplying an existing test JWT. The token is masked during entry, removed from the field after activation, and held only in React memory. It is never generated, logged, placed in a URL, or stored in local storage, session storage, a cookie, or an environment file. Reloading the page clears it.
+
+This panel is controlled by `import.meta.env.DEV` and is not an authentication solution. The production Vite build disables it and leaves Assistant submission unavailable because no production identity provider or login flow exists. The current Docker image uses a production Vite build, so its UI does not expose the development token panel. Docker, Nginx, and Compose do not override this restriction.
+
+The next planned frontend micro-iteration is 6.5.
 
 ## Internationalization
 
@@ -106,4 +116,4 @@ docker compose down
 
 ## Current limitations
 
-The frontend currently contains a responsive presentation dashboard, native browser navigation, a French/English/Italian interface, a non-operational Assistant interface, reusable RAG response presentation components, and a typed API client that is not connected to the interface. There is no authentication flow, enabled question submission, backend UI integration, automatic RAG content translation, or production CORS configuration. The Docker proxy provides same-origin access locally but does not define the future cloud deployment architecture. The frontend uses no real banking data and does not claim an active RAG connection.
+The frontend currently contains a responsive presentation dashboard, native browser navigation, a French/English/Italian interface, a development-only technical RAG connection, reusable RAG response presentation components, and a typed API client. There is no production authentication flow, production question submission, automatic RAG content translation, or production CORS configuration. The Docker production build deliberately omits the development JWT panel and therefore keeps Assistant submission disabled. The frontend must be used only with synthetic data and is not a production banking interface.
