@@ -1,19 +1,42 @@
-import type { RefObject } from "react";
+import type { MouseEvent, RefObject } from "react";
+
+import { pathForPage, type PageId } from "../app/navigation";
 
 interface SidebarProps {
   closeButtonRef: RefObject<HTMLButtonElement | null>;
+  currentPage: PageId;
   isOpen: boolean;
   onClose: () => void;
+  onNavigate: (page: PageId) => void;
 }
 
-const futureNavigationItems = ["Assistant", "À propos"];
+const navigationItems: { label: string; page: PageId }[] = [
+  { label: "Accueil", page: "home" },
+  { label: "Assistant", page: "assistant" },
+];
 
 export function Sidebar({
   closeButtonRef,
+  currentPage,
   isOpen,
   onClose,
+  onNavigate,
 }: SidebarProps) {
   const visibilityClass = isOpen ? "translate-x-0" : "-translate-x-full";
+
+  const navigate = (event: MouseEvent<HTMLAnchorElement>, page: PageId) => {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    event.preventDefault();
+    onNavigate(page);
+  };
 
   return (
     <aside
@@ -55,25 +78,41 @@ export function Sidebar({
           Navigation
         </p>
         <ul className="mt-3 space-y-2">
+          {navigationItems.map(({ label, page }) => {
+            const isCurrent = currentPage === page;
+            const stateClass = isCurrent
+              ? "bg-white/12 font-semibold text-white ring-1 ring-inset ring-white/15"
+              : "font-medium text-white/70 hover:bg-white/8 hover:text-white";
+
+            return (
+              <li key={page}>
+                <a
+                  className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm transition-colors ${stateClass}`}
+                  href={pathForPage(page)}
+                  aria-current={isCurrent ? "page" : undefined}
+                  onClick={(event) => {
+                    navigate(event, page);
+                  }}
+                >
+                  <span>{label}</span>
+                  {isCurrent && (
+                    <span
+                      className="size-2 rounded-full bg-accent"
+                      aria-hidden="true"
+                    />
+                  )}
+                </a>
+              </li>
+            );
+          })}
           <li>
-            <div
-              className="flex items-center justify-between rounded-xl bg-white/12 px-4 py-3 text-sm font-semibold text-white ring-1 ring-inset ring-white/15"
-              aria-current="page"
-            >
-              <span>Accueil</span>
-              <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
+            <div className="flex cursor-not-allowed items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-white/55">
+              <span>À propos</span>
+              <span className="rounded-full border border-white/10 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-white/45">
+                À venir
+              </span>
             </div>
           </li>
-          {futureNavigationItems.map((item) => (
-            <li key={item}>
-              <div className="flex cursor-not-allowed items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-white/55">
-                <span>{item}</span>
-                <span className="rounded-full border border-white/10 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-white/45">
-                  À venir
-                </span>
-              </div>
-            </li>
-          ))}
         </ul>
       </nav>
 

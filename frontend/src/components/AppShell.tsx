@@ -1,14 +1,22 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
+import type { PageId } from "../app/navigation";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 
 interface AppShellProps {
   children: ReactNode;
+  currentPage: PageId;
+  onNavigate: (page: PageId) => void;
   pageTitle: string;
 }
 
-export function AppShell({ children, pageTitle }: AppShellProps) {
+export function AppShell({
+  children,
+  currentPage,
+  onNavigate,
+  pageTitle,
+}: AppShellProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -20,6 +28,13 @@ export function AppShell({ children, pageTitle }: AppShellProps) {
 
   const openMenu = () => {
     setIsMenuOpen(true);
+  };
+
+  const navigate = (page: PageId) => {
+    onNavigate(page);
+    if (isMenuOpen) {
+      closeMenu();
+    }
   };
 
   useEffect(() => {
@@ -54,8 +69,10 @@ export function AppShell({ children, pageTitle }: AppShellProps) {
       )}
       <Sidebar
         closeButtonRef={closeButtonRef}
+        currentPage={currentPage}
         isOpen={isMenuOpen}
         onClose={closeMenu}
+        onNavigate={navigate}
       />
       <div className="flex min-h-screen min-w-0 flex-col lg:pl-72">
         <Header

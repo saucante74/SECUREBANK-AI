@@ -28,7 +28,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Generation | Configurable OpenAI-compatible LLM service, lazy RAG factory, RAG context, citation mapping, and explicit abstention | Semantic evidence validation |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | Privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse Python SDK 4.17.0 client | Live-server validation, dashboards, and alerts |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS, Vitest, typed native-fetch API client | Routing, UI integration, and business interfaces |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS, Vitest, native navigation, Assistant presentation UI, typed native-fetch API client | API client UI integration and business interfaces |
 | Deployment | None | Render backend, Vercel frontend |
 
 The backend requirements file already declares packages for later iterations. A declared dependency does not mean that its related capability is implemented.
@@ -505,7 +505,7 @@ npm install
 npm run dev
 ```
 
-The current frontend displays a responsive presentation dashboard inside a reusable application shell and provides a typed native-fetch API client. During local development, Vite forwards `/api/*` requests to `http://127.0.0.1:8000/*` and removes the `/api` prefix. The dashboard makes no API request yet. See [Frontend README](frontend/README.md) for the focused frontend instructions and current limitations.
+The current frontend displays a responsive presentation dashboard and a documentary Assistant interface inside a reusable application shell. Native browser navigation connects `/` and `/assistant`, while the typed native-fetch API client remains disconnected from the UI. During local development, Vite forwards `/api/*` requests to `http://127.0.0.1:8000/*` and removes the `/api` prefix. The interface makes no API request yet. See [Frontend README](frontend/README.md) for the focused frontend instructions and current limitations.
 
 For the Dockerized local stack, build and start the frontend with its backend dependency:
 
@@ -897,7 +897,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, BM25, local embeddings, Qdrant vector search, RRF, hybrid orchestration, and independent FlashRank reranking completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | In Progress: privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse SDK client implemented; live integration remains planned |
-| Phase 6 | React frontend | In Progress: Vite, TypeScript, Tailwind CSS design system, responsive application shell, presentation dashboard, typed API client, ESLint, Vitest, and Docker integration implemented |
+| Phase 6 | React frontend | In Progress: Vite, TypeScript, Tailwind CSS design system, responsive application shell, native navigation, presentation dashboard, non-operational Assistant UI, typed API client, ESLint, Vitest, and Docker integration implemented |
 
 ## Current Implementation Status
 
@@ -945,6 +945,8 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - React 19 frontend initialized with strict TypeScript, Vite, Tailwind CSS, ESLint, and Vitest.
 - Responsive SecureBank-AI presentation dashboard with a reusable shell, accessible mobile navigation, and no API or authentication behavior.
 - Centralized typed native-fetch API client for health, current-user, and RAG requests with injectable transport, cancellation, Bearer headers, and structured safe errors.
+- Native browser navigation between the dashboard and a directly accessible documentary Assistant page.
+- Accessible disabled Assistant form and reusable typed presentation components for RAG answers, sources, citations, and abstentions, without backend calls or simulated production responses.
 - Local Vite `/api` proxy prepared for the FastAPI backend without changing backend routes or CORS.
 - Multi-stage frontend image with a Node.js build stage and an Nginx runtime serving the SPA and reverse-proxying `/api` to the backend service.
 
@@ -958,7 +960,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
 - Live Langfuse trace export validation, dashboards, and alerts.
-- Frontend routing, API client UI integration, authentication design, business interfaces, and cloud deployment.
+- API client UI integration, authentication design, enabled Assistant submission, business interfaces, and cloud deployment.
 
 ## Known Limitations
 

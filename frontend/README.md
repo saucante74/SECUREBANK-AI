@@ -50,6 +50,19 @@ Failures are represented by a structured `ApiError`. It distinguishes unauthenti
 
 The API services are not connected to the interface yet and make no automatic request when the application loads.
 
+## Application navigation and Assistant
+
+The application provides two directly accessible pages:
+
+- `/` for the presentation dashboard;
+- `/assistant` for the documentary Assistant interface.
+
+Navigation uses native browser history and supports direct access, reload, and previous or next navigation without an external routing dependency. The responsive sidebar identifies the active page and keeps the About entry non-interactive as a planned capability.
+
+The Assistant page provides an accessible controlled textarea with a 2,000-character limit, a character counter, an empty conversation area, and reusable presentation components for typed RAG answers, sources, citations, and abstentions. Long source excerpts are visually limited while their text remains in the document, and citations link only to sources whose document and chunk identifiers match.
+
+The Send button is disabled. The page does not call the API, create a token, persist the question, or display a simulated answer. Connecting the interface to the typed API client is planned for micro-iteration 6.4.
+
 ## Docker image
 
 Build the production-style Nginx image from the repository root:
@@ -85,4 +98,4 @@ docker compose down
 
 ## Current limitations
 
-The frontend currently contains a responsive presentation dashboard inside a reusable application shell and a typed API client that is not connected to the interface. The navigation identifies future sections without linking to unavailable routes. There is no authentication flow, routing, business interface, or production CORS configuration. The Docker proxy provides same-origin access locally but does not define the future cloud deployment architecture. The frontend uses no real banking data and does not claim an active RAG connection.
+The frontend currently contains a responsive presentation dashboard, native browser navigation, a non-operational Assistant interface, reusable RAG response presentation components, and a typed API client that is not connected to the interface. There is no authentication flow, enabled question submission, backend UI integration, or production CORS configuration. The Docker proxy provides same-origin access locally but does not define the future cloud deployment architecture. The frontend uses no real banking data and does not claim an active RAG connection.

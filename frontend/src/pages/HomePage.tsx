@@ -27,15 +27,15 @@ export function HomePage() {
         <div className="absolute -right-20 -top-24 size-72 rounded-full bg-accent/15 blur-3xl" />
         <div className="relative max-w-3xl">
           <span className="inline-flex rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
-            Interface en préparation
+            Interface disponible
           </span>
           <h2 id="assistant-title" className="mt-5 text-2xl font-semibold sm:text-3xl">
             Un espace conçu pour l’assistance documentaire
           </h2>
           <p className="mt-4 max-w-2xl leading-7 text-white/70">
-            Les futures expériences permettront de consulter des connaissances
-            synthétiques et d’examiner les éléments associés aux réponses. Ces
-            fonctionnalités ne sont pas encore disponibles dans l’interface.
+            L’espace Assistant prépare la consultation de connaissances
+            synthétiques et la présentation des éléments associés aux réponses.
+            L’envoi au backend reste désactivé à ce stade.
           </p>
         </div>
       </section>
@@ -65,7 +65,7 @@ export function HomePage() {
           </div>
           <div className="flex flex-wrap gap-2" aria-label="Fonctionnalités planifiées">
             <span className="rounded-full border border-border bg-white px-3 py-1.5 text-sm font-medium text-muted">
-              Assistant
+              Connexion backend
             </span>
             <span className="rounded-full border border-border bg-white px-3 py-1.5 text-sm font-medium text-muted">
               Navigation documentaire
