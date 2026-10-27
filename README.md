@@ -433,6 +433,10 @@ Read the service logs:
 docker compose logs
 ```
 
+Compose loads the ignored `backend/.env` file into the backend container at runtime. The local JWT generator and the container therefore use the same `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `JWT_ISSUER`, and `JWT_AUDIENCE` values. The explicit Compose `QDRANT_URL` value still overrides the host-oriented value so the backend reaches Qdrant through the internal service name. The environment file is not copied into the image and must never be committed or printed.
+
+The backend image includes the committed synthetic integration corpus and the locally prepared MiniLM embedding directory. Compose selects `/app/data/rag_integration_corpus.json` through the existing `RAG_CORPUS_PATH` setting. Before building the image on a fresh clone, prepare the ignored local embedding model from `backend/` with `venv/bin/python -m scripts.prepare_embedding_model`. The build fails instead of downloading a model implicitly when that directory is absent.
+
 The backend is available at `http://localhost:8000`, and Qdrant exposes its HTTP API at `http://localhost:6333`. Its dashboard is available at `http://localhost:6333/dashboard`. The named `qdrant_data` volume preserves vector data across container restarts.
 
 Stop and remove the Compose resources:
@@ -832,6 +836,15 @@ curl --fail --silent --show-error \
 
 A valid HS256 token with matching `exp`, `iss`, `aud`, non-empty `sub`, and a recognized `role` can establish an authenticated identity. Missing or invalid credentials return HTTP 401 with `WWW-Authenticate: Bearer`. An authenticated identity without an explicitly allowed role receives HTTP 403. The application does not issue tokens.
 
+For local development only, generate a 15-minute `analyst` token from the JWT configuration in `backend/.env`:
+
+```bash
+cd backend
+venv/bin/python -m scripts.generate_development_jwt
+```
+
+The script requires `JWT_SECRET_KEY`, `JWT_ISSUER`, and `JWT_AUDIENCE`. It does not contain, persist, or log the secret or generated token. The token is printed once to standard output so it can be entered manually in the frontend development panel. This utility is not a production authentication mechanism, and the FastAPI application still does not expose a token-issuing endpoint.
+
 Available roles:
 
 - `analyst`
@@ -867,7 +880,7 @@ Missing, invalid, or expired credentials return HTTP 401 with `WWW-Authenticate:
 - PII masking replaces detected values locally with typed markers and provides no restoration mechanism.
 - The protected PII endpoint sanitizes validation errors so rejected request values are not echoed in HTTP 422 responses.
 - E-mail validation uses the public-suffix snapshot bundled with `tldextract` and performs no runtime network refresh.
-- Token generation is not implemented.
+- Token issuance is not exposed by the API; a local 15-minute `analyst` token generator exists only for development.
 - In production, a trusted identity system must assign roles. Permission changes may require token revocation or short expiration because an issued JWT retains its embedded role until it expires or is revoked.
 - Future authorization decisions will remain deterministic and outside LLM control.
 - The observability contract accepts only explicitly typed technical measurements and excludes request, response, document, identity, authentication, and credential content.
