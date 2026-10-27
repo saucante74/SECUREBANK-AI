@@ -34,6 +34,22 @@ Requests sent by the frontend to `/api/*` are forwarded to `http://127.0.0.1:800
 
 Start FastAPI on port `8000` before using the proxy. The current home page does not make API requests.
 
+## TypeScript API client
+
+The centralized API client is located in `src/api/`. It uses the native `fetch` API and the relative `/api` prefix, which works with both the Vite development proxy and the Nginx Docker proxy.
+
+The service functions are:
+
+- `getHealth()` for `GET /api/health`;
+- `getCurrentUser(token)` for `GET /api/auth/me`;
+- `askRag(request, token)` for `POST /api/rag/ask`.
+
+Protected services accept a Bearer token supplied by their caller. The client does not create, persist, or retrieve tokens and does not provide a login or session system. An `AbortSignal` and a custom API client backed by an injected `fetch` implementation can be supplied when cancellation or isolated testing is needed.
+
+Failures are represented by a structured `ApiError`. It distinguishes unauthenticated, forbidden, validation, upstream provider, unavailable service, network, cancellation, unexpected response, and other HTTP failures. User-facing messages are stable and do not expose arbitrary server response bodies.
+
+The API services are not connected to the interface yet and make no automatic request when the application loads.
+
 ## Docker image
 
 Build the production-style Nginx image from the repository root:
@@ -69,4 +85,4 @@ docker compose down
 
 ## Current limitations
 
-The frontend currently contains a responsive presentation dashboard inside a reusable application shell. The navigation identifies future sections without linking to unavailable routes. There is no authentication flow, application-level API integration, routing, business interface, or production CORS configuration. The Docker proxy provides same-origin access locally but does not define the future cloud deployment architecture. The frontend uses no real banking data and does not claim an active RAG connection.
+The frontend currently contains a responsive presentation dashboard inside a reusable application shell and a typed API client that is not connected to the interface. The navigation identifies future sections without linking to unavailable routes. There is no authentication flow, routing, business interface, or production CORS configuration. The Docker proxy provides same-origin access locally but does not define the future cloud deployment architecture. The frontend uses no real banking data and does not claim an active RAG connection.
