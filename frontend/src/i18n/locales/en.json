@@ -27,7 +27,7 @@
     "description": "An interface for exploring synthetic banking knowledge, with documented answers and a strong focus on confidentiality.",
     "assistantStatus": "Interface available",
     "assistantTitle": "A space designed for documentary assistance",
-    "assistantDescription": "The Assistant space prepares access to synthetic knowledge and the presentation of evidence associated with answers. Backend submission remains disabled at this stage.",
+    "assistantDescription": "The Assistant can be explored freely and requests sign-in only when a question is submitted.",
     "privacyEyebrow": "Data protection",
     "privacyTitle": "Confidentiality",
     "privacyDescription": "The prototype prioritizes synthetic data and a restrained presentation of information. It must not be used with real banking data.",
@@ -50,6 +50,8 @@
     "send": "Send",
     "loading": "Searching for a documented answer…",
     "errorTitle": "The request was not completed",
+    "authenticatedReady": "You are signed in. The question can be submitted.",
+    "loginRequired": "This page remains available. Sign-in is requested only when submitting.",
     "developmentToken": {
       "title": "Development JWT access",
       "warning": "This panel is reserved for local testing with Vite. The token is kept in memory only and is not a production authentication solution.",
@@ -63,9 +65,26 @@
       "required": "Add a development JWT to enable submission."
     },
     "productionAuth": {
-      "title": "Authentication unavailable",
-      "description": "No user authentication mechanism is available in this version. The test JWT panel is limited to the Vite development server.",
-      "formDisabled": "Submission remains disabled until production authentication is available."
+      "title": "On-demand sign-in",
+      "description": "Sign-in is requested only when a question is submitted.",
+      "formDisabled": "Sign in to submit a question."
+    }
+  },
+  "auth": {
+    "connected": "Connected · {{role}}",
+    "logout": "Sign out",
+    "login": {
+      "eyebrow": "Documentary assistant",
+      "title": "Sign-in required",
+      "description": "Sign in to submit this question. Your text will be preserved.",
+      "username": "Username",
+      "password": "Password",
+      "submit": "Sign in",
+      "loading": "Signing in…",
+      "cancel": "Cancel",
+      "invalidCredentials": "Incorrect username or password.",
+      "rateLimited": "Too many attempts. Try again in a few minutes.",
+      "unavailable": "Sign-in is temporarily unavailable."
     }
   },
   "rag": {

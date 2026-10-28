@@ -32,7 +32,7 @@ npm run test
 
 Requests sent by the frontend to `/api/*` are forwarded to `http://127.0.0.1:8000/*` during local Vite development. The `/api` prefix is removed before forwarding, so `/api/health` reaches the backend route `/health`.
 
-Start FastAPI on port `8000` before using the proxy. The current home page does not make API requests.
+Start FastAPI on port `8000` before using the proxy. Public pages remain available when the backend reports that no session exists.
 
 ## TypeScript API client
 
@@ -41,14 +41,16 @@ The centralized API client is located in `src/api/`. It uses the native `fetch` 
 The service functions are:
 
 - `getHealth()` for `GET /api/health`;
-- `getCurrentUser(token)` for `GET /api/auth/me`;
-- `askRag(request, token)` for `POST /api/rag/ask`.
+- `getCurrentUser()` for cookie-authenticated `GET /api/auth/me`;
+- `loginUser(credentials)` for `POST /api/auth/login`;
+- `logoutUser()` for CSRF-protected `POST /api/auth/logout`;
+- `askRag(request)` for CSRF-protected `POST /api/rag/ask`.
 
-Protected services accept a Bearer token supplied by their caller. The client does not create, persist, or retrieve tokens and does not provide a login or session system. An `AbortSignal` and a custom API client backed by an injected `fetch` implementation can be supplied when cancellation or isolated testing is needed.
+Every request uses `credentials: "include"`. Protected session requests copy the readable `securebank_csrf` cookie into `X-CSRF-Token`. Bearer tokens remain optional for the development panel and are held only in React memory. No JWT, username, password, question, or RAG response is stored in browser storage. An `AbortSignal` and a custom API client backed by an injected `fetch` implementation can be supplied when cancellation or isolated testing is needed.
 
 Failures are represented by a structured `ApiError`. It distinguishes unauthenticated, forbidden, validation, upstream provider, unavailable service, network, cancellation, unexpected response, and other HTTP failures. User-facing messages are stable and do not expose arbitrary server response bodies.
 
-The API services are not connected to the interface yet and make no automatic request when the application loads.
+The application checks `GET /auth/me` once at startup to restore an existing cookie session. HTTP 401 leaves the public application accessible and does not open the login dialog.
 
 ## Application navigation and Assistant
 
@@ -61,7 +63,9 @@ Navigation uses native browser history and supports direct access, reload, and p
 
 The Assistant page provides an accessible controlled textarea with a 2,000-character limit, a character counter, an empty conversation area, and reusable presentation components for typed RAG answers, sources, citations, and abstentions. Long source excerpts are visually limited while their text remains in the document, and citations link only to sources whose document and chunk identifiers match.
 
-The Assistant connects to `POST /api/rag/ask` through the existing typed `askRag` service. A valid non-blank question and a Bearer token are required. While a request is active, the question remains visible, duplicate submission is disabled, and an accessible loading state is shown. Successful responses, sources, citations, and business abstentions use the existing typed presentation components. Structured API failures are mapped to localized safe messages without exposing server response bodies.
+The Assistant connects to `POST /api/rag/ask` through the existing typed `askRag` service. A valid non-blank question enables submission. Anonymous submission opens an accessible login dialog without clearing the question. Successful login closes the dialog and immediately submits the preserved question through the cookie session. While a request is active, the question remains visible, duplicate submission is disabled, and an accessible loading state is shown. Successful responses, sources, citations, and business abstentions use the existing typed presentation components. HTTP 401 reopens login for an expired session; other structured failures map to localized safe messages.
+
+The dialog moves focus to the username, traps keyboard focus, closes through Cancel or Escape, and restores focus to Send. The header shows a compact connected state and logout action. Successful logout clears Assistant question, response, and development JWT state while leaving public pages accessible.
 
 Active requests use `AbortController`. They are cancelled when the Assistant unmounts, when navigation leaves the page, or when the development token is cleared or replaced. Request sequencing prevents a late or obsolete response from updating the interface.
 
@@ -69,9 +73,7 @@ Active requests use `AbortController`. They are cancelled when the Assistant unm
 
 The Vite development interface exposes a clearly identified panel for manually supplying an existing test JWT. The token is masked during entry, removed from the field after activation, and held only in React memory. It is never generated, logged, placed in a URL, or stored in local storage, session storage, a cookie, or an environment file. Reloading the page clears it.
 
-This panel is controlled by `import.meta.env.DEV` and is not an authentication solution. The production Vite build disables it and leaves Assistant submission unavailable because no production identity provider or login flow exists. The current Docker image uses a production Vite build, so its UI does not expose the development token panel. Docker, Nginx, and Compose do not override this restriction.
-
-The next planned frontend micro-iteration is 6.5.
+This panel is controlled by `import.meta.env.DEV` and is not the normal authentication path. Production builds hide it and use cookie login exclusively.
 
 ## Internationalization
 
@@ -116,4 +118,4 @@ docker compose down
 
 ## Current limitations
 
-The frontend currently contains a responsive presentation dashboard, native browser navigation, a French/English/Italian interface, a development-only technical RAG connection, reusable RAG response presentation components, and a typed API client. There is no production authentication flow, production question submission, automatic RAG content translation, or production CORS configuration. The Docker production build deliberately omits the development JWT panel and therefore keeps Assistant submission disabled. The frontend must be used only with synthetic data and is not a production banking interface.
+The frontend contains a responsive public dashboard, native browser navigation, a French/English/Italian interface, on-demand cookie authentication, reusable RAG response presentation components, and a typed API client. The backend session database still requires an explicit persistent Docker volume before container recreation can preserve accounts. RAG also remains dependent on its separately configured backend corpus, Qdrant, local model, and LLM provider. The frontend must be used only with synthetic data and is not a production banking interface.

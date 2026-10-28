@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, type ApiErrorCategory } from "../api/client";
-import { askRag } from "../api/services";
+import { askRag, getCurrentUser } from "../api/services";
 import type { RagAskResponse } from "../api/types";
 import { App } from "../app/App";
 import i18n, { changeLanguage } from "../i18n";
@@ -10,9 +10,13 @@ import { AssistantPage } from "./AssistantPage";
 
 vi.mock("../api/services", () => ({
   askRag: vi.fn(),
+  getCurrentUser: vi.fn(),
+  loginUser: vi.fn(),
+  logoutUser: vi.fn(),
 }));
 
 const askRagMock = vi.mocked(askRag);
+const getCurrentUserMock = vi.mocked(getCurrentUser);
 const testToken = "synthetic-test-token";
 
 const responseFixture: RagAskResponse = {
@@ -86,6 +90,10 @@ function sendQuestion(): void {
 describe("Assistant RAG integration", () => {
   beforeEach(async () => {
     askRagMock.mockReset();
+    getCurrentUserMock.mockReset();
+    getCurrentUserMock.mockRejectedValue(
+      new ApiError({ category: "unauthenticated", method: "GET", status: 401 }),
+    );
     await i18n.changeLanguage("fr");
   });
 
@@ -102,9 +110,10 @@ describe("Assistant RAG integration", () => {
       screen.queryByRole("heading", { name: "Accès JWT de développement" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Authentification indisponible" }),
+      screen.getByText(
+        "La page reste accessible. Une connexion sera demandée uniquement lors de l’envoi.",
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Envoyer" })).toBeDisabled();
   });
 
   it("uses a masked token field and clears its visible draft", () => {
@@ -131,15 +140,15 @@ describe("Assistant RAG integration", () => {
     expect(screen.getByText("Aucun jeton de développement actif.")).toBeInTheDocument();
   });
 
-  it("enables submission only with a token and a non-blank valid question", () => {
+  it("enables on-demand authentication for a non-blank valid question", () => {
     render(<AssistantPage isDevelopment />);
     const sendButton = screen.getByRole("button", { name: "Envoyer" });
 
     enterQuestion();
-    expect(sendButton).toBeDisabled();
-    useDevelopmentToken();
+    expect(sendButton).toBeEnabled();
     fireEvent.change(questionInput(), { target: { value: "   " } });
     expect(sendButton).toBeDisabled();
+    useDevelopmentToken();
     enterQuestion();
     expect(sendButton).toBeEnabled();
   });
@@ -220,7 +229,6 @@ describe("Assistant RAG integration", () => {
   });
 
   it.each<[string, ApiErrorCategory, number | undefined, string]>([
-    ["HTTP 401", "unauthenticated", 401, "Une authentification est requise."],
     ["HTTP 403", "forbidden", 403, "Vous n’avez pas l’autorisation d’effectuer cette action."],
     ["HTTP 422", "validation", 422, "Les informations envoyées ne sont pas valides."],
     ["HTTP 502", "upstream_service", 502, "Le service de génération ne peut pas répondre actuellement."],

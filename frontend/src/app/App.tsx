@@ -4,10 +4,12 @@ import { useTranslation } from "react-i18next";
 import { HomePage } from "../pages/HomePage";
 import { AssistantPage } from "../pages/AssistantPage";
 import { AppShell } from "../components/AppShell";
+import { useAuthSession } from "../hooks/useAuthSession";
 import { pageFromPath, pathForPage, type PageId } from "./navigation";
 
 export function App() {
   const { t } = useTranslation();
+  const auth = useAuthSession();
   const [currentPage, setCurrentPage] = useState<PageId>(() =>
     pageFromPath(window.location.pathname),
   );
@@ -38,11 +40,24 @@ export function App() {
 
   return (
     <AppShell
+      authStatus={auth.status}
       currentPage={currentPage}
+      logoutErrorKey={auth.logoutErrorKey}
       onNavigate={navigate}
+      onLogout={auth.logout}
       pageTitle={pageTitle}
+      user={auth.user}
     >
-      {currentPage === "assistant" ? <AssistantPage /> : <HomePage />}
+      {currentPage === "assistant" ? (
+        <AssistantPage
+          key={auth.clearVersion}
+          authStatus={auth.status}
+          onLogin={auth.login}
+          onSessionExpired={auth.expireSession}
+        />
+      ) : (
+        <HomePage />
+      )}
     </AppShell>
   );
 }

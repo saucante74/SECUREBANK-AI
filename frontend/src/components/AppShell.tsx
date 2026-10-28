@@ -2,21 +2,32 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next";
 
 import type { PageId } from "../app/navigation";
+import type { AuthMeResponse } from "../api/types";
+import type { ApiErrorTranslationKey } from "../i18n/apiErrorKeys";
+import type { AuthStatus } from "../hooks/useAuthSession";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 
 interface AppShellProps {
+  authStatus: AuthStatus;
   children: ReactNode;
   currentPage: PageId;
+  logoutErrorKey?: ApiErrorTranslationKey;
   onNavigate: (page: PageId) => void;
+  onLogout: () => Promise<void>;
   pageTitle: string;
+  user?: AuthMeResponse;
 }
 
 export function AppShell({
+  authStatus,
   children,
   currentPage,
+  logoutErrorKey,
   onNavigate,
+  onLogout,
   pageTitle,
+  user,
 }: AppShellProps) {
   const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -78,10 +89,14 @@ export function AppShell({
       />
       <div className="flex min-h-screen min-w-0 flex-col lg:pl-72">
         <Header
+          authStatus={authStatus}
           menuButtonRef={menuButtonRef}
           isMenuOpen={isMenuOpen}
+          logoutErrorKey={logoutErrorKey}
+          onLogout={onLogout}
           onMenuOpen={openMenu}
           pageTitle={pageTitle}
+          user={user}
         />
         <main className="flex-1 px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
           <div className="mx-auto w-full max-w-6xl">{children}</div>

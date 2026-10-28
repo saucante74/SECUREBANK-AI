@@ -2,19 +2,30 @@ import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import type { AuthMeResponse } from "../api/types";
+import type { ApiErrorTranslationKey } from "../i18n/apiErrorKeys";
+import type { AuthStatus } from "../hooks/useAuthSession";
 
 interface HeaderProps {
+  authStatus: AuthStatus;
   isMenuOpen: boolean;
+  logoutErrorKey?: ApiErrorTranslationKey;
   menuButtonRef: RefObject<HTMLButtonElement | null>;
+  onLogout: () => Promise<void>;
   onMenuOpen: () => void;
   pageTitle: string;
+  user?: AuthMeResponse;
 }
 
 export function Header({
+  authStatus,
   isMenuOpen,
+  logoutErrorKey,
   menuButtonRef,
+  onLogout,
   onMenuOpen,
   pageTitle,
+  user,
 }: HeaderProps) {
   const { t } = useTranslation();
 
@@ -53,12 +64,31 @@ export function Header({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          {authStatus === "authenticated" && user && (
+            <div className="flex items-center gap-2">
+              <span className="hidden rounded-full border border-accent/25 bg-accent-soft px-3 py-1.5 text-xs font-semibold text-accent-strong md:inline-flex">
+                {t("auth.connected", { role: user.role })}
+              </span>
+              <button
+                type="button"
+                className="min-h-10 rounded-xl border border-border bg-white px-3 py-2 text-xs font-semibold text-brand-navy"
+                onClick={() => void onLogout()}
+              >
+                {t("auth.logout")}
+              </button>
+            </div>
+          )}
           <LanguageSwitcher />
           <span className="hidden rounded-full border border-accent/25 bg-accent-soft px-3 py-1.5 text-xs font-semibold text-accent-strong sm:inline-flex lg:text-sm">
             {t("app.demoEnvironment")}
           </span>
         </div>
       </div>
+      {logoutErrorKey && (
+        <p className="mx-auto mt-3 w-full max-w-6xl text-sm text-red-800" role="alert">
+          {t(logoutErrorKey)}
+        </p>
+      )}
     </header>
   );
 }

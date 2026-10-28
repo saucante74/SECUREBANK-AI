@@ -1,37 +1,74 @@
-import { useState, type SyntheticEvent } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  type SyntheticEvent,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 import { DevelopmentTokenPanel } from "../components/DevelopmentTokenPanel";
+import { LoginDialog } from "../components/LoginDialog";
 import { RagResponsePanel } from "../components/RagResponsePanel";
+import type { LoginRequest } from "../api/types";
+import type { AuthStatus } from "../hooks/useAuthSession";
 import { useRagRequest } from "../hooks/useRagRequest";
 
 const questionLimit = 2_000;
 
 interface AssistantPageProps {
+  authStatus?: AuthStatus;
   isDevelopment?: boolean;
+  onLogin?: (credentials: LoginRequest) => Promise<void>;
+  onSessionExpired?: () => void;
 }
 
 export function AssistantPage({
+  authStatus = "anonymous",
   isDevelopment = import.meta.env.DEV,
+  onLogin,
+  onSessionExpired,
 }: AssistantPageProps) {
   const { t } = useTranslation();
   const developmentMode = import.meta.env.DEV && isDevelopment;
   const [question, setQuestion] = useState("");
   const [token, setToken] = useState("");
-  const { errorKey, isLoading, reset, response, submit } = useRagRequest();
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const sendButtonRef = useRef<HTMLButtonElement>(null);
+  const requireAuthentication = useCallback(() => {
+    onSessionExpired?.();
+    setIsLoginOpen(true);
+  }, [onSessionExpired]);
+  const { errorKey, isLoading, reset, response, submit } = useRagRequest(
+    requireAuthentication,
+  );
   const isQuestionValid =
     question.length >= 1 &&
     question.length <= questionLimit &&
     Boolean(question.trim());
-  const canSubmit =
-    developmentMode && Boolean(token) && isQuestionValid && !isLoading;
+  const canSubmit = isQuestionValid && !isLoading;
 
   const submitQuestion = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit) {
       return;
     }
-    void submit(question, token);
+    if (authStatus !== "authenticated" && !token) {
+      setIsLoginOpen(true);
+      return;
+    }
+    void submit(question, token || undefined);
+  };
+
+  const login = async (credentials: LoginRequest) => {
+    if (!onLogin) {
+      throw new Error("Authentication unavailable");
+    }
+    await onLogin(credentials);
+  };
+
+  const finishLogin = () => {
+    setIsLoginOpen(false);
+    void submit(question);
   };
 
   const useToken = (nextToken: string) => {
@@ -61,24 +98,12 @@ export function AssistantPage({
         </p>
       </section>
 
-      {developmentMode ? (
+      {developmentMode && (
         <DevelopmentTokenPanel
           hasToken={Boolean(token)}
           onClearToken={clearToken}
           onUseToken={useToken}
         />
-      ) : (
-        <section
-          className="rounded-2xl border border-amber-300 bg-amber-50 p-6 text-amber-950 shadow-soft sm:p-8"
-          aria-labelledby="production-auth-title"
-        >
-          <h2 id="production-auth-title" className="text-xl font-semibold">
-            {t("assistant.productionAuth.title")}
-          </h2>
-          <p className="mt-3 leading-7">
-            {t("assistant.productionAuth.description")}
-          </p>
-        </section>
       )}
 
       <div aria-busy={isLoading}>
@@ -147,6 +172,7 @@ export function AssistantPage({
               })}
             </p>
             <button
+              ref={sendButtonRef}
               type="submit"
               className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-navy px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
               disabled={!canSubmit}
@@ -161,11 +187,24 @@ export function AssistantPage({
             {developmentMode
               ? token
                 ? t("assistant.developmentToken.ready")
-                : t("assistant.developmentToken.required")
-              : t("assistant.productionAuth.formDisabled")}
+                : authStatus === "authenticated"
+                  ? t("assistant.authenticatedReady")
+                  : t("assistant.loginRequired")
+              : authStatus === "authenticated"
+                ? t("assistant.authenticatedReady")
+                : t("assistant.loginRequired")}
           </p>
         </form>
       </section>
+      <LoginDialog
+        isOpen={isLoginOpen}
+        onCancel={() => {
+          setIsLoginOpen(false);
+        }}
+        onLogin={login}
+        onSuccess={finishLogin}
+        returnFocusRef={sendButtonRef}
+      />
     </div>
   );
 }

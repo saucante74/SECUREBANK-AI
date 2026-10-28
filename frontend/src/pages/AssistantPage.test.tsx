@@ -44,27 +44,31 @@ describe("AssistantPage", () => {
     ).toHaveAttribute("maxlength", "2000");
   });
 
-  it("keeps the send button explicitly disabled", () => {
+  it("keeps public discovery available before authentication", () => {
     render(<AssistantPage />);
 
     expect(screen.getByRole("button", { name: "Envoyer" })).toBeDisabled();
     expect(
       screen.getByText(
-        "Ajoutez un JWT de développement pour activer l’envoi.",
+        "La page reste accessible. Une connexion sera demandée uniquement lors de l’envoi.",
       ),
     ).toBeInTheDocument();
   });
 
-  it("prevents form submission without an HTTP request", () => {
+  it("opens authentication on a valid anonymous submission without an HTTP request", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     render(<AssistantPage />);
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Question documentaire" }),
+      { target: { value: "Question conservée" } },
+    );
     const button = screen.getByRole("button", { name: "Envoyer" });
-    const form = button.closest("form");
-
-    expect(form).not.toBeNull();
-    fireEvent.submit(form as HTMLFormElement);
+    fireEvent.click(button);
 
     expect(fetchSpy).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("dialog", { name: "Connexion requise" }),
+    ).toBeInTheDocument();
     fetchSpy.mockRestore();
   });
 });

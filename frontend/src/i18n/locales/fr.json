@@ -27,7 +27,7 @@
     "description": "Une interface dédiée à l’exploration de connaissances bancaires synthétiques, avec des réponses documentées et une attention particulière à la confidentialité.",
     "assistantStatus": "Interface disponible",
     "assistantTitle": "Un espace conçu pour l’assistance documentaire",
-    "assistantDescription": "L’espace Assistant prépare la consultation de connaissances synthétiques et la présentation des éléments associés aux réponses. L’envoi au backend reste désactivé à ce stade.",
+    "assistantDescription": "L’espace Assistant permet de consulter librement la fonctionnalité et demande une connexion uniquement au moment d’envoyer une question.",
     "privacyEyebrow": "Protection des données",
     "privacyTitle": "Confidentialité",
     "privacyDescription": "Le prototype privilégie les données synthétiques et une présentation sobre des informations. Il ne doit pas être utilisé avec des données bancaires réelles.",
@@ -50,6 +50,8 @@
     "send": "Envoyer",
     "loading": "Recherche d’une réponse documentée…",
     "errorTitle": "La requête n’a pas abouti",
+    "authenticatedReady": "Vous êtes connecté. La question peut être envoyée.",
+    "loginRequired": "La page reste accessible. Une connexion sera demandée uniquement lors de l’envoi.",
     "developmentToken": {
       "title": "Accès JWT de développement",
       "warning": "Ce panneau est réservé aux essais locaux avec Vite. Le jeton est conservé uniquement en mémoire et ne constitue pas une authentification de production.",
@@ -63,9 +65,26 @@
       "required": "Ajoutez un JWT de développement pour activer l’envoi."
     },
     "productionAuth": {
-      "title": "Authentification indisponible",
-      "description": "Aucun mécanisme d’authentification utilisateur n’est disponible dans cette version. Le panneau JWT de test est limité au serveur Vite de développement.",
-      "formDisabled": "L’envoi reste désactivé tant qu’une authentification de production n’est pas disponible."
+      "title": "Connexion à la demande",
+      "description": "La connexion est demandée uniquement lors de l’envoi d’une question.",
+      "formDisabled": "Connectez-vous pour envoyer une question."
+    }
+  },
+  "auth": {
+    "connected": "Connecté · {{role}}",
+    "logout": "Se déconnecter",
+    "login": {
+      "eyebrow": "Assistant documentaire",
+      "title": "Connexion requise",
+      "description": "Connectez-vous pour envoyer cette question. Votre saisie sera conservée.",
+      "username": "Identifiant",
+      "password": "Mot de passe",
+      "submit": "Se connecter",
+      "loading": "Connexion…",
+      "cancel": "Annuler",
+      "invalidCredentials": "Identifiant ou mot de passe incorrect.",
+      "rateLimited": "Trop de tentatives. Réessayez dans quelques minutes.",
+      "unavailable": "La connexion est temporairement indisponible."
     }
   },
   "rag": {

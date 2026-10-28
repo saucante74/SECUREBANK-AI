@@ -518,7 +518,7 @@ npm install
 npm run dev
 ```
 
-The current frontend displays a responsive presentation dashboard and a documentary Assistant interface in French, English, and Italian inside a reusable application shell. Native browser navigation connects `/` and `/assistant`. In Vite development mode only, an existing test JWT can be held in React memory and used by the typed `askRag` service to call the same-origin `/api/rag/ask` proxy. Loading, safe localized errors, cancellation, stale-response protection, answers, sources, citations, and abstentions are handled by the interface. The selected interface language is stored locally, but JWTs, questions, and RAG content are not persisted or translated automatically. See [Frontend README](frontend/README.md) for the focused frontend instructions and current limitations.
+The current frontend displays a responsive public dashboard and a documentary Assistant in French, English, and Italian. Native browser navigation connects `/` and `/assistant` without requiring authentication. Submitting an anonymous question opens an accessible login dialog; successful cookie login preserves and immediately sends the question. The header exposes connected state and logout. Session expiry reopens login, while logout clears in-memory Assistant content. The typed client sends cookies, copies the CSRF cookie into protected POST headers, and retains optional in-memory Bearer support only for the development panel. JWTs, credentials, questions, and RAG content are not persisted in browser storage. See [Frontend README](frontend/README.md) for focused instructions and limitations.
 
 For the Dockerized local stack, build and start the frontend with its backend dependency:
 
@@ -993,6 +993,8 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Accessible disabled Assistant form and reusable typed presentation components for RAG answers, sources, citations, and abstentions, without backend calls or simulated production responses.
 - Local French, English, and Italian interface catalogs with a persistent validated language preference and synchronized HTML language metadata.
 - Development-only in-memory JWT panel connecting the Assistant to the typed RAG API service with loading, localized errors, cancellation, and stale-response protection.
+- On-demand accessible login dialog with keyboard focus management and preserved question submission.
+- Cookie session restoration, CSRF-protected RAG and logout requests, expiration handling, connected state, and logout cleanup.
 - Local Vite `/api` proxy prepared for the FastAPI backend without changing backend routes or CORS.
 - Multi-stage frontend image with a Node.js build stage and an Nginx runtime serving the SPA and reverse-proxying `/api` to the backend service.
 
@@ -1002,7 +1004,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 ### Planned
 
-- Frontend session integration and JWT revocation.
+- JWT revocation and persistent Docker storage for the SQLite user database.
 - Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
 - Live Langfuse trace export validation, dashboards, and alerts.
@@ -1024,7 +1026,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Enabling RAG transmits masked questions and passages to the configured LLM provider. False negatives can expose original values, so provider hosting, retention, access, and confidentiality controls must be assessed before use.
 - RAG PII integration has been tested with synthetic fakes only; no real OpenAI call or live Qdrant RAG flow has been performed.
 - Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
-- The frontend is not yet connected to cookie login and logout.
+- The frontend cookie login is implemented, but live browser validation still depends on a configured local user and backend RAG stack.
 - The SQLite database has no Docker Compose volume yet, so container recreation does not preserve users or sessions.
 - Login limiting is keyed by normalized username; it reduces brute-force attempts but can temporarily block a targeted account.
 - The RAG observer is no-op by default. The official SDK client has only been exercised with offline fakes; no real trace ingestion, persistence, dashboard, or alert behavior has been validated.

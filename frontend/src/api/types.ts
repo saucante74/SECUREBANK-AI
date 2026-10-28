@@ -11,6 +11,11 @@ export interface AuthMeResponse {
   role: UserRole;
 }
 
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
 export interface RagAskRequest {
   question: string;
   top_k?: number;
