@@ -1,4 +1,5 @@
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
 from uuid import uuid4
 
@@ -13,6 +14,12 @@ class UserAlreadyExistsError(Exception):
 
 class InvalidUsernameError(ValueError):
     pass
+
+
+@dataclass(frozen=True)
+class UserCredentials:
+    account: UserAccount
+    password_hash: str
 
 
 class SQLiteUserRepository:
@@ -97,6 +104,29 @@ class SQLiteUserRepository:
                 (normalized_username,),
             ).fetchone()
         return None if row is None else str(row["password_hash"])
+
+    def get_credentials(self, username: str) -> UserCredentials | None:
+        normalized_username = normalize_username(username)
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT id, username, password_hash, role, is_active
+                FROM users
+                WHERE username = ? COLLATE NOCASE
+                """,
+                (normalized_username,),
+            ).fetchone()
+        if row is None:
+            return None
+        return UserCredentials(
+            account=UserAccount(
+                id=row["id"],
+                username=row["username"],
+                role=row["role"],
+                is_active=bool(row["is_active"]),
+            ),
+            password_hash=row["password_hash"],
+        )
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._database_path)

@@ -15,6 +15,12 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("JWT_ISSUER", raising=False)
     monkeypatch.delenv("JWT_AUDIENCE", raising=False)
     monkeypatch.delenv("USER_DATABASE_PATH", raising=False)
+    monkeypatch.delenv("SESSION_LIFETIME_SECONDS", raising=False)
+    monkeypatch.delenv("SESSION_COOKIE_SECURE", raising=False)
+    monkeypatch.delenv("SESSION_COOKIE_SAMESITE", raising=False)
+    monkeypatch.delenv("AUTH_TRUSTED_ORIGINS", raising=False)
+    monkeypatch.delenv("LOGIN_ATTEMPT_LIMIT", raising=False)
+    monkeypatch.delenv("LOGIN_ATTEMPT_WINDOW_SECONDS", raising=False)
     monkeypatch.delenv("QDRANT_URL", raising=False)
     monkeypatch.delenv("QDRANT_COLLECTION_NAME", raising=False)
     monkeypatch.delenv("RAG_ENABLED", raising=False)
@@ -41,6 +47,14 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
         settings.user_database_path
         == Path(__file__).resolve().parents[1] / "data" / "users.sqlite3"
     )
+    assert settings.session_lifetime_seconds == 900
+    assert settings.session_cookie_secure is False
+    assert settings.session_cookie_samesite == "lax"
+    assert settings.trusted_auth_origins == frozenset(
+        {"http://localhost:5173", "http://localhost:8080"}
+    )
+    assert settings.login_attempt_limit == 5
+    assert settings.login_attempt_window_seconds == 300
     assert settings.qdrant_url == "http://localhost:6333"
     assert settings.qdrant_collection_name == "securebank_chunks"
     assert settings.rag_enabled is False
@@ -64,6 +78,12 @@ def test_settings_environment_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("JWT_ISSUER", "securebank-ai-test")
     monkeypatch.setenv("JWT_AUDIENCE", "securebank-ai-test-api")
     monkeypatch.setenv("USER_DATABASE_PATH", "/tmp/securebank-test-users.sqlite3")
+    monkeypatch.setenv("SESSION_LIFETIME_SECONDS", "1200")
+    monkeypatch.setenv("SESSION_COOKIE_SECURE", "true")
+    monkeypatch.setenv("SESSION_COOKIE_SAMESITE", "none")
+    monkeypatch.setenv("AUTH_TRUSTED_ORIGINS", "https://frontend.example.test")
+    monkeypatch.setenv("LOGIN_ATTEMPT_LIMIT", "4")
+    monkeypatch.setenv("LOGIN_ATTEMPT_WINDOW_SECONDS", "120")
     monkeypatch.setenv("QDRANT_URL", "http://qdrant:6333")
     monkeypatch.setenv("QDRANT_COLLECTION_NAME", "test_chunks")
     monkeypatch.setenv("RAG_ENABLED", "true")
@@ -91,6 +111,12 @@ def test_settings_environment_override(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.jwt_issuer == "securebank-ai-test"
     assert settings.jwt_audience == "securebank-ai-test-api"
     assert settings.user_database_path == Path("/tmp/securebank-test-users.sqlite3")
+    assert settings.session_lifetime_seconds == 1200
+    assert settings.session_cookie_secure is True
+    assert settings.session_cookie_samesite == "none"
+    assert settings.trusted_auth_origins == frozenset({"https://frontend.example.test"})
+    assert settings.login_attempt_limit == 4
+    assert settings.login_attempt_window_seconds == 120
     assert settings.qdrant_url == "http://qdrant:6333"
     assert settings.qdrant_collection_name == "test_chunks"
     assert settings.rag_enabled is True

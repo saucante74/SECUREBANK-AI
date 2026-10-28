@@ -210,6 +210,12 @@ The implemented configuration accepts these variables:
 | `JWT_ISSUER` | None | Required JWT issuer |
 | `JWT_AUDIENCE` | None | Required JWT audience |
 | `USER_DATABASE_PATH` | `backend/data/users.sqlite3` | Persistent SQLite user database path |
+| `SESSION_LIFETIME_SECONDS` | `900` | Maximum server-side session lifetime |
+| `SESSION_COOKIE_SECURE` | `false` | Sends session cookies only over HTTPS when enabled |
+| `SESSION_COOKIE_SAMESITE` | `lax` | Session and CSRF cookie SameSite policy |
+| `AUTH_TRUSTED_ORIGINS` | Local Vite and Compose origins | Comma-separated origins allowed to submit credentials |
+| `LOGIN_ATTEMPT_LIMIT` | `5` | Failed attempts allowed during one rate-limit window |
+| `LOGIN_ATTEMPT_WINDOW_SECONDS` | `300` | Persistent login rate-limit window |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint |
 | `QDRANT_COLLECTION_NAME` | `securebank_chunks` | Collection used for chunk vectors |
 | `RAG_ENABLED` | `false` | Enables lazy construction of the generative RAG pipeline |
@@ -226,6 +232,8 @@ The implemented configuration accepts these variables:
 Environment variables override values loaded from `backend/.env`, which override the development defaults. Do not commit `.env` or place real banking data in it.
 
 JWT settings remain optional at application startup, so the public health endpoint works without them. Access to protected endpoints is denied until a secret of at least 32 characters, an issuer, and an audience are configured. Replace every example value before using authentication outside local development.
+
+Cookie sessions are stored server-side in the SQLite user database. Set `SESSION_COOKIE_SECURE=true` for HTTPS deployments; production configuration rejects insecure session cookies. `SameSite=None` is accepted only with a secure cookie. Add every frontend origin that may submit credentials to `AUTH_TRUSTED_ORIGINS`. The default `lax` policy is appropriate for the same-origin Vite and Nginx proxy architecture.
 
 The LLM API key is also optional at application startup. Creating a real LLM client requires it. To use an OpenAI-compatible provider, set `LLM_API_KEY`, set the provider's model identifier in `LLM_MODEL`, and set `LLM_BASE_URL` to its API base URL. Leave `LLM_BASE_URL` empty for the official OpenAI endpoint. Keep provider credentials only in the untracked `.env` file or a deployment secret store.
 
@@ -822,6 +830,8 @@ Current endpoints:
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Reports service availability, identity, and version |
+| `POST` | `/auth/login` | Verifies local credentials and creates a cookie session |
+| `POST` | `/auth/logout` | Revokes the current cookie session |
 | `GET` | `/auth/me` | Returns the authenticated `sub` and `role` |
 | `GET` | `/auth/analyst` | Allows `analyst`, `compliance_officer`, and `admin` |
 | `GET` | `/auth/admin` | Allows only `admin` |
@@ -835,7 +845,7 @@ curl --fail --silent --show-error \
   http://127.0.0.1:8000/auth/me
 ```
 
-A valid HS256 token with matching `exp`, `iss`, `aud`, non-empty `sub`, and a recognized `role` can establish an authenticated identity. Missing or invalid credentials return HTTP 401 with `WWW-Authenticate: Bearer`. An authenticated identity without an explicitly allowed role receives HTTP 403. The application does not issue tokens.
+A valid HS256 token with matching `exp`, `iss`, `aud`, non-empty `sub`, and a recognized `role` can establish an authenticated identity. The same endpoints also accept an unexpired server-side session through the HttpOnly `securebank_session` cookie. Missing or invalid credentials return HTTP 401 with `WWW-Authenticate: Bearer`. An authenticated identity without an explicitly allowed role receives HTTP 403. The application does not issue JWTs.
 
 For local development only, generate a 15-minute `analyst` token from the JWT configuration in `backend/.env`:
 
@@ -859,7 +869,9 @@ cd backend
 venv/bin/python -m scripts.create_user demo.analyst --role analyst
 ```
 
-The command prompts twice for a password, requires at least 12 characters and at most 72 UTF-8 bytes, stores only a bcrypt hash, and creates an active account by default. Add `--disabled` to create an inactive account. Usernames are unique case-insensitively. The ignored SQLite file is created at `USER_DATABASE_PATH`; this user store is not connected to an HTTP login endpoint yet.
+The command prompts twice for a password, requires at least 12 characters and at most 72 UTF-8 bytes, stores only a bcrypt hash, and creates an active account by default. Add `--disabled` to create an inactive account. Usernames are unique case-insensitively. The ignored SQLite file is created at `USER_DATABASE_PATH` and supplies `POST /auth/login`.
+
+Browser login requires a trusted `Origin` header and returns the authenticated UUID and role. Successful responses set an opaque HttpOnly session cookie and a readable CSRF cookie. The raw session and CSRF values are never stored in SQLite; only SHA-256 fingerprints are persisted. State-changing requests authenticated by cookie must copy the CSRF cookie value into `X-CSRF-Token`. Logout deletes the server-side session before expiring both cookies. Failed logins are limited persistently per normalized username and use the same generic error for unknown users, wrong passwords, and disabled accounts.
 
 RBAC denies access unless an endpoint explicitly lists the authenticated role. The role comes only from the cryptographically verified JWT claim; it is never accepted from request parameters, custom headers, or request bodies.
 
@@ -885,6 +897,9 @@ Missing, invalid, or expired credentials return HTTP 401 with `WWW-Authenticate:
 - Development data must be synthetic.
 - JWT validation verifies HS256 signatures and requires valid `exp`, `iss`, `aud`, and non-empty `sub` claims.
 - Bearer authentication requires a recognized, non-empty `role` claim and returns the authenticated subject and role from `GET /auth/me`.
+- Cookie authentication uses opaque, time-limited, server-side SQLite sessions with HttpOnly transport and effective logout revocation.
+- Cookie-authenticated state changes require a matching CSRF cookie, request header, and server-side fingerprint.
+- Login requires an explicitly trusted origin and applies a persistent per-username attempt limit.
 - RBAC protects demonstration endpoints with explicit role allowlists and denies authenticated users with HTTP 403 when their role is insufficient.
 - PII detection runs locally with Presidio Analyzer and a French spaCy model; analyzed values are neither persisted nor logged by the service.
 - PII masking replaces detected values locally with typed markers and provides no restoration mechanism.
@@ -938,6 +953,10 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Reusable FastAPI Bearer authentication dependency.
 - Persistent SQLite user store with unique identifiers, bcrypt password hashes, explicit roles, and active status.
 - Interactive local user-creation command that does not accept passwords as command-line arguments.
+- Credential login with generic failures for unknown, incorrect, and inactive accounts.
+- Revocable, expiring SQLite sessions through configurable HttpOnly cookies.
+- CSRF double-submit protection backed by a server-side token fingerprint.
+- Persistent login-attempt limiting and trusted-origin validation.
 - Typed roles for `analyst`, `compliance_officer`, and `admin`.
 - Reusable deny-by-default RBAC dependency with explicit role allowlists.
 - Protected authentication demonstration endpoints for identity, analyst access, and admin access.
@@ -983,7 +1002,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 ### Planned
 
-- Login, session issuance, logout, and token revocation.
+- Frontend session integration and JWT revocation.
 - Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
 - Live Langfuse trace export validation, dashboards, and alerts.
@@ -1005,7 +1024,9 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Enabling RAG transmits masked questions and passages to the configured LLM provider. False negatives can expose original values, so provider hosting, retention, access, and confidentiality controls must be assessed before use.
 - RAG PII integration has been tested with synthetic fakes only; no real OpenAI call or live Qdrant RAG flow has been performed.
 - Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
-- The SQLite user directory is not yet connected to login, session issuance, logout, or the frontend.
+- The frontend is not yet connected to cookie login and logout.
+- The SQLite database has no Docker Compose volume yet, so container recreation does not preserve users or sessions.
+- Login limiting is keyed by normalized username; it reduces brute-force attempts but can temporarily block a targeted account.
 - The RAG observer is no-op by default. The official SDK client has only been exercised with offline fakes; no real trace ingestion, persistence, dashboard, or alert behavior has been validated.
 - The Langfuse Compose stack has not been pulled, started, health-checked, or exercised through its UI; local capacity and image compatibility remain unverified.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.

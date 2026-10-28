@@ -23,6 +23,10 @@ class PasswordHasher:
         except (TypeError, ValueError, UnicodeEncodeError):
             return False
 
+    def consume_verification_time(self, password: str) -> None:
+        password_bytes = password.encode("utf-8")[:MAXIMUM_PASSWORD_BYTES]
+        bcrypt.hashpw(password_bytes, bcrypt.gensalt())
+
     def _validate(self, password: str) -> None:
         if len(password) < MINIMUM_PASSWORD_LENGTH:
             raise PasswordPolicyError(
