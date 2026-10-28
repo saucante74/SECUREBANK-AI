@@ -209,6 +209,7 @@ The implemented configuration accepts these variables:
 | `JWT_ALGORITHM` | `HS256` | Explicitly allowed JWT signing algorithm |
 | `JWT_ISSUER` | None | Required JWT issuer |
 | `JWT_AUDIENCE` | None | Required JWT audience |
+| `USER_DATABASE_PATH` | `backend/data/users.sqlite3` | Persistent SQLite user database path |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint |
 | `QDRANT_COLLECTION_NAME` | `securebank_chunks` | Collection used for chunk vectors |
 | `RAG_ENABLED` | `false` | Enables lazy construction of the generative RAG pipeline |
@@ -851,6 +852,15 @@ Available roles:
 - `compliance_officer`
 - `admin`
 
+Create a local user without placing a password in shell history:
+
+```bash
+cd backend
+venv/bin/python -m scripts.create_user demo.analyst --role analyst
+```
+
+The command prompts twice for a password, requires at least 12 characters and at most 72 UTF-8 bytes, stores only a bcrypt hash, and creates an active account by default. Add `--disabled` to create an inactive account. Usernames are unique case-insensitively. The ignored SQLite file is created at `USER_DATABASE_PATH`; this user store is not connected to an HTTP login endpoint yet.
+
 RBAC denies access unless an endpoint explicitly lists the authenticated role. The role comes only from the cryptographically verified JWT claim; it is never accepted from request parameters, custom headers, or request bodies.
 
 ### PII Masking API
@@ -926,6 +936,8 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Independent JWT validator for HS256 signatures and required `exp`, `iss`, `aud`, and non-empty `sub` claims.
 - Deterministic JWT validation tests using synthetic tokens and secrets.
 - Reusable FastAPI Bearer authentication dependency.
+- Persistent SQLite user store with unique identifiers, bcrypt password hashes, explicit roles, and active status.
+- Interactive local user-creation command that does not accept passwords as command-line arguments.
 - Typed roles for `analyst`, `compliance_officer`, and `admin`.
 - Reusable deny-by-default RBAC dependency with explicit role allowlists.
 - Protected authentication demonstration endpoints for identity, analyst access, and admin access.
@@ -971,7 +983,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 ### Planned
 
-- Token generation and token revocation.
+- Login, session issuance, logout, and token revocation.
 - Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
 - Live Langfuse trace export validation, dashboards, and alerts.
@@ -993,7 +1005,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Enabling RAG transmits masked questions and passages to the configured LLM provider. False negatives can expose original values, so provider hosting, retention, access, and confidentiality controls must be assessed before use.
 - RAG PII integration has been tested with synthetic fakes only; no real OpenAI call or live Qdrant RAG flow has been performed.
 - Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
-- There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, operational observability, frontend business integration, or deployment configuration.
+- The SQLite user directory is not yet connected to login, session issuance, logout, or the frontend.
 - The RAG observer is no-op by default. The official SDK client has only been exercised with offline fakes; no real trace ingestion, persistence, dashboard, or alert behavior has been validated.
 - The Langfuse Compose stack has not been pulled, started, health-checked, or exercised through its UI; local capacity and image compatibility remain unverified.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
