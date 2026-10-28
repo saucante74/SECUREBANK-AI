@@ -24,21 +24,25 @@ describe("HomePage", () => {
     ).toBeInTheDocument();
   });
 
-  it("identifies the current and future navigation entries", () => {
+  it("identifies the current navigation entry and future about entry", () => {
     render(<App />);
 
     const navigation = screen.getByRole("navigation", {
       name: "Sections de l’application",
     });
-    const homeEntry = within(navigation).getByText("Accueil").closest("div");
-    const assistantEntry = within(navigation).getByText("Assistant").closest("li");
+    const homeLink = within(navigation).getByRole("link", { name: "Accueil" });
+    const assistantLink = within(navigation).getByRole("link", {
+      name: "Assistant",
+    });
     const aboutEntry = within(navigation).getByText("À propos").closest("li");
 
-    expect(homeEntry).toHaveAttribute("aria-current", "page");
-    expect(assistantEntry).not.toBeNull();
+    expect(homeLink).toHaveAttribute("aria-current", "page");
+    expect(assistantLink).not.toHaveAttribute("aria-current");
     expect(aboutEntry).not.toBeNull();
-    expect(within(assistantEntry as HTMLElement).getByText("À venir")).toBeInTheDocument();
     expect(within(aboutEntry as HTMLElement).getByText("À venir")).toBeInTheDocument();
+    expect(
+      within(navigation).queryByRole("link", { name: "À propos" }),
+    ).not.toBeInTheDocument();
   });
 
   it("opens and closes the mobile menu", () => {

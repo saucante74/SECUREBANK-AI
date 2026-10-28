@@ -1,0 +1,106 @@
+{
+  "app": {
+    "name": "SecureBank-AI",
+    "securedInterface": "Secure interface",
+    "dashboard": "Dashboard",
+    "demoEnvironment": "Demonstration environment",
+    "footer": "SecureBank-AI — Demonstration environment",
+    "demo": "Demonstration",
+    "demoDescription": "Presentation interface using synthetic data exclusively.",
+    "languageLabel": "Interface language",
+    "languages": {
+      "fr": "Français",
+      "en": "English",
+      "it": "Italiano"
+    }
+  },
+  "navigation": {
+    "title": "Navigation",
+    "home": "Home",
+    "assistant": "Assistant",
+    "about": "About",
+    "comingSoon": "Coming soon"
+  },
+  "home": {
+    "eyebrow": "Welcome to SecureBank-AI",
+    "title": "Secure intelligent banking assistant",
+    "description": "An interface for exploring synthetic banking knowledge, with documented answers and a strong focus on confidentiality.",
+    "assistantStatus": "Interface available",
+    "assistantTitle": "A space designed for documentary assistance",
+    "assistantDescription": "The Assistant space prepares access to synthetic knowledge and the presentation of evidence associated with answers. Backend submission remains disabled at this stage.",
+    "privacyEyebrow": "Data protection",
+    "privacyTitle": "Confidentiality",
+    "privacyDescription": "The prototype prioritizes synthetic data and a restrained presentation of information. It must not be used with real banking data.",
+    "evidenceEyebrow": "Information quality",
+    "evidenceTitle": "Sourced answers",
+    "evidenceDescription": "The planned experience will highlight documentary evidence associated with answers, without presenting fictional results or an active connection today.",
+    "nextEyebrow": "Next steps",
+    "nextTitle": "Upcoming features",
+    "backendConnection": "Backend connection",
+    "documentNavigation": "Document navigation"
+  },
+  "assistant": {
+    "eyebrow": "Document search",
+    "title": "Documentary assistant",
+    "description": "Ask a question about the documents available in SecureBank-AI.",
+    "questionSection": "Your question",
+    "questionLabel": "Documentary question",
+    "placeholder": "Enter your question here.",
+    "characterCount": "{{current}} / {{maximum}} characters",
+    "send": "Send",
+    "loading": "Searching for a documented answer…",
+    "errorTitle": "The request was not completed",
+    "developmentToken": {
+      "title": "Development JWT access",
+      "warning": "This panel is reserved for local testing with Vite. The token is kept in memory only and is not a production authentication solution.",
+      "label": "Test JWT",
+      "placeholder": "Enter a test JWT",
+      "use": "Use",
+      "clear": "Clear",
+      "active": "A development token is active in memory.",
+      "missing": "No active development token.",
+      "ready": "The next submission will use the token held in memory.",
+      "required": "Add a development JWT to enable submission."
+    },
+    "productionAuth": {
+      "title": "Authentication unavailable",
+      "description": "No user authentication mechanism is available in this version. The test JWT panel is limited to the Vite development server.",
+      "formDisabled": "Submission remains disabled until production authentication is available."
+    }
+  },
+  "rag": {
+    "emptyTitle": "Empty conversation",
+    "emptyDescription": "Documentary answers will appear in this area when submission becomes available.",
+    "normalStatus": "Documentary answer",
+    "abstainedStatus": "Answer with abstention",
+    "abstainedDescription": "The available evidence does not support a sufficiently grounded answer.",
+    "answerTitle": "Answer",
+    "sourcesTitle": "Sources",
+    "noSources": "No source available.",
+    "citationsTitle": "Citations",
+    "noCitations": "No citation available.",
+    "reference": "Reference {{reference}}",
+    "document": "Document: {{documentId}}",
+    "unmatchedSource": "Associated source unavailable."
+  },
+  "errors": {
+    "unauthenticated": "Authentication is required.",
+    "forbidden": "You are not authorized to perform this action.",
+    "validation": "The submitted information is invalid.",
+    "upstreamService": "The generation service cannot respond at this time.",
+    "serviceUnavailable": "The service is temporarily unavailable.",
+    "network": "The connection to the service failed.",
+    "aborted": "The request was cancelled.",
+    "unexpectedResponse": "The service returned an unexpected response.",
+    "http": "The request could not be completed."
+  },
+  "accessibility": {
+    "primaryNavigation": "Main navigation",
+    "sectionsNavigation": "Application sections",
+    "openNavigation": "Open navigation",
+    "closeMenu": "Close menu",
+    "closeNavigation": "Close navigation",
+    "projectPrinciples": "Project principles",
+    "plannedFeatures": "Planned features"
+  }
+}

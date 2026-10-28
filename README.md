@@ -28,7 +28,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Generation | Configurable OpenAI-compatible LLM service, lazy RAG factory, RAG context, citation mapping, and explicit abstention | Semantic evidence validation |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | Privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse Python SDK 4.17.0 client | Live-server validation, dashboards, and alerts |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS, Vitest | Routing, API integration, and business interfaces |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS, Vitest, i18next, native navigation, multilingual Assistant UI, typed native-fetch API client, development-only JWT connection | Production authentication and business interfaces |
 | Deployment | None | Render backend, Vercel frontend |
 
 The backend requirements file already declares packages for later iterations. A declared dependency does not mean that its related capability is implemented.
@@ -433,6 +433,10 @@ Read the service logs:
 docker compose logs
 ```
 
+Compose loads the ignored `backend/.env` file into the backend container at runtime. The local JWT generator and the container therefore use the same `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `JWT_ISSUER`, and `JWT_AUDIENCE` values. The explicit Compose `QDRANT_URL` value still overrides the host-oriented value so the backend reaches Qdrant through the internal service name. The environment file is not copied into the image and must never be committed or printed.
+
+The backend image includes the committed synthetic integration corpus and the locally prepared MiniLM embedding directory. Compose selects `/app/data/rag_integration_corpus.json` through the existing `RAG_CORPUS_PATH` setting. Before building the image on a fresh clone, prepare the ignored local embedding model from `backend/` with `venv/bin/python -m scripts.prepare_embedding_model`. The build fails instead of downloading a model implicitly when that directory is absent.
+
 The backend is available at `http://localhost:8000`, and Qdrant exposes its HTTP API at `http://localhost:6333`. Its dashboard is available at `http://localhost:6333/dashboard`. The named `qdrant_data` volume preserves vector data across container restarts.
 
 Stop and remove the Compose resources:
@@ -505,7 +509,7 @@ npm install
 npm run dev
 ```
 
-The current frontend displays a responsive presentation dashboard inside a reusable application shell. During local development, Vite forwards `/api/*` requests to `http://127.0.0.1:8000/*` and removes the `/api` prefix. The dashboard makes no API request yet. See [Frontend README](frontend/README.md) for the focused frontend instructions and current limitations.
+The current frontend displays a responsive presentation dashboard and a documentary Assistant interface in French, English, and Italian inside a reusable application shell. Native browser navigation connects `/` and `/assistant`. In Vite development mode only, an existing test JWT can be held in React memory and used by the typed `askRag` service to call the same-origin `/api/rag/ask` proxy. Loading, safe localized errors, cancellation, stale-response protection, answers, sources, citations, and abstentions are handled by the interface. The selected interface language is stored locally, but JWTs, questions, and RAG content are not persisted or translated automatically. See [Frontend README](frontend/README.md) for the focused frontend instructions and current limitations.
 
 For the Dockerized local stack, build and start the frontend with its backend dependency:
 
@@ -832,6 +836,15 @@ curl --fail --silent --show-error \
 
 A valid HS256 token with matching `exp`, `iss`, `aud`, non-empty `sub`, and a recognized `role` can establish an authenticated identity. Missing or invalid credentials return HTTP 401 with `WWW-Authenticate: Bearer`. An authenticated identity without an explicitly allowed role receives HTTP 403. The application does not issue tokens.
 
+For local development only, generate a 15-minute `analyst` token from the JWT configuration in `backend/.env`:
+
+```bash
+cd backend
+venv/bin/python -m scripts.generate_development_jwt
+```
+
+The script requires `JWT_SECRET_KEY`, `JWT_ISSUER`, and `JWT_AUDIENCE`. It does not contain, persist, or log the secret or generated token. The token is printed once to standard output so it can be entered manually in the frontend development panel. This utility is not a production authentication mechanism, and the FastAPI application still does not expose a token-issuing endpoint.
+
 Available roles:
 
 - `analyst`
@@ -867,7 +880,7 @@ Missing, invalid, or expired credentials return HTTP 401 with `WWW-Authenticate:
 - PII masking replaces detected values locally with typed markers and provides no restoration mechanism.
 - The protected PII endpoint sanitizes validation errors so rejected request values are not echoed in HTTP 422 responses.
 - E-mail validation uses the public-suffix snapshot bundled with `tldextract` and performs no runtime network refresh.
-- Token generation is not implemented.
+- Token issuance is not exposed by the API; a local 15-minute `analyst` token generator exists only for development.
 - In production, a trusted identity system must assign roles. Permission changes may require token revocation or short expiration because an issued JWT retains its embedded role until it expires or is revoked.
 - Future authorization decisions will remain deterministic and outside LLM control.
 - The observability contract accepts only explicitly typed technical measurements and excludes request, response, document, identity, authentication, and credential content.
@@ -897,7 +910,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, BM25, local embeddings, Qdrant vector search, RRF, hybrid orchestration, and independent FlashRank reranking completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | In Progress: privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse SDK client implemented; live integration remains planned |
-| Phase 6 | React frontend | In Progress: Vite, TypeScript, Tailwind CSS design system, responsive application shell, presentation dashboard, ESLint, Vitest, and Docker integration implemented |
+| Phase 6 | React frontend | In Progress: Vite, TypeScript, Tailwind CSS design system, responsive application shell, native navigation, French/English/Italian localization, development-only Assistant API connection, typed API client, ESLint, Vitest, and Docker integration implemented |
 
 ## Current Implementation Status
 
@@ -944,6 +957,11 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Isolated Langfuse v4 Docker Compose definition with loopback-only published ports and persistent local volumes.
 - React 19 frontend initialized with strict TypeScript, Vite, Tailwind CSS, ESLint, and Vitest.
 - Responsive SecureBank-AI presentation dashboard with a reusable shell, accessible mobile navigation, and no API or authentication behavior.
+- Centralized typed native-fetch API client for health, current-user, and RAG requests with injectable transport, cancellation, Bearer headers, and structured safe errors.
+- Native browser navigation between the dashboard and a directly accessible documentary Assistant page.
+- Accessible disabled Assistant form and reusable typed presentation components for RAG answers, sources, citations, and abstentions, without backend calls or simulated production responses.
+- Local French, English, and Italian interface catalogs with a persistent validated language preference and synchronized HTML language metadata.
+- Development-only in-memory JWT panel connecting the Assistant to the typed RAG API service with loading, localized errors, cancellation, and stale-response protection.
 - Local Vite `/api` proxy prepared for the FastAPI backend without changing backend routes or CORS.
 - Multi-stage frontend image with a Node.js build stage and an Nginx runtime serving the SPA and reverse-proxying `/api` to the backend service.
 
@@ -957,7 +975,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
 - Live Langfuse trace export validation, dashboards, and alerts.
-- Frontend routing, API integration, authentication design, business interfaces, and cloud deployment.
+- Production authentication design, production Assistant submission, business interfaces, and cloud deployment.
 
 ## Known Limitations
 

@@ -1,0 +1,106 @@
+{
+  "app": {
+    "name": "SecureBank-AI",
+    "securedInterface": "Interfaccia sicura",
+    "dashboard": "Pannello di controllo",
+    "demoEnvironment": "Ambiente dimostrativo",
+    "footer": "SecureBank-AI — Ambiente dimostrativo",
+    "demo": "Dimostrazione",
+    "demoDescription": "Interfaccia dimostrativa che utilizza esclusivamente dati sintetici.",
+    "languageLabel": "Lingua dell’interfaccia",
+    "languages": {
+      "fr": "Français",
+      "en": "English",
+      "it": "Italiano"
+    }
+  },
+  "navigation": {
+    "title": "Navigazione",
+    "home": "Home",
+    "assistant": "Assistente",
+    "about": "Informazioni",
+    "comingSoon": "Prossimamente"
+  },
+  "home": {
+    "eyebrow": "Benvenuti in SecureBank-AI",
+    "title": "Assistente bancario intelligente e sicuro",
+    "description": "Un’interfaccia dedicata all’esplorazione di conoscenze bancarie sintetiche, con risposte documentate e particolare attenzione alla riservatezza.",
+    "assistantStatus": "Interfaccia disponibile",
+    "assistantTitle": "Uno spazio progettato per l’assistenza documentale",
+    "assistantDescription": "Lo spazio Assistente prepara la consultazione di conoscenze sintetiche e la presentazione degli elementi associati alle risposte. L’invio al backend rimane disabilitato in questa fase.",
+    "privacyEyebrow": "Protezione dei dati",
+    "privacyTitle": "Riservatezza",
+    "privacyDescription": "Il prototipo privilegia i dati sintetici e una presentazione sobria delle informazioni. Non deve essere utilizzato con dati bancari reali.",
+    "evidenceEyebrow": "Qualità dell’informazione",
+    "evidenceTitle": "Risposte con fonti",
+    "evidenceDescription": "L’esperienza prevista metterà in evidenza gli elementi documentali associati alle risposte, senza presentare oggi risultati fittizi o una connessione attiva.",
+    "nextEyebrow": "Prossimi passi",
+    "nextTitle": "Funzionalità future",
+    "backendConnection": "Connessione al backend",
+    "documentNavigation": "Navigazione documentale"
+  },
+  "assistant": {
+    "eyebrow": "Ricerca documentale",
+    "title": "Assistente documentale",
+    "description": "Fai una domanda sui documenti disponibili in SecureBank-AI.",
+    "questionSection": "La tua domanda",
+    "questionLabel": "Domanda documentale",
+    "placeholder": "Inserisci qui la tua domanda.",
+    "characterCount": "{{current}} / {{maximum}} caratteri",
+    "send": "Invia",
+    "loading": "Ricerca di una risposta documentata…",
+    "errorTitle": "La richiesta non è stata completata",
+    "developmentToken": {
+      "title": "Accesso JWT di sviluppo",
+      "warning": "Questo pannello è riservato ai test locali con Vite. Il token viene conservato solo in memoria e non costituisce una soluzione di autenticazione di produzione.",
+      "label": "JWT di test",
+      "placeholder": "Inserisci un JWT di test",
+      "use": "Usa",
+      "clear": "Cancella",
+      "active": "Un token di sviluppo è attivo in memoria.",
+      "missing": "Nessun token di sviluppo attivo.",
+      "ready": "Il prossimo invio utilizzerà il token conservato in memoria.",
+      "required": "Aggiungi un JWT di sviluppo per abilitare l’invio."
+    },
+    "productionAuth": {
+      "title": "Autenticazione non disponibile",
+      "description": "In questa versione non è disponibile alcun meccanismo di autenticazione utente. Il pannello JWT di test è limitato al server di sviluppo Vite.",
+      "formDisabled": "L’invio rimane disabilitato finché non sarà disponibile un’autenticazione di produzione."
+    }
+  },
+  "rag": {
+    "emptyTitle": "Conversazione vuota",
+    "emptyDescription": "Le risposte documentali appariranno in questo spazio quando l’invio sarà disponibile.",
+    "normalStatus": "Risposta documentale",
+    "abstainedStatus": "Risposta con astensione",
+    "abstainedDescription": "Gli elementi disponibili non consentono di fornire una risposta sufficientemente fondata.",
+    "answerTitle": "Risposta",
+    "sourcesTitle": "Fonti",
+    "noSources": "Nessuna fonte disponibile.",
+    "citationsTitle": "Citazioni",
+    "noCitations": "Nessuna citazione disponibile.",
+    "reference": "Riferimento {{reference}}",
+    "document": "Documento: {{documentId}}",
+    "unmatchedSource": "Fonte associata non disponibile."
+  },
+  "errors": {
+    "unauthenticated": "È richiesta l’autenticazione.",
+    "forbidden": "Non sei autorizzato a eseguire questa azione.",
+    "validation": "Le informazioni inviate non sono valide.",
+    "upstreamService": "Il servizio di generazione non può rispondere al momento.",
+    "serviceUnavailable": "Il servizio è temporaneamente non disponibile.",
+    "network": "La connessione al servizio non è riuscita.",
+    "aborted": "La richiesta è stata annullata.",
+    "unexpectedResponse": "Il servizio ha restituito una risposta inattesa.",
+    "http": "Non è stato possibile completare la richiesta."
+  },
+  "accessibility": {
+    "primaryNavigation": "Navigazione principale",
+    "sectionsNavigation": "Sezioni dell’applicazione",
+    "openNavigation": "Apri la navigazione",
+    "closeMenu": "Chiudi il menu",
+    "closeNavigation": "Chiudi la navigazione",
+    "projectPrinciples": "Principi del progetto",
+    "plannedFeatures": "Funzionalità pianificate"
+  }
+}
