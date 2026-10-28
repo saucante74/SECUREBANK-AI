@@ -118,4 +118,4 @@ docker compose down
 
 ## Current limitations
 
-The frontend contains a responsive public dashboard, native browser navigation, a French/English/Italian interface, on-demand cookie authentication, reusable RAG response presentation components, and a typed API client. The backend session database still requires an explicit persistent Docker volume before container recreation can preserve accounts. RAG also remains dependent on its separately configured backend corpus, Qdrant, local model, and LLM provider. The frontend must be used only with synthetic data and is not a production banking interface.
+The frontend contains a responsive public dashboard, native browser navigation, a French/English/Italian interface, on-demand cookie authentication, reusable RAG response presentation components, and a typed API client. The Compose stack persists backend users and sessions in the `securebank_users` named volume. RAG remains dependent on its separately configured backend corpus, Qdrant, local model, and LLM provider. The frontend must be used only with synthetic data and is not a production banking interface.

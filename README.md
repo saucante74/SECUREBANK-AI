@@ -446,7 +446,15 @@ Compose loads the ignored `backend/.env` file into the backend container at runt
 
 The backend image includes the committed synthetic integration corpus and the locally prepared MiniLM embedding directory. Compose selects `/app/data/rag_integration_corpus.json` through the existing `RAG_CORPUS_PATH` setting. Before building the image on a fresh clone, prepare the ignored local embedding model from `backend/` with `venv/bin/python -m scripts.prepare_embedding_model`. The build fails instead of downloading a model implicitly when that directory is absent.
 
-The backend is available at `http://localhost:8000`, and Qdrant exposes its HTTP API at `http://localhost:6333`. Its dashboard is available at `http://localhost:6333/dashboard`. The named `qdrant_data` volume preserves vector data across container restarts.
+The backend is available at `http://localhost:8000`, and Qdrant exposes its HTTP API at `http://localhost:6333`. Its dashboard is available at `http://localhost:6333/dashboard`. The named `qdrant_data` volume preserves vector data across container restarts. Compose overrides `USER_DATABASE_PATH` with `/app/runtime/users.sqlite3` and mounts the named `securebank_users` volume at `/app/runtime`. The image creates that directory for the non-root UID/GID `10001`, while `.dockerignore` excludes SQLite files from the build context.
+
+Create an interactive demonstration user directly in the backend container:
+
+```bash
+docker compose exec backend python -m scripts.create_user demo.analyst --role analyst
+```
+
+The password is requested twice without being accepted as a command-line argument. Accounts and non-expired sessions remain available after backend restarts and container recreation. Do not pass `--volumes` or `-v` to `docker compose down` unless permanent deletion of the named application data is explicitly intended.
 
 Stop and remove the Compose resources:
 
@@ -979,6 +987,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
 - Backend and frontend Docker Compose services exposed on local ports `8000` and `8080`.
+- Persistent Docker named volume for SQLite users, login limits, and sessions, writable by the non-root backend user.
 - Pull Request-only backend GitHub Actions workflow.
 - Disabled-by-default Langfuse configuration with conditional credential validation and no network initialization.
 - Typed privacy-preserving `RagObserver` contract and stateless `NoOpRagObserver` implementation.
@@ -1004,7 +1013,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 ### Planned
 
-- JWT revocation and persistent Docker storage for the SQLite user database.
+- JWT revocation.
 - Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
 - Live Langfuse trace export validation, dashboards, and alerts.
@@ -1024,10 +1033,9 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - FlashRank reranking is not yet connected automatically to `HybridRetriever`.
 - LLM generation has no semantic evidence validation. PII masking reduces exposure but cannot guarantee that every sensitive value is detected.
 - Enabling RAG transmits masked questions and passages to the configured LLM provider. False negatives can expose original values, so provider hosting, retention, access, and confidentiality controls must be assessed before use.
-- RAG PII integration has been tested with synthetic fakes only; no real OpenAI call or live Qdrant RAG flow has been performed.
+- RAG PII integration uses synthetic data only. A live Docker Compose Qdrant and configured LLM flow has been validated locally, but no production provider or real banking data has been tested.
 - Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
-- The frontend cookie login is implemented, but live browser validation still depends on a configured local user and backend RAG stack.
-- The SQLite database has no Docker Compose volume yet, so container recreation does not preserve users or sessions.
+- The frontend cookie login is implemented and the complete authentication and RAG flow has been validated through the live Docker HTTP endpoints. Visual browser interaction remains a manual verification step.
 - Login limiting is keyed by normalized username; it reduces brute-force attempts but can temporarily block a targeted account.
 - The RAG observer is no-op by default. The official SDK client has only been exercised with offline fakes; no real trace ingestion, persistence, dashboard, or alert behavior has been validated.
 - The Langfuse Compose stack has not been pulled, started, health-checked, or exercised through its UI; local capacity and image compatibility remain unverified.
