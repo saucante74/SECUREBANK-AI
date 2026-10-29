@@ -46,7 +46,7 @@ The service functions are:
 - `logoutUser()` for CSRF-protected `POST /api/auth/logout`;
 - `askRag(request)` for CSRF-protected `POST /api/rag/ask`.
 
-Every request uses `credentials: "include"`. Protected session requests copy the readable `securebank_csrf` cookie into `X-CSRF-Token`. Bearer tokens remain optional for the development panel and are held only in React memory. No JWT, username, password, question, or RAG response is stored in browser storage. An `AbortSignal` and a custom API client backed by an injected `fetch` implementation can be supplied when cancellation or isolated testing is needed.
+Every request uses `credentials: "include"`. Protected session requests copy the readable `securebank_csrf` cookie into `X-CSRF-Token`. The generic API client retains optional Bearer support for API compatibility, but the React interface has no manual token entry. No JWT, username, password, question, or RAG response is stored in browser storage. An `AbortSignal` and a custom API client backed by an injected `fetch` implementation can be supplied when cancellation or isolated testing is needed.
 
 Failures are represented by a structured `ApiError`. It distinguishes unauthenticated, forbidden, validation, upstream provider, unavailable service, network, cancellation, unexpected response, and other HTTP failures. User-facing messages are stable and do not expose arbitrary server response bodies.
 
@@ -65,15 +65,9 @@ The Assistant page provides an accessible controlled textarea with a 2,000-chara
 
 The Assistant connects to `POST /api/rag/ask` through the existing typed `askRag` service. A valid non-blank question enables submission. Anonymous submission opens an accessible login dialog without clearing the question. Successful login closes the dialog and immediately submits the preserved question through the cookie session. While a request is active, the question remains visible, duplicate submission is disabled, and an accessible loading state is shown. Successful responses, sources, citations, and business abstentions use the existing typed presentation components. HTTP 401 reopens login for an expired session; other structured failures map to localized safe messages.
 
-The dialog moves focus to the username, traps keyboard focus, closes through Cancel or Escape, and restores focus to Send. The header shows a compact connected state and logout action. Successful logout clears Assistant question, response, and development JWT state while leaving public pages accessible.
+The dialog moves focus to the username, traps keyboard focus, closes through Cancel or Escape, and restores focus to Send. The header shows a compact connected state and logout action. Successful logout clears Assistant question and response while leaving public pages accessible.
 
-Active requests use `AbortController`. They are cancelled when the Assistant unmounts, when navigation leaves the page, or when the development token is cleared or replaced. Request sequencing prevents a late or obsolete response from updating the interface.
-
-## Development JWT access
-
-The Vite development interface exposes a clearly identified panel for manually supplying an existing test JWT. The token is masked during entry, removed from the field after activation, and held only in React memory. It is never generated, logged, placed in a URL, or stored in local storage, session storage, a cookie, or an environment file. Reloading the page clears it.
-
-This panel is controlled by `import.meta.env.DEV` and is not the normal authentication path. Production builds hide it and use cookie login exclusively.
+Active requests use `AbortController`. They are cancelled when the Assistant unmounts or when navigation leaves the page. Request sequencing prevents a late or obsolete response from updating the interface.
 
 ## Internationalization
 

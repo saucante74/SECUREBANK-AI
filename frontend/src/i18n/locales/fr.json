@@ -52,18 +52,6 @@
     "errorTitle": "La requête n’a pas abouti",
     "authenticatedReady": "Vous êtes connecté. La question peut être envoyée.",
     "loginRequired": "La page reste accessible. Une connexion sera demandée uniquement lors de l’envoi.",
-    "developmentToken": {
-      "title": "Accès JWT de développement",
-      "warning": "Ce panneau est réservé aux essais locaux avec Vite. Le jeton est conservé uniquement en mémoire et ne constitue pas une authentification de production.",
-      "label": "JWT de test",
-      "placeholder": "Saisissez un JWT de test",
-      "use": "Utiliser",
-      "clear": "Effacer",
-      "active": "Un jeton de développement est actif en mémoire.",
-      "missing": "Aucun jeton de développement actif.",
-      "ready": "Le prochain envoi utilisera le jeton conservé en mémoire.",
-      "required": "Ajoutez un JWT de développement pour activer l’envoi."
-    },
     "productionAuth": {
       "title": "Connexion à la demande",
       "description": "La connexion est demandée uniquement lors de l’envoi d’une question.",

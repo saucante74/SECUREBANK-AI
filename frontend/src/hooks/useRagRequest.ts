@@ -15,8 +15,7 @@ interface RagRequestState {
 }
 
 interface RagRequestController extends RagRequestState {
-  reset: () => void;
-  submit: (question: string, token?: string) => Promise<void>;
+  submit: (question: string) => Promise<void>;
 }
 
 export function useRagRequest(
@@ -26,13 +25,6 @@ export function useRagRequest(
   const abortControllerRef = useRef<AbortController | undefined>(undefined);
   const requestSequenceRef = useRef(0);
 
-  const reset = useCallback(() => {
-    requestSequenceRef.current += 1;
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = undefined;
-    setState({ isLoading: false });
-  }, []);
-
   useEffect(() => {
     return () => {
       requestSequenceRef.current += 1;
@@ -40,7 +32,7 @@ export function useRagRequest(
     };
   }, []);
 
-  const submit = useCallback(async (question: string, token?: string) => {
+  const submit = useCallback(async (question: string) => {
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     const requestSequence = requestSequenceRef.current + 1;
@@ -49,12 +41,7 @@ export function useRagRequest(
     setState({ isLoading: true });
 
     try {
-      const response = await askRag(
-        { question },
-        token,
-        undefined,
-        controller.signal,
-      );
+      const response = await askRag({ question }, undefined, undefined, controller.signal);
       if (requestSequenceRef.current !== requestSequence) {
         return;
       }
@@ -84,5 +71,5 @@ export function useRagRequest(
     }
   }, [onAuthenticationRequired]);
 
-  return { ...state, reset, submit };
+  return { ...state, submit };
 }

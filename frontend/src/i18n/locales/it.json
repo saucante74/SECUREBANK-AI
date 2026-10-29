@@ -52,18 +52,6 @@
     "errorTitle": "La richiesta non è stata completata",
     "authenticatedReady": "Hai effettuato l’accesso. La domanda può essere inviata.",
     "loginRequired": "La pagina rimane accessibile. L’accesso viene richiesto solo al momento dell’invio.",
-    "developmentToken": {
-      "title": "Accesso JWT di sviluppo",
-      "warning": "Questo pannello è riservato ai test locali con Vite. Il token viene conservato solo in memoria e non costituisce una soluzione di autenticazione di produzione.",
-      "label": "JWT di test",
-      "placeholder": "Inserisci un JWT di test",
-      "use": "Usa",
-      "clear": "Cancella",
-      "active": "Un token di sviluppo è attivo in memoria.",
-      "missing": "Nessun token di sviluppo attivo.",
-      "ready": "Il prossimo invio utilizzerà il token conservato in memoria.",
-      "required": "Aggiungi un JWT di sviluppo per abilitare l’invio."
-    },
     "productionAuth": {
       "title": "Accesso su richiesta",
       "description": "L’accesso viene richiesto solo quando viene inviata una domanda.",

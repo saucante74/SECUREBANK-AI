@@ -52,18 +52,6 @@
     "errorTitle": "The request was not completed",
     "authenticatedReady": "You are signed in. The question can be submitted.",
     "loginRequired": "This page remains available. Sign-in is requested only when submitting.",
-    "developmentToken": {
-      "title": "Development JWT access",
-      "warning": "This panel is reserved for local testing with Vite. The token is kept in memory only and is not a production authentication solution.",
-      "label": "Test JWT",
-      "placeholder": "Enter a test JWT",
-      "use": "Use",
-      "clear": "Clear",
-      "active": "A development token is active in memory.",
-      "missing": "No active development token.",
-      "ready": "The next submission will use the token held in memory.",
-      "required": "Add a development JWT to enable submission."
-    },
     "productionAuth": {
       "title": "On-demand sign-in",
       "description": "Sign-in is requested only when a question is submitted.",

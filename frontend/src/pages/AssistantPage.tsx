@@ -6,7 +6,6 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 
-import { DevelopmentTokenPanel } from "../components/DevelopmentTokenPanel";
 import { LoginDialog } from "../components/LoginDialog";
 import { RagResponsePanel } from "../components/RagResponsePanel";
 import type { LoginRequest } from "../api/types";
@@ -17,28 +16,24 @@ const questionLimit = 2_000;
 
 interface AssistantPageProps {
   authStatus?: AuthStatus;
-  isDevelopment?: boolean;
   onLogin?: (credentials: LoginRequest) => Promise<void>;
   onSessionExpired?: () => void;
 }
 
 export function AssistantPage({
   authStatus = "anonymous",
-  isDevelopment = import.meta.env.DEV,
   onLogin,
   onSessionExpired,
 }: AssistantPageProps) {
   const { t } = useTranslation();
-  const developmentMode = import.meta.env.DEV && isDevelopment;
   const [question, setQuestion] = useState("");
-  const [token, setToken] = useState("");
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const sendButtonRef = useRef<HTMLButtonElement>(null);
   const requireAuthentication = useCallback(() => {
     onSessionExpired?.();
     setIsLoginOpen(true);
   }, [onSessionExpired]);
-  const { errorKey, isLoading, reset, response, submit } = useRagRequest(
+  const { errorKey, isLoading, response, submit } = useRagRequest(
     requireAuthentication,
   );
   const isQuestionValid =
@@ -52,11 +47,11 @@ export function AssistantPage({
     if (!canSubmit) {
       return;
     }
-    if (authStatus !== "authenticated" && !token) {
+    if (authStatus !== "authenticated") {
       setIsLoginOpen(true);
       return;
     }
-    void submit(question, token || undefined);
+    void submit(question);
   };
 
   const login = async (credentials: LoginRequest) => {
@@ -69,16 +64,6 @@ export function AssistantPage({
   const finishLogin = () => {
     setIsLoginOpen(false);
     void submit(question);
-  };
-
-  const useToken = (nextToken: string) => {
-    reset();
-    setToken(nextToken);
-  };
-
-  const clearToken = () => {
-    reset();
-    setToken("");
   };
 
   return (
@@ -97,14 +82,6 @@ export function AssistantPage({
           {t("assistant.description")}
         </p>
       </section>
-
-      {developmentMode && (
-        <DevelopmentTokenPanel
-          hasToken={Boolean(token)}
-          onClearToken={clearToken}
-          onUseToken={useToken}
-        />
-      )}
 
       <div aria-busy={isLoading}>
         {isLoading ? (
@@ -140,46 +117,46 @@ export function AssistantPage({
       >
         <form onSubmit={submitQuestion}>
           <div className="p-6 sm:p-8">
-          <h2 id="question-form-title" className="text-xl font-bold text-ink sm:text-2xl">
-            {t("assistant.questionSection")}
-          </h2>
-          <label
-            className="mt-6 block text-sm font-semibold text-brand-navy"
-            htmlFor="rag-question"
-          >
-            {t("assistant.questionLabel")}
-          </label>
-          <textarea
-            id="rag-question"
-            className="mt-2 min-h-40 w-full resize-y rounded-2xl border border-border bg-[#fbfbfc] px-5 py-4 text-base leading-7 text-ink shadow-inner placeholder:text-muted/70 sm:min-h-44"
-            value={question}
-            maxLength={questionLimit}
-            placeholder={t("assistant.placeholder")}
-            aria-describedby="question-counter assistant-availability"
-            onChange={(event) => {
-              setQuestion(event.target.value);
-            }}
-          />
-          <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p
-              id="question-counter"
-              className="text-sm text-muted"
-              aria-live="polite"
+            <h2 id="question-form-title" className="text-xl font-bold text-ink sm:text-2xl">
+              {t("assistant.questionSection")}
+            </h2>
+            <label
+              className="mt-6 block text-sm font-semibold text-brand-navy"
+              htmlFor="rag-question"
             >
-              {t("assistant.characterCount", {
-                current: question.length,
-                maximum: questionLimit,
-              })}
-            </p>
-            <button
-              ref={sendButtonRef}
-              type="submit"
-              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-brand-navy px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-active disabled:cursor-not-allowed disabled:bg-[#d5dae0] disabled:text-[#9ba6b2]"
-              disabled={!canSubmit}
-            >
-              {t("assistant.send")}
-            </button>
-          </div>
+              {t("assistant.questionLabel")}
+            </label>
+            <textarea
+              id="rag-question"
+              className="mt-2 min-h-40 w-full resize-y rounded-2xl border border-border bg-[#fbfbfc] px-5 py-4 text-base leading-7 text-ink shadow-inner placeholder:text-muted/70 sm:min-h-44"
+              value={question}
+              maxLength={questionLimit}
+              placeholder={t("assistant.placeholder")}
+              aria-describedby="question-counter assistant-availability"
+              onChange={(event) => {
+                setQuestion(event.target.value);
+              }}
+            />
+            <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <p
+                id="question-counter"
+                className="text-sm text-muted"
+                aria-live="polite"
+              >
+                {t("assistant.characterCount", {
+                  current: question.length,
+                  maximum: questionLimit,
+                })}
+              </p>
+              <button
+                ref={sendButtonRef}
+                type="submit"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-brand-navy px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-active disabled:cursor-not-allowed disabled:bg-[#d5dae0] disabled:text-[#9ba6b2]"
+                disabled={!canSubmit}
+              >
+                {t("assistant.send")}
+              </button>
+            </div>
           </div>
           <p
             id="assistant-availability"
@@ -190,13 +167,7 @@ export function AssistantPage({
               <path strokeLinecap="round" d="M12 11v6m0-10h.01" />
             </svg>
             <span>
-            {developmentMode
-              ? token
-                ? t("assistant.developmentToken.ready")
-                : authStatus === "authenticated"
-                  ? t("assistant.authenticatedReady")
-                  : t("assistant.loginRequired")
-              : authStatus === "authenticated"
+              {authStatus === "authenticated"
                 ? t("assistant.authenticatedReady")
                 : t("assistant.loginRequired")}
             </span>
