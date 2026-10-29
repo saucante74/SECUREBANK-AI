@@ -34,10 +34,44 @@
     "evidenceEyebrow": "Information quality",
     "evidenceTitle": "Sourced answers",
     "evidenceDescription": "The planned experience will highlight documentary evidence associated with answers, without presenting fictional results or an active connection today.",
-    "nextEyebrow": "Next steps",
-    "nextTitle": "Upcoming features",
-    "backendConnection": "Backend connection",
-    "documentNavigation": "Document navigation"
+    "usage": {
+      "title": "How to use SecureBank-AI",
+      "question": { "title": "Ask your question", "description": "Enter a banking question or choose a suggested question." },
+      "login": { "title": "Sign in", "description": "Identify yourself in the sign-in window when you are ready to submit your question." },
+      "answer": { "title": "Review the answer", "description": "The assistant searches the available documents and presents an answer with references when they are available." }
+    }
+  },
+  "about": {
+    "eyebrow": "Service overview",
+    "title": "About SecureBank-AI",
+    "introduction": {
+      "first": "SecureBank-AI is a documentary assistant designed to make it easier to find information in a collection of banking documents.",
+      "second": "You can ask a question in natural language. The assistant searches the available documents for relevant passages and uses that information to prepare a clear answer.",
+      "third": "When references are available, they are displayed with the answer so that you can find the documents that were used.",
+      "disclaimer": "SecureBank-AI is an information research aid. It does not replace a banking adviser and cannot perform any operation on your accounts."
+    },
+    "operation": {
+      "title": "How does the service work?",
+      "question": "The user asks a question.",
+      "search": "The system searches for relevant documents.",
+      "answer": "The assistant prepares an answer from the information it finds.",
+      "sources": "Available sources and citations are displayed."
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "items": {
+        "1": { "question": "What is SecureBank-AI for?", "answer": "SecureBank-AI helps users find and understand information in the banking documents made available to the assistant." },
+        "2": { "question": "Do I need to sign in to use the service?", "answer": "You can browse public pages without signing in. You need to sign in to submit a question to the assistant." },
+        "3": { "question": "How do I ask a question?", "answer": "Open the Assistant page, enter your question or select a suggested question, then select Send." },
+        "4": { "question": "Where do the answers come from?", "answer": "The assistant searches its document collection. When it finds relevant passages, it uses them to prepare its answer and displays the available references." },
+        "5": { "question": "Are the answers always accurate?", "answer": "No. Like any artificial intelligence system, SecureBank-AI can make mistakes or misinterpret information. Check the displayed references before using an answer to make an important decision." },
+        "6": { "question": "What happens if no relevant information is found?", "answer": "The assistant may indicate that it does not have enough information to answer. It must not invent an answer when no reliable source is available." },
+        "7": { "question": "Can I make a transfer or check my balance?", "answer": "No. SecureBank-AI is a documentary assistant. It cannot perform banking operations or access your accounts directly." },
+        "8": { "question": "Is my personal information protected?", "answer": "SecureBank-AI includes mechanisms intended to limit the exposure of certain personal data, including masking during question processing. These protections do not guarantee that there is no risk. Avoid entering passwords, full account numbers, or other sensitive information." },
+        "9": { "question": "Why do some answers display sources?", "answer": "Sources help you find the documents used to prepare the answer and verify the information presented." },
+        "10": { "question": "Which languages is the interface available in?", "answer": "The interface is available in French, English, and Italian." }
+      }
+    }
   },
   "assistant": {
     "eyebrow": "Document search",

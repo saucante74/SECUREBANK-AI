@@ -77,12 +77,18 @@ export function Header({
             </p>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2">
+          {authStatus === "authenticated" && user && (
+            <span className="hidden rounded-full border border-accent/25 bg-accent-soft px-3 py-1.5 text-xs font-semibold text-accent-strong md:inline-flex">
+              {t("auth.connected", { role: user.role })}
+            </span>
+          )}
+          <LanguageSwitcher />
           {authStatus === "anonymous" && (
             <button
               ref={loginButtonRef}
               type="button"
-              className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-white text-brand-navy shadow-soft transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-accent-strong"
+              className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-white text-brand-navy transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-accent-strong"
               aria-label={t("auth.login.submit")}
               onClick={() => {
                 setIsLoginOpen(true);
@@ -104,14 +110,10 @@ export function Header({
             </button>
           )}
           {authStatus === "authenticated" && user && (
-            <div className="flex items-center gap-2">
-              <span className="hidden rounded-full border border-accent/25 bg-accent-soft px-3 py-1.5 text-xs font-semibold text-accent-strong md:inline-flex">
-                {t("auth.connected", { role: user.role })}
-              </span>
-              <button
+            <button
                 ref={logoutButtonRef}
                 type="button"
-                className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-white text-brand-navy shadow-soft transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-accent-strong"
+                className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-white text-brand-navy transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-accent-strong"
                 aria-label={t("auth.logout")}
                 onClick={() => {
                   setIsLogoutOpen(true);
@@ -130,10 +132,8 @@ export function Header({
                   <path d="M10 17l5-5-5-5M15 12H3" />
                   <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
                 </svg>
-              </button>
-            </div>
+            </button>
           )}
-          <LanguageSwitcher />
         </div>
       </div>
       {logoutErrorKey && (

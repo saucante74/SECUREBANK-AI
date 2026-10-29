@@ -14,7 +14,7 @@ export function LanguageSwitcher() {
 
   return (
     <div
-      className="flex rounded-full border border-border bg-surface p-0.5 shadow-inner"
+      className="flex h-8 items-center rounded-lg border border-border bg-surface p-0.5"
       role="group"
       aria-label={t("app.languageLabel")}
     >
@@ -22,9 +22,9 @@ export function LanguageSwitcher() {
         <button
           key={language}
           type="button"
-          className={`min-h-8 min-w-9 rounded-full px-2 text-[0.6875rem] font-semibold uppercase transition-colors sm:min-w-10 ${
+          className={`h-[1.625rem] min-w-7 rounded-md px-1.5 text-[0.625rem] font-semibold uppercase tracking-wide transition-colors sm:min-w-8 ${
             language === activeLanguage
-              ? "bg-ink text-white shadow-soft"
+              ? "bg-accent text-brand-navy shadow-sm"
               : "text-muted hover:bg-white hover:text-ink"
           }`}
           aria-pressed={language === activeLanguage}

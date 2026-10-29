@@ -59,7 +59,7 @@ The application provides two directly accessible pages:
 - `/` for the presentation dashboard;
 - `/assistant` for the documentary Assistant interface.
 
-Navigation uses native browser history and supports direct access, reload, and previous or next navigation without an external routing dependency. The responsive sidebar identifies the active page and keeps the About entry non-interactive as a planned capability.
+Navigation uses native browser history and supports direct access, reload, and previous or next navigation without an external routing dependency. The responsive sidebar identifies the active page across `/`, `/assistant`, and the public `/about` service overview and accessible FAQ.
 
 The Assistant page provides an accessible controlled textarea with a 2,000-character limit, a character counter, three localized suggested-question buttons, an empty conversation area, and reusable presentation components for typed RAG answers, sources, citations, and abstentions. Selecting a suggestion only fills the textarea and never submits automatically. Long source excerpts are visually limited while their text remains in the document, and citations link only to sources whose document and chunk identifiers match.
 
@@ -112,4 +112,4 @@ docker compose down
 
 ## Current limitations
 
-The frontend contains a responsive public dashboard, native browser navigation, a French/English/Italian interface, on-demand cookie authentication, reusable RAG response presentation components, and a typed API client. The Compose stack persists backend users and sessions in the `securebank_users` named volume. RAG remains dependent on its separately configured backend corpus, Qdrant, local model, and LLM provider. The frontend must be used only with synthetic data and is not a production banking interface.
+The frontend contains a responsive public dashboard with a three-step usage guide, a public About page with an accessible FAQ, native browser navigation, a French/English/Italian interface, on-demand cookie authentication, reusable RAG response presentation components, and a typed API client. The Compose stack persists backend users and sessions in the `securebank_users` named volume. RAG remains dependent on its separately configured backend corpus, Qdrant, local model, and LLM provider. The frontend must be used only with synthetic data and is not a production banking interface.

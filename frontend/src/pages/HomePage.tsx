@@ -2,6 +2,37 @@ import { useTranslation } from "react-i18next";
 
 import { InfoCard } from "../components/InfoCard";
 
+const usageSteps = ["question", "login", "answer"] as const;
+
+function UsageStepIcon({ step }: { step: (typeof usageSteps)[number] }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {step === "question" ? (
+        <path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4V7a2 2 0 0 1 2-2Z" />
+      ) : step === "login" ? (
+        <>
+          <rect x="5" y="10" width="14" height="10" rx="2" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+        </>
+      ) : (
+        <>
+          <path d="M6 3h9l4 4v14H6z" />
+          <path d="M15 3v5h5M9 13h6M9 17h6" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 export function HomePage() {
   const { t } = useTranslation();
 
@@ -56,27 +87,32 @@ export function HomePage() {
         />
       </section>
 
-      <section className="rounded-2xl border border-border bg-white p-5 shadow-soft sm:p-6" aria-labelledby="future-title">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-              {t("home.nextEyebrow")}
-            </p>
-            <h2 id="future-title" className="mt-2 text-xl font-semibold text-brand-navy">
-              {t("home.nextTitle")}
-            </h2>
-          </div>
-          <div
-            className="flex flex-wrap gap-2"
-            aria-label={t("accessibility.plannedFeatures")}
-          >
-            <span className="rounded-full border border-border bg-white px-3 py-1.5 text-sm font-medium text-muted">
-              {t("home.backendConnection")}
-            </span>
-            <span className="rounded-full border border-border bg-white px-3 py-1.5 text-sm font-medium text-muted">
-              {t("home.documentNavigation")}
-            </span>
-          </div>
+      <section aria-labelledby="usage-title">
+        <h2 id="usage-title" className="text-xl font-bold text-brand-navy">
+          {t("home.usage.title")}
+        </h2>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {usageSteps.map((step, index) => (
+            <article
+              key={step}
+              className="rounded-xl border border-border bg-white p-4 shadow-soft"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
+                  <UsageStepIcon step={step} />
+                </span>
+                <span className="text-xs font-bold text-accent-strong">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+              </div>
+              <h3 className="mt-3 font-display text-base font-bold text-ink">
+                {t(`home.usage.${step}.title`)}
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                {t(`home.usage.${step}.description`)}
+              </p>
+            </article>
+          ))}
         </div>
       </section>
     </div>

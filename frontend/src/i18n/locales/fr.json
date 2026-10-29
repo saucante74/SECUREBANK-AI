@@ -34,10 +34,44 @@
     "evidenceEyebrow": "Qualité de l’information",
     "evidenceTitle": "Réponses sourcées",
     "evidenceDescription": "L’expérience prévue mettra en avant les éléments documentaires associés aux réponses, sans présenter aujourd’hui de résultat fictif ni de connexion active.",
-    "nextEyebrow": "Prochaines étapes",
-    "nextTitle": "Fonctionnalités à venir",
-    "backendConnection": "Connexion backend",
-    "documentNavigation": "Navigation documentaire"
+    "usage": {
+      "title": "Comment utiliser SecureBank-AI ?",
+      "question": { "title": "Posez votre question", "description": "Saisissez une question bancaire ou choisissez une question suggérée." },
+      "login": { "title": "Connectez-vous", "description": "Identifiez-vous dans la fenêtre de connexion lorsque vous souhaitez envoyer votre question." },
+      "answer": { "title": "Consultez la réponse", "description": "L’assistant recherche des informations dans les documents disponibles et présente une réponse accompagnée de références lorsqu’elles sont disponibles." }
+    }
+  },
+  "about": {
+    "eyebrow": "Présentation du service",
+    "title": "À propos de SecureBank-AI",
+    "introduction": {
+      "first": "SecureBank-AI est un assistant documentaire conçu pour faciliter la recherche d’informations dans une base de documents bancaires.",
+      "second": "Vous pouvez lui poser une question en langage naturel. L’assistant recherche les passages pertinents dans les documents disponibles, puis utilise ces informations pour formuler une réponse claire.",
+      "third": "Lorsque des références sont disponibles, elles sont affichées avec la réponse pour vous permettre de retrouver les documents utilisés.",
+      "disclaimer": "SecureBank-AI est un outil d’aide à la recherche d’informations. Il ne remplace pas un conseiller bancaire et ne réalise aucune opération sur vos comptes."
+    },
+    "operation": {
+      "title": "Comment fonctionne le service ?",
+      "question": "L’utilisateur pose une question.",
+      "search": "Le système recherche les documents pertinents.",
+      "answer": "L’assistant prépare une réponse à partir des informations retrouvées.",
+      "sources": "Les sources et citations disponibles sont affichées."
+    },
+    "faq": {
+      "title": "Questions fréquentes",
+      "items": {
+        "1": { "question": "À quoi sert SecureBank-AI ?", "answer": "SecureBank-AI aide à retrouver et comprendre des informations présentes dans les documents bancaires mis à disposition de l’assistant." },
+        "2": { "question": "Dois-je me connecter pour utiliser le service ?", "answer": "Vous pouvez consulter les pages publiques sans connexion. Une connexion est nécessaire pour envoyer une question à l’assistant." },
+        "3": { "question": "Comment poser une question ?", "answer": "Ouvrez la page Assistant, saisissez votre question ou sélectionnez une question suggérée, puis cliquez sur Envoyer." },
+        "4": { "question": "D’où viennent les réponses ?", "answer": "L’assistant recherche des informations dans sa base documentaire. Lorsqu’il trouve des passages pertinents, il les utilise pour préparer sa réponse et affiche les références disponibles." },
+        "5": { "question": "Les réponses sont-elles toujours exactes ?", "answer": "Non. Comme tout système d’intelligence artificielle, SecureBank-AI peut commettre des erreurs ou mal interpréter une information. Vérifiez les références affichées avant d’utiliser une réponse pour prendre une décision importante." },
+        "6": { "question": "Que se passe-t-il si aucune information pertinente n’est trouvée ?", "answer": "L’assistant peut indiquer qu’il ne dispose pas de suffisamment d’informations pour répondre. Il ne doit pas inventer une réponse lorsqu’aucune source fiable n’est disponible." },
+        "7": { "question": "Puis-je effectuer un virement ou consulter mon solde ?", "answer": "Non. SecureBank-AI est un assistant documentaire. Il ne permet pas d’effectuer des opérations bancaires ni d’accéder directement à vos comptes." },
+        "8": { "question": "Mes informations personnelles sont-elles protégées ?", "answer": "SecureBank-AI dispose de mécanismes destinés à limiter l’exposition de certaines données personnelles, notamment leur masquage dans le traitement des questions. Ces protections ne garantissent toutefois pas l’absence totale de risque. Évitez de saisir des mots de passe, numéros de compte complets ou autres informations sensibles." },
+        "9": { "question": "Pourquoi certaines réponses affichent-elles des sources ?", "answer": "Les sources permettent de retrouver les documents utilisés pour préparer la réponse et de vérifier les informations présentées." },
+        "10": { "question": "Dans quelles langues l’interface est-elle disponible ?", "answer": "L’interface est disponible en français, anglais et italien." }
+      }
+    }
   },
   "assistant": {
     "eyebrow": "Recherche documentaire",

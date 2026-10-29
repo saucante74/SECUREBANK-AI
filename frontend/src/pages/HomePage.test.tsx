@@ -20,11 +20,14 @@ describe("HomePage", () => {
       screen.getByRole("heading", { name: "Réponses sourcées" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Fonctionnalités à venir" }),
+      screen.getByRole("heading", { name: "Comment utiliser SecureBank-AI ?" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Posez votre question" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Connectez-vous" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Consultez la réponse" })).toBeInTheDocument();
   });
 
-  it("identifies the current navigation entry and future about entry", () => {
+  it("identifies the current navigation entry and public about link", () => {
     render(<App />);
 
     const navigation = screen.getByRole("navigation", {
@@ -34,15 +37,11 @@ describe("HomePage", () => {
     const assistantLink = within(navigation).getByRole("link", {
       name: "Assistant",
     });
-    const aboutEntry = within(navigation).getByText("À propos").closest("li");
+    const aboutLink = within(navigation).getByRole("link", { name: "À propos" });
 
     expect(homeLink).toHaveAttribute("aria-current", "page");
     expect(assistantLink).not.toHaveAttribute("aria-current");
-    expect(aboutEntry).not.toBeNull();
-    expect(within(aboutEntry as HTMLElement).getByText("À venir")).toBeInTheDocument();
-    expect(
-      within(navigation).queryByRole("link", { name: "À propos" }),
-    ).not.toBeInTheDocument();
+    expect(aboutLink).toHaveAttribute("href", "/about");
   });
 
   it("opens and closes the mobile menu", () => {

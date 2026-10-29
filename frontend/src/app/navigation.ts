@@ -1,9 +1,13 @@
-export type PageId = "home" | "assistant";
+export type PageId = "home" | "assistant" | "about";
 
 export function pageFromPath(pathname: string): PageId {
-  return pathname === "/assistant" ? "assistant" : "home";
+  if (pathname === "/assistant") return "assistant";
+  if (pathname === "/about") return "about";
+  return "home";
 }
 
 export function pathForPage(page: PageId): string {
-  return page === "assistant" ? "/assistant" : "/";
+  if (page === "assistant") return "/assistant";
+  if (page === "about") return "/about";
+  return "/";
 }

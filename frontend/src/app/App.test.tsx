@@ -118,13 +118,32 @@ describe("App navigation", () => {
     ).not.toHaveAttribute("aria-current");
   });
 
-  it("keeps About non-interactive", () => {
+  it("navigates to the public About page", () => {
     render(<App />);
 
+    fireEvent.click(within(navigation()).getByRole("link", { name: "À propos" }));
+
     expect(
-      within(navigation()).queryByRole("link", { name: "À propos" }),
-    ).not.toBeInTheDocument();
-    expect(within(navigation()).getByText("À venir")).toBeInTheDocument();
+      screen.getByRole("heading", { name: "À propos de SecureBank-AI" }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/about");
+    expect(
+      within(navigation()).getByRole("link", { name: "À propos" }),
+    ).toHaveAttribute("aria-current", "page");
+  });
+
+  it("places the compact language control immediately before sign-in", async () => {
+    render(<App />);
+
+    const languageControl = screen.getByRole("group", {
+      name: "Langue de l’interface",
+    });
+    const loginButton = await screen.findByRole("button", {
+      name: "Se connecter",
+    });
+
+    expect(languageControl.nextElementSibling).toBe(loginButton);
+    expect(within(languageControl).getAllByRole("button")).toHaveLength(3);
   });
 
   it("closes the mobile menu after navigation", () => {

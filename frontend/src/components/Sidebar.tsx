@@ -14,6 +14,7 @@ interface SidebarProps {
 const navigationItems: { labelKey: string; page: PageId }[] = [
   { labelKey: "navigation.home", page: "home" },
   { labelKey: "navigation.assistant", page: "assistant" },
+  { labelKey: "navigation.about", page: "about" },
 ];
 
 function NavigationIcon({ page }: { page: PageId }) {
@@ -33,8 +34,13 @@ function NavigationIcon({ page }: { page: PageId }) {
           <path d="m3 11 9-8 9 8" />
           <path d="M5 10v10h5v-6h4v6h5V10" />
         </>
-      ) : (
+      ) : page === "assistant" ? (
         <path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4V7a2 2 0 0 1 2-2Z" />
+      ) : (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v6m0-10h.01" />
+        </>
       )}
     </svg>
   );
@@ -155,20 +161,6 @@ export function Sidebar({
               </li>
             );
           })}
-          <li>
-            <div className="flex min-h-12 cursor-not-allowed items-center justify-between rounded-xl px-4 text-sm font-medium text-white/55">
-              <span className="flex items-center gap-4">
-                <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <circle cx="12" cy="12" r="9" />
-                  <path strokeLinecap="round" d="M12 11v6m0-10h.01" />
-                </svg>
-                <span>{t("navigation.about")}</span>
-              </span>
-              <span className="rounded-full bg-white/8 px-3 py-1 text-[0.625rem] font-semibold uppercase tracking-wider text-white/45">
-                {t("navigation.comingSoon")}
-              </span>
-            </div>
-          </li>
         </ul>
       </nav>
 
