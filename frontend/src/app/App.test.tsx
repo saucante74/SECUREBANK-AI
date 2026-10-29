@@ -143,7 +143,7 @@ describe("App navigation", () => {
     });
 
     expect(languageControl.nextElementSibling).toBe(loginButton);
-    expect(within(languageControl).getAllByRole("button")).toHaveLength(3);
+    expect(within(languageControl).getAllByRole("button")).toHaveLength(4);
   });
 
   it("closes the mobile menu after navigation", () => {

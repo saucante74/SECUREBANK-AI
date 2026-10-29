@@ -71,7 +71,7 @@ Active requests use `AbortController`. They are cancelled when the Assistant unm
 
 ## Internationalization
 
-The complete interface is available in French, English, and Italian through local `i18next` catalogs. French is the default and fallback language. The language selector in the header changes the interface without reloading the page, changing its URL, resetting navigation, or clearing the current Assistant question.
+The complete interface is available in French, English, Italian, and German through local `i18next` catalogs. French is the default and fallback language. The language selector in the header changes the interface without reloading the page, changing its URL, resetting navigation, or clearing the current Assistant question.
 
 Only the validated language code is stored under `securebank.language` in `localStorage`. Missing, invalid, or unavailable storage safely falls back to French. The root HTML `lang` attribute follows every language change.
 
@@ -112,4 +112,4 @@ docker compose down
 
 ## Current limitations
 
-The frontend contains a responsive public dashboard with a three-step usage guide, a public About page with an accessible FAQ, native browser navigation, a French/English/Italian interface, on-demand cookie authentication, reusable RAG response presentation components, and a typed API client. The Compose stack persists backend users and sessions in the `securebank_users` named volume. RAG remains dependent on its separately configured backend corpus, Qdrant, local model, and LLM provider. The frontend must be used only with synthetic data and is not a production banking interface.
+The frontend contains a responsive public dashboard with a three-step usage guide, a public About page with an accessible FAQ, native browser navigation, a French/English/Italian/German interface, on-demand cookie authentication, reusable RAG response presentation components, and a typed API client. The Compose stack persists backend users and sessions in the `securebank_users` named volume. RAG remains dependent on its separately configured backend corpus, Qdrant, local model, and LLM provider. The frontend must be used only with synthetic data and is not a production banking interface.

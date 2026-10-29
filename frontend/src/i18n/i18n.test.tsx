@@ -10,6 +10,7 @@ import i18n, {
   readLanguagePreference,
 } from ".";
 import { apiErrorTranslationKey } from "./apiErrorKeys";
+import germanCatalog from "./locales/de.json";
 import en from "./locales/en.json";
 import fr from "./locales/fr.json";
 import italianCatalog from "./locales/it.json";
@@ -46,7 +47,9 @@ function flattenKeys(value: object, prefix = ""): string[] {
   });
 }
 
-function languageButton(name: "English" | "Français" | "Italiano"): HTMLButtonElement {
+function languageButton(
+  name: "Deutsch" | "English" | "Français" | "Italiano",
+): HTMLButtonElement {
   return screen.getByRole("button", { name });
 }
 
@@ -93,6 +96,28 @@ describe("internationalization", () => {
     expect(document.documentElement.lang).toBe("it");
   });
 
+  it("displays four radio segments and selects German immediately", () => {
+    render(<App />);
+    const selector = screen.getByRole("group", {
+      name: "Langue de l’interface",
+    });
+
+    expect(within(selector).getAllByRole("button")).toHaveLength(4);
+    fireEvent.click(languageButton("Deutsch"));
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Intelligenter und sicherer Bankassistent",
+      }),
+    ).toBeInTheDocument();
+    expect(document.documentElement.lang).toBe("de");
+    expect(window.localStorage.getItem(languageStorageKey)).toBe("de");
+    expect(languageButton("Deutsch")).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "Französisch" }),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("preserves the current page and user input", () => {
     window.history.replaceState({}, "", "/assistant");
     render(<App />);
@@ -121,7 +146,7 @@ describe("internationalization", () => {
 
   it("falls back to French for an invalid preference", () => {
     const storage = {
-      getItem: vi.fn(() => "de"),
+      getItem: vi.fn(() => "es"),
       setItem: vi.fn(),
     };
 
@@ -211,5 +236,6 @@ describe("internationalization", () => {
 
     expect(flattenKeys(en).sort()).toEqual(frenchKeys);
     expect(flattenKeys(italianCatalog).sort()).toEqual(frenchKeys);
+    expect(flattenKeys(germanCatalog).sort()).toEqual(frenchKeys);
   });
 });

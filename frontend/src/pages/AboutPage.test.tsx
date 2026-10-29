@@ -52,6 +52,7 @@ describe("AboutPage", () => {
     ["fr", "À propos de SecureBank-AI", "Questions fréquentes", "À quoi sert SecureBank-AI ?"],
     ["en", "About SecureBank-AI", "Frequently asked questions", "What is SecureBank-AI for?"],
     ["it", "Informazioni su SecureBank-AI", "Domande frequenti", "A cosa serve SecureBank-AI?"],
+    ["de", "Über SecureBank-AI", "Häufig gestellte Fragen", "Wozu dient SecureBank-AI?"],
   ] as const)("translates the public page in %s", async (language, title, faqTitle, firstQuestion) => {
     await changeLanguage(language);
     render(<App />);

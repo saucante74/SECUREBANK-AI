@@ -11,7 +11,8 @@
     "languages": {
       "fr": "Français",
       "en": "English",
-      "it": "Italiano"
+      "it": "Italiano",
+      "de": "Deutsch"
     }
   },
   "navigation": {
@@ -69,7 +70,7 @@
         "7": { "question": "Puis-je effectuer un virement ou consulter mon solde ?", "answer": "Non. SecureBank-AI est un assistant documentaire. Il ne permet pas d’effectuer des opérations bancaires ni d’accéder directement à vos comptes." },
         "8": { "question": "Mes informations personnelles sont-elles protégées ?", "answer": "SecureBank-AI dispose de mécanismes destinés à limiter l’exposition de certaines données personnelles, notamment leur masquage dans le traitement des questions. Ces protections ne garantissent toutefois pas l’absence totale de risque. Évitez de saisir des mots de passe, numéros de compte complets ou autres informations sensibles." },
         "9": { "question": "Pourquoi certaines réponses affichent-elles des sources ?", "answer": "Les sources permettent de retrouver les documents utilisés pour préparer la réponse et de vérifier les informations présentées." },
-        "10": { "question": "Dans quelles langues l’interface est-elle disponible ?", "answer": "L’interface est disponible en français, anglais et italien." }
+        "10": { "question": "Dans quelles langues l’interface est-elle disponible ?", "answer": "L’interface est disponible en français, anglais, italien et allemand." }
       }
     }
   },

@@ -11,7 +11,8 @@
     "languages": {
       "fr": "Français",
       "en": "English",
-      "it": "Italiano"
+      "it": "Italiano",
+      "de": "Deutsch"
     }
   },
   "navigation": {
@@ -69,7 +70,7 @@
         "7": { "question": "Posso effettuare un bonifico o consultare il saldo?", "answer": "No. SecureBank-AI è un assistente documentale. Non consente di effettuare operazioni bancarie né di accedere direttamente ai tuoi conti." },
         "8": { "question": "Le mie informazioni personali sono protette?", "answer": "SecureBank-AI dispone di meccanismi destinati a limitare l’esposizione di alcuni dati personali, compreso il loro mascheramento durante il trattamento delle domande. Queste protezioni non garantiscono tuttavia l’assenza totale di rischi. Evita di inserire password, numeri di conto completi o altre informazioni sensibili." },
         "9": { "question": "Perché alcune risposte mostrano delle fonti?", "answer": "Le fonti consentono di ritrovare i documenti utilizzati per preparare la risposta e di verificare le informazioni presentate." },
-        "10": { "question": "In quali lingue è disponibile l’interfaccia?", "answer": "L’interfaccia è disponibile in francese, inglese e italiano." }
+        "10": { "question": "In quali lingue è disponibile l’interfaccia?", "answer": "L’interfaccia è disponibile in francese, inglese, italiano e tedesco." }
       }
     }
   },

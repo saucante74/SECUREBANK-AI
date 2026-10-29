@@ -11,7 +11,8 @@
     "languages": {
       "fr": "Français",
       "en": "English",
-      "it": "Italiano"
+      "it": "Italiano",
+      "de": "Deutsch"
     }
   },
   "navigation": {
@@ -69,7 +70,7 @@
         "7": { "question": "Can I make a transfer or check my balance?", "answer": "No. SecureBank-AI is a documentary assistant. It cannot perform banking operations or access your accounts directly." },
         "8": { "question": "Is my personal information protected?", "answer": "SecureBank-AI includes mechanisms intended to limit the exposure of certain personal data, including masking during question processing. These protections do not guarantee that there is no risk. Avoid entering passwords, full account numbers, or other sensitive information." },
         "9": { "question": "Why do some answers display sources?", "answer": "Sources help you find the documents used to prepare the answer and verify the information presented." },
-        "10": { "question": "Which languages is the interface available in?", "answer": "The interface is available in French, English, and Italian." }
+        "10": { "question": "Which languages is the interface available in?", "answer": "The interface is available in French, English, Italian, and German." }
       }
     }
   },

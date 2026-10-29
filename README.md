@@ -526,7 +526,7 @@ npm install
 npm run dev
 ```
 
-The current frontend displays a responsive public dashboard, a public `/about` service overview with an accessible FAQ, and a documentary Assistant in French, English, and Italian. Native browser navigation connects `/`, `/assistant`, and `/about` without requiring authentication. Submitting an anonymous question opens an accessible login dialog; successful cookie login preserves and immediately sends the question. The header exposes a compact language selector followed by accessible icon actions for sign-in and confirmed sign-out. Session expiry reopens login, while successful logout clears in-memory Assistant content. The typed client sends cookies, copies the CSRF cookie into protected POST headers, and retains optional Bearer support for API compatibility without exposing manual token entry in React. JWTs, credentials, questions, and RAG content are not persisted in browser storage. See [Frontend README](frontend/README.md) for focused instructions and limitations.
+The current frontend displays a responsive public dashboard, a public `/about` service overview with an accessible FAQ, and a documentary Assistant in French, English, Italian, and German. Native browser navigation connects `/`, `/assistant`, and `/about` without requiring authentication. Submitting an anonymous question opens an accessible login dialog; successful cookie login preserves and immediately sends the question. The header exposes a compact language selector followed by accessible icon actions for sign-in and confirmed sign-out. Session expiry reopens login, while successful logout clears in-memory Assistant content. The typed client sends cookies, copies the CSRF cookie into protected POST headers, and retains optional Bearer support for API compatibility without exposing manual token entry in React. JWTs, credentials, questions, and RAG content are not persisted in browser storage. See [Frontend README](frontend/README.md) for focused instructions and limitations.
 
 For the Dockerized local stack, build and start the frontend with its backend dependency:
 
@@ -1000,7 +1000,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Centralized typed native-fetch API client for health, current-user, and RAG requests with injectable transport, cancellation, Bearer headers, and structured safe errors.
 - Native browser navigation between the dashboard and a directly accessible documentary Assistant page.
 - Accessible disabled Assistant form and reusable typed presentation components for RAG answers, sources, citations, and abstentions, without backend calls or simulated production responses.
-- Local French, English, and Italian interface catalogs with a persistent validated language preference and synchronized HTML language metadata.
+- Local French, English, Italian, and German interface catalogs with a persistent validated language preference and synchronized HTML language metadata.
 - Development-only in-memory JWT panel connecting the Assistant to the typed RAG API service with loading, localized errors, cancellation, and stale-response protection.
 - On-demand accessible login dialog with keyboard focus management and preserved question submission.
 - Cookie session restoration, CSRF-protected RAG and logout requests, expiration handling, connected state, and logout cleanup.
