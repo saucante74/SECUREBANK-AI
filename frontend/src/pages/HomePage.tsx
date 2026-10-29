@@ -8,12 +8,12 @@ export function HomePage() {
   return (
     <div className="space-y-8 sm:space-y-10">
       <section aria-labelledby="welcome-title">
-        <p className="text-sm font-semibold text-accent-strong">
+        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-accent-strong">
           {t("home.eyebrow")}
         </p>
         <h1
           id="welcome-title"
-          className="mt-3 max-w-4xl text-balance text-3xl font-semibold leading-tight tracking-tight text-brand-navy sm:text-4xl lg:text-5xl"
+          className="mt-4 max-w-4xl text-balance text-4xl font-extrabold leading-tight tracking-tight text-ink sm:text-5xl"
         >
           {t("home.title")}
         </h1>
@@ -31,7 +31,7 @@ export function HomePage() {
           <span className="inline-flex rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
             {t("home.assistantStatus")}
           </span>
-          <h2 id="assistant-title" className="mt-5 text-2xl font-semibold sm:text-3xl">
+          <h2 id="assistant-title" className="mt-5 text-2xl font-bold sm:text-3xl">
             {t("home.assistantTitle")}
           </h2>
           <p className="mt-4 max-w-2xl leading-7 text-white/70">
@@ -56,7 +56,7 @@ export function HomePage() {
         />
       </section>
 
-      <section className="rounded-2xl border border-dashed border-border bg-white/55 p-6 sm:p-8" aria-labelledby="future-title">
+      <section className="rounded-3xl border border-border bg-white p-6 shadow-soft sm:p-8" aria-labelledby="future-title">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">

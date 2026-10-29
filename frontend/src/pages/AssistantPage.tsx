@@ -84,16 +84,16 @@ export function AssistantPage({
   return (
     <div className="space-y-8 sm:space-y-10">
       <section aria-labelledby="assistant-page-title">
-        <p className="text-sm font-semibold text-accent-strong">
+        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-accent-strong">
           {t("assistant.eyebrow")}
         </p>
         <h1
           id="assistant-page-title"
-          className="mt-3 text-3xl font-semibold tracking-tight text-brand-navy sm:text-4xl"
+          className="mt-4 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl"
         >
           {t("assistant.title")}
         </h1>
-        <p className="mt-4 max-w-3xl text-lg leading-8 text-muted">
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-muted sm:text-xl">
           {t("assistant.description")}
         </p>
       </section>
@@ -109,14 +109,13 @@ export function AssistantPage({
       <div aria-busy={isLoading}>
         {isLoading ? (
           <section
-            className="flex min-h-64 items-center justify-center rounded-2xl border border-border bg-white p-8 text-center shadow-soft"
+            className="flex min-h-80 items-center justify-center rounded-3xl border border-border bg-white p-8 text-center shadow-soft"
             role="status"
           >
             <div>
-              <span
-                className="mx-auto block size-3 rounded-full bg-accent"
-                aria-hidden="true"
-              />
+              <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-surface" aria-hidden="true">
+                <span className="size-3 animate-pulse rounded-full bg-accent" />
+              </span>
               <p className="mt-4 font-semibold text-brand-navy">
                 {t("assistant.loading")}
               </p>
@@ -124,7 +123,7 @@ export function AssistantPage({
           </section>
         ) : errorKey ? (
           <section
-            className="rounded-2xl border border-red-300 bg-red-50 p-6 text-red-950 shadow-soft sm:p-8"
+            className="rounded-3xl border border-red-200 bg-white p-6 text-red-950 shadow-soft sm:p-8"
             role="alert"
           >
             <h2 className="text-xl font-semibold">{t("assistant.errorTitle")}</h2>
@@ -136,22 +135,23 @@ export function AssistantPage({
       </div>
 
       <section
-        className="rounded-2xl border border-border bg-white p-6 shadow-soft sm:p-8"
+        className="overflow-hidden rounded-3xl border border-border bg-white shadow-soft"
         aria-labelledby="question-form-title"
       >
-        <h2 id="question-form-title" className="text-xl font-semibold text-brand-navy">
-          {t("assistant.questionSection")}
-        </h2>
-        <form className="mt-5" onSubmit={submitQuestion}>
+        <form onSubmit={submitQuestion}>
+          <div className="p-6 sm:p-8">
+          <h2 id="question-form-title" className="text-xl font-bold text-ink sm:text-2xl">
+            {t("assistant.questionSection")}
+          </h2>
           <label
-            className="block text-sm font-semibold text-brand-navy"
+            className="mt-6 block text-sm font-semibold text-brand-navy"
             htmlFor="rag-question"
           >
             {t("assistant.questionLabel")}
           </label>
           <textarea
             id="rag-question"
-            className="mt-2 min-h-36 w-full resize-y rounded-xl border border-border bg-white px-4 py-3 leading-7 text-ink shadow-inner placeholder:text-muted/75"
+            className="mt-2 min-h-40 w-full resize-y rounded-2xl border border-border bg-[#fbfbfc] px-5 py-4 text-base leading-7 text-ink shadow-inner placeholder:text-muted/70 sm:min-h-44"
             value={question}
             maxLength={questionLimit}
             placeholder={t("assistant.placeholder")}
@@ -160,7 +160,7 @@ export function AssistantPage({
               setQuestion(event.target.value);
             }}
           />
-          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p
               id="question-counter"
               className="text-sm text-muted"
@@ -174,16 +174,22 @@ export function AssistantPage({
             <button
               ref={sendButtonRef}
               type="submit"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-navy px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-brand-navy px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-active disabled:cursor-not-allowed disabled:bg-[#d5dae0] disabled:text-[#9ba6b2]"
               disabled={!canSubmit}
             >
               {t("assistant.send")}
             </button>
           </div>
+          </div>
           <p
             id="assistant-availability"
-            className="mt-5 rounded-xl border border-accent/25 bg-accent-soft px-4 py-3 text-sm leading-6 text-accent-strong"
+            className="flex min-h-20 items-center gap-3 border-t border-accent/15 bg-accent-soft px-6 py-4 text-sm leading-6 text-accent-strong sm:px-8"
           >
+            <svg aria-hidden="true" className="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="9" />
+              <path strokeLinecap="round" d="M12 11v6m0-10h.01" />
+            </svg>
+            <span>
             {developmentMode
               ? token
                 ? t("assistant.developmentToken.ready")
@@ -193,6 +199,7 @@ export function AssistantPage({
               : authStatus === "authenticated"
                 ? t("assistant.authenticatedReady")
                 : t("assistant.loginRequired")}
+            </span>
           </p>
         </form>
       </section>

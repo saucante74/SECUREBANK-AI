@@ -32,7 +32,7 @@ export function DevelopmentTokenPanel({
 
   return (
     <section
-      className="rounded-2xl border border-amber-300 bg-amber-50 p-6 text-amber-950 shadow-soft sm:p-8"
+      className="rounded-3xl border border-amber-300 bg-amber-50 p-6 text-amber-950 shadow-soft sm:p-8"
       aria-labelledby="development-token-title"
     >
       <h2 id="development-token-title" className="text-xl font-semibold">

@@ -13,27 +13,29 @@ export function LanguageSwitcher() {
     : "fr";
 
   return (
-    <div className="flex items-center gap-2">
-      <label className="sr-only" htmlFor="interface-language">
-        {t("app.languageLabel")}
-      </label>
-      <select
-        id="interface-language"
-        className="min-h-10 rounded-lg border border-border bg-white px-3 py-2 text-sm font-semibold text-brand-navy shadow-soft"
-        value={activeLanguage}
-        onChange={(event) => {
-          const language = event.target.value;
-          if (isSupportedLanguage(language)) {
-            void changeLanguage(language);
-          }
-        }}
-      >
+    <div
+      className="flex rounded-full border border-border bg-surface p-1 shadow-inner"
+      role="group"
+      aria-label={t("app.languageLabel")}
+    >
         {supportedLanguages.map((language) => (
-          <option key={language} value={language}>
-            {t(`app.languages.${language}`)}
-          </option>
-        ))}
-      </select>
+        <button
+          key={language}
+          type="button"
+          className={`min-h-10 min-w-11 rounded-full px-3 text-sm font-semibold uppercase transition-colors sm:min-w-14 ${
+            language === activeLanguage
+              ? "bg-ink text-white shadow-soft"
+              : "text-muted hover:bg-white hover:text-ink"
+          }`}
+          aria-pressed={language === activeLanguage}
+          aria-label={t(`app.languages.${language}`)}
+          onClick={() => {
+            void changeLanguage(language);
+          }}
+        >
+          {language}
+        </button>
+      ))}
     </div>
   );
 }

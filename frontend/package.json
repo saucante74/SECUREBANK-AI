@@ -10,6 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fontsource/ibm-plex-sans": "^5.2.8",
+    "@fontsource/manrope": "^5.2.8",
     "@tailwindcss/vite": "4.3.3",
     "i18next": "26.5.11",
     "react": "19.3.1",
