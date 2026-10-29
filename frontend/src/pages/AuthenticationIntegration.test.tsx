@@ -33,6 +33,10 @@ const ragResponse: RagAskResponse = {
   abstained: false,
 };
 
+function pendingRagResponse(): Promise<RagAskResponse> {
+  return new Promise(() => undefined);
+}
+
 function renderAssistant(): void {
   window.history.replaceState({}, "", "/assistant");
   render(<App />);
@@ -145,6 +149,22 @@ describe("on-demand authentication", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(question).toHaveValue("Question conservée");
     expect(await screen.findByText("Réponse documentée [1].")).toBeInTheDocument();
+  });
+
+  it("starts the loader only after successful popup authentication", async () => {
+    askRagMock.mockImplementation(pendingRagResponse);
+    renderAssistant();
+    enterQuestion();
+    requestAuthentication();
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    fillLogin();
+    fireEvent.click(screen.getByRole("button", { name: "Se connecter" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Traitement de la question en cours.",
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("keeps the popup open with a generic rejected-login message", async () => {

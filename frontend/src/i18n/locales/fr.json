@@ -48,7 +48,14 @@
     "placeholder": "Saisissez votre question ici.",
     "characterCount": "{{current}} / {{maximum}} caractères",
     "send": "Envoyer",
-    "loading": "Recherche d’une réponse documentée…",
+    "loader": {
+      "title": "Traitement de votre demande",
+      "description": "SecureBank-AI prépare une réponse fondée sur les documents disponibles.",
+      "accessibleStatus": "Traitement de la question en cours.",
+      "analyzing": "Analyse de votre question…",
+      "searching": "Recherche dans les documents…",
+      "preparing": "Préparation de la réponse…"
+    },
     "errorTitle": "La requête n’a pas abouti",
     "authenticatedReady": "Vous êtes connecté. La question peut être envoyée.",
     "loginRequired": "La page reste accessible. Une connexion sera demandée uniquement lors de l’envoi.",

@@ -7,6 +7,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { LoginDialog } from "../components/LoginDialog";
+import { RagLoadingPanel } from "../components/RagLoadingPanel";
 import { RagResponsePanel } from "../components/RagResponsePanel";
 import type { LoginRequest } from "../api/types";
 import type { AuthStatus } from "../hooks/useAuthSession";
@@ -67,40 +68,28 @@ export function AssistantPage({
   };
 
   return (
-    <div className="space-y-8 sm:space-y-10">
+    <div className="space-y-6 sm:space-y-8">
       <section aria-labelledby="assistant-page-title">
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-accent-strong">
           {t("assistant.eyebrow")}
         </p>
         <h1
           id="assistant-page-title"
-          className="mt-4 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl"
+          className="mt-3 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl"
         >
           {t("assistant.title")}
         </h1>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-muted sm:text-xl">
+        <p className="mt-3 max-w-3xl text-base leading-7 text-muted sm:text-lg">
           {t("assistant.description")}
         </p>
       </section>
 
       <div aria-busy={isLoading}>
         {isLoading ? (
-          <section
-            className="flex min-h-80 items-center justify-center rounded-3xl border border-border bg-white p-8 text-center shadow-soft"
-            role="status"
-          >
-            <div>
-              <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-surface" aria-hidden="true">
-                <span className="size-3 animate-pulse rounded-full bg-accent" />
-              </span>
-              <p className="mt-4 font-semibold text-brand-navy">
-                {t("assistant.loading")}
-              </p>
-            </div>
-          </section>
+          <RagLoadingPanel />
         ) : errorKey ? (
           <section
-            className="rounded-3xl border border-red-200 bg-white p-6 text-red-950 shadow-soft sm:p-8"
+            className="rounded-2xl border border-red-200 bg-white p-5 text-red-950 shadow-soft sm:p-6"
             role="alert"
           >
             <h2 className="text-xl font-semibold">{t("assistant.errorTitle")}</h2>
@@ -112,23 +101,23 @@ export function AssistantPage({
       </div>
 
       <section
-        className="overflow-hidden rounded-3xl border border-border bg-white shadow-soft"
+        className="overflow-hidden rounded-2xl border border-border bg-white shadow-soft"
         aria-labelledby="question-form-title"
       >
         <form onSubmit={submitQuestion}>
-          <div className="p-6 sm:p-8">
+          <div className="p-5 sm:p-6">
             <h2 id="question-form-title" className="text-xl font-bold text-ink sm:text-2xl">
               {t("assistant.questionSection")}
             </h2>
             <label
-              className="mt-6 block text-sm font-semibold text-brand-navy"
+              className="mt-4 block text-sm font-semibold text-brand-navy"
               htmlFor="rag-question"
             >
               {t("assistant.questionLabel")}
             </label>
             <textarea
               id="rag-question"
-              className="mt-2 min-h-40 w-full resize-y rounded-2xl border border-border bg-[#fbfbfc] px-5 py-4 text-base leading-7 text-ink shadow-inner placeholder:text-muted/70 sm:min-h-44"
+              className="mt-2 min-h-32 w-full resize-y rounded-xl border border-border bg-[#fbfbfc] px-4 py-3 text-base leading-7 text-ink shadow-inner placeholder:text-muted/70 sm:min-h-36"
               value={question}
               maxLength={questionLimit}
               placeholder={t("assistant.placeholder")}
@@ -151,7 +140,7 @@ export function AssistantPage({
               <button
                 ref={sendButtonRef}
                 type="submit"
-                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-brand-navy px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-active disabled:cursor-not-allowed disabled:bg-[#d5dae0] disabled:text-[#9ba6b2]"
+                className="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-navy px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-active disabled:cursor-not-allowed disabled:bg-[#d5dae0] disabled:text-[#9ba6b2]"
                 disabled={!canSubmit}
               >
                 {t("assistant.send")}
@@ -160,7 +149,7 @@ export function AssistantPage({
           </div>
           <p
             id="assistant-availability"
-            className="flex min-h-20 items-center gap-3 border-t border-accent/15 bg-accent-soft px-6 py-4 text-sm leading-6 text-accent-strong sm:px-8"
+            className="flex min-h-16 items-center gap-3 border-t border-accent/15 bg-accent-soft px-5 py-3 text-sm leading-6 text-accent-strong sm:px-6"
           >
             <svg aria-hidden="true" className="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="9" />

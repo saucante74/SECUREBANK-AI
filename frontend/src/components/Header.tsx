@@ -30,8 +30,8 @@ export function Header({
   const { t } = useTranslation();
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-white px-5 py-5 sm:px-8 lg:px-12 xl:px-16">
-      <div className="mx-auto flex min-h-14 w-full max-w-5xl items-center justify-between gap-4">
+    <header className="sticky top-0 z-20 border-b border-border bg-white px-4 py-3 sm:px-6 lg:px-8 xl:px-10">
+      <div className="mx-auto flex min-h-12 w-full max-w-5xl items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <button
             ref={menuButtonRef}
@@ -55,10 +55,10 @@ export function Header({
             </svg>
           </button>
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted sm:text-sm">
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-muted sm:text-xs">
               {t("app.dashboard")}
             </p>
-            <p className="mt-1 truncate font-display text-xl font-bold text-ink sm:text-2xl">
+            <p className="mt-0.5 truncate font-display text-lg font-bold text-ink sm:text-xl">
               {pageTitle}
             </p>
           </div>

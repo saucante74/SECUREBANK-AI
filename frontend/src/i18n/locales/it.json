@@ -48,7 +48,14 @@
     "placeholder": "Inserisci qui la tua domanda.",
     "characterCount": "{{current}} / {{maximum}} caratteri",
     "send": "Invia",
-    "loading": "Ricerca di una risposta documentata…",
+    "loader": {
+      "title": "Elaborazione della richiesta",
+      "description": "SecureBank-AI sta preparando una risposta basata sui documenti disponibili.",
+      "accessibleStatus": "Elaborazione della domanda in corso.",
+      "analyzing": "Analisi della domanda…",
+      "searching": "Ricerca nei documenti…",
+      "preparing": "Preparazione della risposta…"
+    },
     "errorTitle": "La richiesta non è stata completata",
     "authenticatedReady": "Hai effettuato l’accesso. La domanda può essere inviata.",
     "loginRequired": "La pagina rimane accessibile. L’accesso viene richiesto solo al momento dell’invio.",

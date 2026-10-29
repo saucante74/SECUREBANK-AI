@@ -6,7 +6,7 @@ interface InfoCardProps {
 
 export function InfoCard({ description, eyebrow, title }: InfoCardProps) {
   return (
-    <article className="rounded-3xl border border-border bg-white p-6 shadow-soft sm:p-7">
+    <article className="rounded-2xl border border-border bg-white p-5 shadow-soft sm:p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-strong">
         {eyebrow}
       </p>

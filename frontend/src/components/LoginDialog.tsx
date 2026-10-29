@@ -101,7 +101,7 @@ export function LoginDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-navy/70 p-5 backdrop-blur-sm">
       <section
-        className="w-full max-w-md rounded-3xl border border-white/60 bg-white p-6 shadow-panel sm:p-8"
+        className="w-full max-w-md rounded-2xl border border-white/60 bg-white p-5 shadow-panel sm:p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-dialog-title"
@@ -118,7 +118,7 @@ export function LoginDialog({
         </p>
         <h2
           id="login-dialog-title"
-          className="mt-2 text-2xl font-extrabold text-ink sm:text-3xl"
+          className="mt-2 text-2xl font-extrabold text-ink"
         >
           {t("auth.login.title")}
         </h2>
@@ -141,7 +141,7 @@ export function LoginDialog({
             <input
               ref={usernameRef}
               id="login-username"
-              className="mt-2 min-h-12 w-full rounded-xl border border-border bg-[#fbfbfc] px-4 py-3 text-ink shadow-inner"
+              className="mt-2 min-h-11 w-full rounded-lg border border-border bg-[#fbfbfc] px-4 py-2.5 text-ink shadow-inner"
               autoComplete="username"
               disabled={isLoading}
               required
@@ -160,7 +160,7 @@ export function LoginDialog({
             </label>
             <input
               id="login-password"
-              className="mt-2 min-h-12 w-full rounded-xl border border-border bg-[#fbfbfc] px-4 py-3 text-ink shadow-inner"
+              className="mt-2 min-h-11 w-full rounded-lg border border-border bg-[#fbfbfc] px-4 py-2.5 text-ink shadow-inner"
               type="password"
               autoComplete="current-password"
               disabled={isLoading}
@@ -183,7 +183,7 @@ export function LoginDialog({
             <button
               ref={cancelButtonRef}
               type="button"
-              className="min-h-12 rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-surface"
+              className="min-h-10 rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-semibold text-brand-navy transition-colors hover:bg-surface"
               disabled={isLoading}
               onClick={onCancel}
             >
@@ -192,7 +192,7 @@ export function LoginDialog({
             <button
               ref={submitButtonRef}
               type="submit"
-              className="min-h-12 rounded-xl bg-brand-navy px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-active disabled:cursor-not-allowed disabled:bg-[#d5dae0] disabled:text-[#9ba6b2]"
+              className="min-h-10 rounded-lg bg-brand-navy px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-active disabled:cursor-not-allowed disabled:bg-[#d5dae0] disabled:text-[#9ba6b2]"
               disabled={isLoading || !username.trim() || !password}
             >
               {isLoading ? t("auth.login.loading") : t("auth.login.submit")}

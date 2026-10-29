@@ -67,15 +67,15 @@ export function Sidebar({
   return (
     <aside
       id="app-navigation"
-      className={`fixed inset-y-0 left-0 z-40 flex w-80 max-w-[88vw] flex-col bg-brand-navy text-white shadow-panel transition-transform duration-200 ease-out lg:w-80 lg:translate-x-0 xl:w-[22rem] ${visibilityClass}`}
+      className={`fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[88vw] flex-col bg-brand-navy text-white shadow-panel transition-transform duration-200 ease-out lg:w-[17rem] lg:translate-x-0 xl:w-72 ${visibilityClass}`}
       aria-label={t("accessibility.primaryNavigation")}
     >
-      <div className="flex items-center justify-between px-7 py-8 xl:px-8">
+      <div className="flex items-center justify-between px-5 py-6 xl:px-6">
         <div className="flex min-w-0 items-center gap-4">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-brand-navy shadow-soft">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-brand-navy shadow-soft">
             <svg
               aria-hidden="true"
-              className="size-7"
+              className="size-6"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -87,10 +87,10 @@ export function Sidebar({
             </svg>
           </span>
           <div className="min-w-0">
-            <p className="truncate font-display text-xl font-extrabold tracking-tight">
+            <p className="truncate font-display text-lg font-extrabold tracking-tight">
               {t("app.name")}
             </p>
-            <p className="mt-1 truncate text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
+            <p className="mt-0.5 truncate text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-white/50">
               {t("app.securedInterface")}
             </p>
           </div>
@@ -118,13 +118,13 @@ export function Sidebar({
       </div>
 
       <nav
-        className="flex-1 px-5 py-8 xl:px-7"
+        className="flex-1 px-4 py-5 xl:px-5"
         aria-label={t("accessibility.sectionsNavigation")}
       >
-        <p className="px-3 text-sm font-semibold uppercase tracking-[0.18em] text-white/35">
+        <p className="px-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
           {t("navigation.title")}
         </p>
-        <ul className="mt-5 space-y-2">
+        <ul className="mt-3 space-y-1.5">
           {navigationItems.map(({ labelKey, page }) => {
             const isCurrent = currentPage === page;
             const stateClass = isCurrent
@@ -134,7 +134,7 @@ export function Sidebar({
             return (
               <li key={page}>
                 <a
-                  className={`flex min-h-14 items-center justify-between rounded-2xl px-4 text-base transition-colors ${stateClass}`}
+                  className={`flex min-h-12 items-center justify-between rounded-xl px-4 text-sm transition-colors ${stateClass}`}
                   href={pathForPage(page)}
                   aria-current={isCurrent ? "page" : undefined}
                   onClick={(event) => {
@@ -156,7 +156,7 @@ export function Sidebar({
             );
           })}
           <li>
-            <div className="flex min-h-14 cursor-not-allowed items-center justify-between rounded-2xl px-4 text-base font-medium text-white/55">
+            <div className="flex min-h-12 cursor-not-allowed items-center justify-between rounded-xl px-4 text-sm font-medium text-white/55">
               <span className="flex items-center gap-4">
                 <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                   <circle cx="12" cy="12" r="9" />
@@ -172,8 +172,8 @@ export function Sidebar({
         </ul>
       </nav>
 
-      <div className="p-6 xl:p-7">
-        <div className="rounded-3xl bg-brand-deep p-6 ring-1 ring-inset ring-white/10">
+      <div className="p-4 xl:p-5">
+        <div className="rounded-2xl bg-brand-deep p-5 ring-1 ring-inset ring-white/10">
           <p className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.17em] text-accent">
             <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
             <span>{t("app.demo")}</span>

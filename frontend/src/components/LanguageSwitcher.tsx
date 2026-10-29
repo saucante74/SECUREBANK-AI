@@ -22,7 +22,7 @@ export function LanguageSwitcher() {
         <button
           key={language}
           type="button"
-          className={`min-h-10 min-w-11 rounded-full px-3 text-sm font-semibold uppercase transition-colors sm:min-w-14 ${
+          className={`min-h-9 min-w-10 rounded-full px-2.5 text-xs font-semibold uppercase transition-colors sm:min-w-12 ${
             language === activeLanguage
               ? "bg-ink text-white shadow-soft"
               : "text-muted hover:bg-white hover:text-ink"

@@ -87,7 +87,7 @@ export function AppShell({
         onClose={closeMenu}
         onNavigate={navigate}
       />
-      <div className="flex min-h-screen min-w-0 flex-col lg:pl-80 xl:pl-[22rem]">
+      <div className="flex min-h-screen min-w-0 flex-col lg:pl-[17rem] xl:pl-72">
         <Header
           authStatus={authStatus}
           menuButtonRef={menuButtonRef}
@@ -98,7 +98,7 @@ export function AppShell({
           pageTitle={pageTitle}
           user={user}
         />
-        <main className="flex-1 px-5 py-9 sm:px-8 sm:py-12 lg:px-12 lg:py-14 xl:px-16">
+        <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8 xl:px-10">
           <div className="mx-auto w-full max-w-5xl">{children}</div>
         </main>
         <footer className="border-t border-border bg-white px-5 py-5 text-center text-sm text-muted sm:px-8 lg:hidden">

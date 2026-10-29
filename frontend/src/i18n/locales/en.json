@@ -48,7 +48,14 @@
     "placeholder": "Enter your question here.",
     "characterCount": "{{current}} / {{maximum}} characters",
     "send": "Send",
-    "loading": "Searching for a documented answer…",
+    "loader": {
+      "title": "Processing your request",
+      "description": "SecureBank-AI is preparing an answer grounded in the available documents.",
+      "accessibleStatus": "The question is being processed.",
+      "analyzing": "Analyzing your question…",
+      "searching": "Searching the documents…",
+      "preparing": "Preparing the answer…"
+    },
     "errorTitle": "The request was not completed",
     "authenticatedReady": "You are signed in. The question can be submitted.",
     "loginRequired": "This page remains available. Sign-in is requested only when submitting.",

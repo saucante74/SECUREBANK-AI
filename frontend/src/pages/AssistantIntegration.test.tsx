@@ -123,11 +123,15 @@ describe("Assistant RAG integration", () => {
     render(<AssistantPage authStatus="authenticated" />);
     enterQuestion();
 
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     sendQuestion();
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Recherche d’une réponse documentée…",
+      "Traitement de la question en cours.",
     );
+    expect(screen.getByText("Analyse de votre question…")).toBeInTheDocument();
+    expect(screen.getByText("Recherche dans les documents…")).toBeInTheDocument();
+    expect(screen.getByText("Préparation de la réponse…")).toBeInTheDocument();
     expect(questionInput()).toHaveValue("Question envoyée");
     expect(screen.getByRole("button", { name: "Envoyer" })).toBeDisabled();
     sendQuestion();
@@ -143,6 +147,7 @@ describe("Assistant RAG integration", () => {
     expect(
       await screen.findByText("Réponse réelle simulée par le service mocké [1]."),
     ).toBeInTheDocument();
+    expect(screen.queryByText("Traitement de votre demande")).not.toBeInTheDocument();
     expect(screen.getByText("Document synthétique retourné")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Référence 1" })).toHaveAttribute(
       "href",
@@ -187,6 +192,7 @@ describe("Assistant RAG integration", () => {
     sendQuestion();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.queryByText("Traitement de votre demande")).not.toBeInTheDocument();
   });
 
   it("aborts the active request on unmount", () => {
