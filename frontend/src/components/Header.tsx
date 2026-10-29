@@ -1,8 +1,10 @@
-import type { RefObject } from "react";
+import { useCallback, useRef, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import type { AuthMeResponse } from "../api/types";
+import { LoginDialog } from "./LoginDialog";
+import { LogoutConfirmationDialog } from "./LogoutConfirmationDialog";
+import type { AuthMeResponse, LoginRequest } from "../api/types";
 import type { ApiErrorTranslationKey } from "../i18n/apiErrorKeys";
 import type { AuthStatus } from "../hooks/useAuthSession";
 
@@ -11,6 +13,7 @@ interface HeaderProps {
   isMenuOpen: boolean;
   logoutErrorKey?: ApiErrorTranslationKey;
   menuButtonRef: RefObject<HTMLButtonElement | null>;
+  onLogin: (credentials: LoginRequest) => Promise<void>;
   onLogout: () => Promise<void>;
   onMenuOpen: () => void;
   pageTitle: string;
@@ -22,12 +25,23 @@ export function Header({
   isMenuOpen,
   logoutErrorKey,
   menuButtonRef,
+  onLogin,
   onLogout,
   onMenuOpen,
   pageTitle,
   user,
 }: HeaderProps) {
   const { t } = useTranslation();
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+  const loginButtonRef = useRef<HTMLButtonElement>(null);
+  const logoutButtonRef = useRef<HTMLButtonElement>(null);
+  const closeLogin = useCallback(() => {
+    setIsLoginOpen(false);
+  }, []);
+  const closeLogout = useCallback(() => {
+    setIsLogoutOpen(false);
+  }, []);
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-white px-4 py-3 sm:px-6 lg:px-8 xl:px-10">
@@ -64,17 +78,58 @@ export function Header({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          {authStatus === "anonymous" && (
+            <button
+              ref={loginButtonRef}
+              type="button"
+              className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-white text-brand-navy shadow-soft transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-accent-strong"
+              aria-label={t("auth.login.submit")}
+              onClick={() => {
+                setIsLoginOpen(true);
+              }}
+            >
+              <svg
+                aria-hidden="true"
+                className="size-[1.125rem]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M14 7l5 5-5 5M19 12H8" />
+                <path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4" />
+              </svg>
+            </button>
+          )}
           {authStatus === "authenticated" && user && (
             <div className="flex items-center gap-2">
               <span className="hidden rounded-full border border-accent/25 bg-accent-soft px-3 py-1.5 text-xs font-semibold text-accent-strong md:inline-flex">
                 {t("auth.connected", { role: user.role })}
               </span>
               <button
+                ref={logoutButtonRef}
                 type="button"
-                className="min-h-10 rounded-xl border border-border bg-white px-3 py-2 text-xs font-semibold text-brand-navy transition-colors hover:bg-surface"
-                onClick={() => void onLogout()}
+                className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-white text-brand-navy shadow-soft transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-accent-strong"
+                aria-label={t("auth.logout")}
+                onClick={() => {
+                  setIsLogoutOpen(true);
+                }}
               >
-                {t("auth.logout")}
+                <svg
+                  aria-hidden="true"
+                  className="size-[1.125rem]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M10 17l5-5-5-5M15 12H3" />
+                  <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
+                </svg>
               </button>
             </div>
           )}
@@ -86,6 +141,19 @@ export function Header({
           {t(logoutErrorKey)}
         </p>
       )}
+      <LoginDialog
+        isOpen={isLoginOpen}
+        onCancel={closeLogin}
+        onLogin={onLogin}
+        onSuccess={closeLogin}
+        returnFocusRef={loginButtonRef}
+      />
+      <LogoutConfirmationDialog
+        isOpen={isLogoutOpen}
+        onCancel={closeLogout}
+        onConfirm={onLogout}
+        returnFocusRef={logoutButtonRef}
+      />
     </header>
   );
 }

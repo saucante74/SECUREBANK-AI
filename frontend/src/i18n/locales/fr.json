@@ -74,6 +74,13 @@
   "auth": {
     "connected": "Connecté · {{role}}",
     "logout": "Se déconnecter",
+    "logoutConfirmation": {
+      "title": "Déconnexion",
+      "description": "Voulez-vous vraiment vous déconnecter ?",
+      "cancel": "Annuler",
+      "confirm": "Se déconnecter",
+      "loading": "Déconnexion…"
+    },
     "login": {
       "eyebrow": "Assistant documentaire",
       "title": "Connexion requise",

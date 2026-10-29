@@ -14,15 +14,15 @@ export function LanguageSwitcher() {
 
   return (
     <div
-      className="flex rounded-full border border-border bg-surface p-1 shadow-inner"
+      className="flex rounded-full border border-border bg-surface p-0.5 shadow-inner"
       role="group"
       aria-label={t("app.languageLabel")}
     >
-        {supportedLanguages.map((language) => (
+      {supportedLanguages.map((language) => (
         <button
           key={language}
           type="button"
-          className={`min-h-9 min-w-10 rounded-full px-2.5 text-xs font-semibold uppercase transition-colors sm:min-w-12 ${
+          className={`min-h-8 min-w-9 rounded-full px-2 text-[0.6875rem] font-semibold uppercase transition-colors sm:min-w-10 ${
             language === activeLanguage
               ? "bg-ink text-white shadow-soft"
               : "text-muted hover:bg-white hover:text-ink"

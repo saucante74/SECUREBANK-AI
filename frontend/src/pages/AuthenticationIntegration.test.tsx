@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../api/client";
@@ -66,6 +66,11 @@ function fillLogin(): void {
   });
 }
 
+function submitLogin(): void {
+  const dialog = screen.getByRole("dialog", { name: "Connexion requise" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Se connecter" }));
+}
+
 describe("on-demand authentication", () => {
   beforeEach(async () => {
     askRagMock.mockReset();
@@ -98,6 +103,20 @@ describe("on-demand authentication", () => {
     expect(screen.getByRole("button", { name: "Envoyer" })).toHaveFocus();
   });
 
+  it("opens the existing login popup from the accessible header icon", async () => {
+    renderAssistant();
+
+    const loginButton = await screen.findByRole("button", {
+      name: "Se connecter",
+    });
+    fireEvent.click(loginButton);
+
+    expect(
+      screen.getByRole("dialog", { name: "Connexion requise" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Identifiant" })).toHaveFocus();
+  });
+
   it("closes with Escape and restores focus", () => {
     renderAssistant();
     enterQuestion();
@@ -128,7 +147,7 @@ describe("on-demand authentication", () => {
     requestAuthentication();
     fillLogin();
 
-    fireEvent.click(screen.getByRole("button", { name: "Se connecter" }));
+    submitLogin();
 
     await waitFor(() => {
       expect(loginUserMock).toHaveBeenCalledTimes(1);
@@ -159,7 +178,7 @@ describe("on-demand authentication", () => {
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     fillLogin();
-    fireEvent.click(screen.getByRole("button", { name: "Se connecter" }));
+    submitLogin();
 
     expect(await screen.findByRole("status")).toHaveTextContent(
       "Traitement de la question en cours.",
@@ -176,7 +195,7 @@ describe("on-demand authentication", () => {
     requestAuthentication();
     fillLogin();
 
-    fireEvent.click(screen.getByRole("button", { name: "Se connecter" }));
+    submitLogin();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Identifiant ou mot de passe incorrect.",
@@ -203,13 +222,51 @@ describe("on-demand authentication", () => {
     expect(screen.queryByText("Connecté · analyst")).not.toBeInTheDocument();
   });
 
-  it("logs out, clears session content, and keeps the page public", async () => {
+  it("cancels the logout confirmation without ending the session", async () => {
+    getCurrentUserMock.mockResolvedValue(identity);
+    renderAssistant();
+    await screen.findByText("Connecté · analyst");
+    const logoutButton = screen.getByRole("button", { name: "Se déconnecter" });
+
+    fireEvent.click(logoutButton);
+
+    const dialog = screen.getByRole("dialog", { name: "Déconnexion" });
+    expect(dialog).toHaveTextContent("Voulez-vous vraiment vous déconnecter ?");
+    const cancelButton = within(dialog).getByRole("button", { name: "Annuler" });
+    expect(cancelButton).toHaveFocus();
+    fireEvent.click(cancelButton);
+
+    expect(screen.queryByRole("dialog", { name: "Déconnexion" })).not.toBeInTheDocument();
+    expect(logoutUserMock).not.toHaveBeenCalled();
+    expect(screen.getByText("Connecté · analyst")).toBeInTheDocument();
+    expect(logoutButton).toHaveFocus();
+  });
+
+  it("closes the logout confirmation with Escape and restores focus", async () => {
+    getCurrentUserMock.mockResolvedValue(identity);
+    renderAssistant();
+    await screen.findByText("Connecté · analyst");
+    const logoutButton = screen.getByRole("button", { name: "Se déconnecter" });
+    fireEvent.click(logoutButton);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("dialog", { name: "Déconnexion" })).not.toBeInTheDocument();
+    expect(logoutUserMock).not.toHaveBeenCalled();
+    expect(logoutButton).toHaveFocus();
+  });
+
+  it("confirms logout, clears session content, and keeps the page public", async () => {
     getCurrentUserMock.mockResolvedValue(identity);
     renderAssistant();
     await screen.findByText("Connecté · analyst");
     enterQuestion();
 
     fireEvent.click(screen.getByRole("button", { name: "Se déconnecter" }));
+    const dialog = screen.getByRole("dialog", { name: "Déconnexion" });
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Se déconnecter" }),
+    );
 
     await waitFor(() => {
       expect(logoutUserMock).toHaveBeenCalledTimes(1);
@@ -223,6 +280,26 @@ describe("on-demand authentication", () => {
       screen.getByRole("heading", { name: "Assistant documentaire" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Connecté · analyst")).not.toBeInTheDocument();
+  });
+
+  it("reports a logout error without clearing the session", async () => {
+    getCurrentUserMock.mockResolvedValue(identity);
+    logoutUserMock.mockRejectedValue(
+      new ApiError({ category: "network", method: "POST" }),
+    );
+    renderAssistant();
+    await screen.findByText("Connecté · analyst");
+    fireEvent.click(screen.getByRole("button", { name: "Se déconnecter" }));
+    const dialog = screen.getByRole("dialog", { name: "Déconnexion" });
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Se déconnecter" }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "La connexion au service a échoué.",
+    );
+    expect(screen.getByText("Connecté · analyst")).toBeInTheDocument();
   });
 
   it.each([

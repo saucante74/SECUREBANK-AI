@@ -65,7 +65,7 @@ The Assistant page provides an accessible controlled textarea with a 2,000-chara
 
 The Assistant connects to `POST /api/rag/ask` through the existing typed `askRag` service. A valid non-blank question enables submission. Anonymous submission opens an accessible login dialog without clearing the question. Successful login closes the dialog and immediately submits the preserved question through the cookie session. While a request is active, the question remains visible, duplicate submission is disabled, and an accessible loading panel cycles through localized waiting indications without presenting them as backend telemetry. Successful responses, sources, citations, and business abstentions use the existing typed presentation components. HTTP 401 reopens login for an expired session; other structured failures map to localized safe messages.
 
-The dialog moves focus to the username, traps keyboard focus, closes through Cancel or Escape, and restores focus to Send. The header shows a compact connected state and logout action. Successful logout clears Assistant question and response while leaving public pages accessible.
+The dialog moves focus to the username, traps keyboard focus, closes through Cancel or Escape, and restores focus to its trigger. The header provides accessible icon actions for sign-in and sign-out. Sign-out requires confirmation in a keyboard-accessible dialog; cancellation preserves the session, while successful confirmation clears Assistant question and response and leaves public pages accessible.
 
 Active requests use `AbortController`. They are cancelled when the Assistant unmounts or when navigation leaves the page. Request sequencing prevents a late or obsolete response from updating the interface.
 

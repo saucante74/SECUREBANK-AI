@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next";
 
 import type { PageId } from "../app/navigation";
-import type { AuthMeResponse } from "../api/types";
+import type { AuthMeResponse, LoginRequest } from "../api/types";
 import type { ApiErrorTranslationKey } from "../i18n/apiErrorKeys";
 import type { AuthStatus } from "../hooks/useAuthSession";
 import { Header } from "./Header";
@@ -14,6 +14,7 @@ interface AppShellProps {
   currentPage: PageId;
   logoutErrorKey?: ApiErrorTranslationKey;
   onNavigate: (page: PageId) => void;
+  onLogin: (credentials: LoginRequest) => Promise<void>;
   onLogout: () => Promise<void>;
   pageTitle: string;
   user?: AuthMeResponse;
@@ -25,6 +26,7 @@ export function AppShell({
   currentPage,
   logoutErrorKey,
   onNavigate,
+  onLogin,
   onLogout,
   pageTitle,
   user,
@@ -93,6 +95,7 @@ export function AppShell({
           menuButtonRef={menuButtonRef}
           isMenuOpen={isMenuOpen}
           logoutErrorKey={logoutErrorKey}
+          onLogin={onLogin}
           onLogout={onLogout}
           onMenuOpen={openMenu}
           pageTitle={pageTitle}

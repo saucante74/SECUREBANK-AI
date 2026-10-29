@@ -43,6 +43,7 @@ export function App() {
       authStatus={auth.status}
       currentPage={currentPage}
       logoutErrorKey={auth.logoutErrorKey}
+      onLogin={auth.login}
       onNavigate={navigate}
       onLogout={auth.logout}
       pageTitle={pageTitle}
