@@ -59,6 +59,12 @@
     "errorTitle": "The request was not completed",
     "authenticatedReady": "You are signed in. The question can be submitted.",
     "loginRequired": "This page remains available. Sign-in is requested only when submitting.",
+    "suggestions": {
+      "title": "Suggested questions",
+      "dailyTransferLimit": "What is the daily limit for online bank transfers?",
+      "accountDocuments": "Which documents are required to open a bank account?",
+      "suspiciousTransaction": "What should I do if I notice a suspicious transaction on my account?"
+    },
     "productionAuth": {
       "title": "On-demand sign-in",
       "description": "Sign-in is requested only when a question is submitted.",

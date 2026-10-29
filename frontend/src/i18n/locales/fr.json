@@ -59,6 +59,12 @@
     "errorTitle": "La requête n’a pas abouti",
     "authenticatedReady": "Vous êtes connecté. La question peut être envoyée.",
     "loginRequired": "La page reste accessible. Une connexion sera demandée uniquement lors de l’envoi.",
+    "suggestions": {
+      "title": "Questions suggérées",
+      "dailyTransferLimit": "Quel est le plafond quotidien des virements en ligne ?",
+      "accountDocuments": "Quels documents sont nécessaires pour ouvrir un compte bancaire ?",
+      "suspiciousTransaction": "Que faire en cas de transaction suspecte sur mon compte ?"
+    },
     "productionAuth": {
       "title": "Connexion à la demande",
       "description": "La connexion est demandée uniquement lors de l’envoi d’une question.",

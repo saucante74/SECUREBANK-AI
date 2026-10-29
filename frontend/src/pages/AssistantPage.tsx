@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { LoginDialog } from "../components/LoginDialog";
 import { RagLoadingPanel } from "../components/RagLoadingPanel";
 import { RagResponsePanel } from "../components/RagResponsePanel";
+import { SuggestedQuestions } from "../components/SuggestedQuestions";
 import type { LoginRequest } from "../api/types";
 import type { AuthStatus } from "../hooks/useAuthSession";
 import { useRagRequest } from "../hooks/useRagRequest";
@@ -163,6 +164,12 @@ export function AssistantPage({
           </p>
         </form>
       </section>
+      <SuggestedQuestions
+        disabled={isLoading}
+        onSelect={(suggestedQuestion) => {
+          setQuestion(suggestedQuestion);
+        }}
+      />
       <LoginDialog
         isOpen={isLoginOpen}
         onCancel={() => {

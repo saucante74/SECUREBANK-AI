@@ -59,6 +59,12 @@
     "errorTitle": "La richiesta non è stata completata",
     "authenticatedReady": "Hai effettuato l’accesso. La domanda può essere inviata.",
     "loginRequired": "La pagina rimane accessibile. L’accesso viene richiesto solo al momento dell’invio.",
+    "suggestions": {
+      "title": "Domande suggerite",
+      "dailyTransferLimit": "Qual è il limite giornaliero per i bonifici online?",
+      "accountDocuments": "Quali documenti sono necessari per aprire un conto bancario?",
+      "suspiciousTransaction": "Cosa fare in caso di transazione sospetta sul mio conto?"
+    },
     "productionAuth": {
       "title": "Accesso su richiesta",
       "description": "L’accesso viene richiesto solo quando viene inviata una domanda.",

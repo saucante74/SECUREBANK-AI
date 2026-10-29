@@ -134,6 +134,11 @@ describe("Assistant RAG integration", () => {
     expect(screen.getByText("Préparation de la réponse…")).toBeInTheDocument();
     expect(questionInput()).toHaveValue("Question envoyée");
     expect(screen.getByRole("button", { name: "Envoyer" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Quel est le plafond quotidien des virements en ligne ?",
+      }),
+    ).toBeDisabled();
     sendQuestion();
     expect(askRagMock).toHaveBeenCalledTimes(1);
   });

@@ -71,4 +71,52 @@ describe("AssistantPage", () => {
     ).toBeInTheDocument();
     fetchSpy.mockRestore();
   });
+
+  it("displays three keyboard-accessible suggested questions", () => {
+    render(<AssistantPage />);
+
+    const suggestions = screen.getAllByRole("button", {
+      name: /plafond quotidien|documents sont nécessaires|transaction suspecte/,
+    });
+    expect(suggestions).toHaveLength(3);
+    suggestions[0].focus();
+    expect(suggestions[0]).toHaveFocus();
+  });
+
+  it("replaces the question after an explicit suggestion click without submitting", () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    render(<AssistantPage />);
+    const question = screen.getByRole("textbox", {
+      name: "Question documentaire",
+    });
+    fireEvent.change(question, { target: { value: "Brouillon existant" } });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Quel est le plafond quotidien des virements en ligne ?",
+      }),
+    );
+
+    expect(question).toHaveValue(
+      "Quel est le plafond quotidien des virements en ligne ?",
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fetchSpy.mockRestore();
+  });
+
+  it("keeps on-demand authentication after selecting a suggestion", () => {
+    render(<AssistantPage />);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Quels documents sont nécessaires pour ouvrir un compte bancaire ?",
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer" }));
+
+    expect(
+      screen.getByRole("dialog", { name: "Connexion requise" }),
+    ).toBeInTheDocument();
+  });
 });
