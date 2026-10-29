@@ -15,6 +15,12 @@ from app.services.users import SQLiteUserRepository, create_user_account
 
 TEST_ORIGIN = "http://test"
 TEST_PASSWORD = "synthetic-session-password"
+LOCAL_FRONTEND_ORIGINS = (
+    "http://localhost:5173",
+    "http://localhost:8080",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+)
 
 
 def create_test_settings(database_path: Path) -> Settings:
@@ -114,6 +120,30 @@ def test_secure_cookie_is_enabled_by_configuration(tmp_path: Path) -> None:
     assert all(
         "SameSite=none" in cookie for cookie in response.headers.get_list("set-cookie")
     )
+
+
+def test_login_accepts_each_local_frontend_origin(tmp_path: Path) -> None:
+    settings = create_test_settings(tmp_path / "users.sqlite3").model_copy(
+        update={"auth_trusted_origins": ",".join(LOCAL_FRONTEND_ORIGINS)}
+    )
+    create_user(settings)
+
+    async def scenario() -> list[Response]:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url=TEST_ORIGIN) as client:
+            return [
+                await client.post(
+                    "/auth/login",
+                    headers={"Origin": origin},
+                    json={"username": "session-user", "password": TEST_PASSWORD},
+                )
+                for origin in LOCAL_FRONTEND_ORIGINS
+            ]
+
+    responses = run_session_scenario(settings, scenario())
+
+    assert isinstance(responses, list)
+    assert [response.status_code for response in responses] == [200, 200, 200, 200]
 
 
 @pytest.mark.parametrize(

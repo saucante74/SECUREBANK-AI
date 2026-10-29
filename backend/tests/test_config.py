@@ -51,7 +51,12 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.session_cookie_secure is False
     assert settings.session_cookie_samesite == "lax"
     assert settings.trusted_auth_origins == frozenset(
-        {"http://localhost:5173", "http://localhost:8080"}
+        {
+            "http://localhost:5173",
+            "http://localhost:8080",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:8080",
+        }
     )
     assert settings.login_attempt_limit == 5
     assert settings.login_attempt_window_seconds == 300

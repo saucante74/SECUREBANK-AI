@@ -213,7 +213,7 @@ The implemented configuration accepts these variables:
 | `SESSION_LIFETIME_SECONDS` | `900` | Maximum server-side session lifetime |
 | `SESSION_COOKIE_SECURE` | `false` | Sends session cookies only over HTTPS when enabled |
 | `SESSION_COOKIE_SAMESITE` | `lax` | Session and CSRF cookie SameSite policy |
-| `AUTH_TRUSTED_ORIGINS` | Local Vite and Compose origins | Comma-separated origins allowed to submit credentials |
+| `AUTH_TRUSTED_ORIGINS` | `http://localhost:5173,http://localhost:8080,http://127.0.0.1:5173,http://127.0.0.1:8080` | Comma-separated origins allowed to submit credentials |
 | `LOGIN_ATTEMPT_LIMIT` | `5` | Failed attempts allowed during one rate-limit window |
 | `LOGIN_ATTEMPT_WINDOW_SECONDS` | `300` | Persistent login rate-limit window |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint |
@@ -526,7 +526,7 @@ npm install
 npm run dev
 ```
 
-The current frontend displays a responsive public dashboard and a documentary Assistant in French, English, and Italian. Native browser navigation connects `/` and `/assistant` without requiring authentication. Submitting an anonymous question opens an accessible login dialog; successful cookie login preserves and immediately sends the question. The header exposes connected state and logout. Session expiry reopens login, while logout clears in-memory Assistant content. The typed client sends cookies, copies the CSRF cookie into protected POST headers, and retains optional in-memory Bearer support only for the development panel. JWTs, credentials, questions, and RAG content are not persisted in browser storage. See [Frontend README](frontend/README.md) for focused instructions and limitations.
+The current frontend displays a responsive public dashboard and a documentary Assistant in French, English, and Italian. Native browser navigation connects `/` and `/assistant` without requiring authentication. Submitting an anonymous question opens an accessible login dialog; successful cookie login preserves and immediately sends the question. The header exposes connected state and logout. Session expiry reopens login, while logout clears in-memory Assistant content. The typed client sends cookies, copies the CSRF cookie into protected POST headers, and retains optional Bearer support for API compatibility without exposing manual token entry in React. JWTs, credentials, questions, and RAG content are not persisted in browser storage. See [Frontend README](frontend/README.md) for focused instructions and limitations.
 
 For the Dockerized local stack, build and start the frontend with its backend dependency:
 

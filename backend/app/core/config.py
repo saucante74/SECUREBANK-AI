@@ -20,7 +20,10 @@ class Settings(BaseSettings):
     session_lifetime_seconds: int = 900
     session_cookie_secure: bool = False
     session_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
-    auth_trusted_origins: str = "http://localhost:5173,http://localhost:8080"
+    auth_trusted_origins: str = (
+        "http://localhost:5173,http://localhost:8080,"
+        "http://127.0.0.1:5173,http://127.0.0.1:8080"
+    )
     login_attempt_limit: int = 5
     login_attempt_window_seconds: int = 300
     qdrant_url: str = "http://localhost:6333"
