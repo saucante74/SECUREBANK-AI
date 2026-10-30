@@ -19,6 +19,7 @@
     "title": "Navigation",
     "home": "Home",
     "assistant": "Assistant",
+    "evaluation": "Evaluation",
     "about": "About",
     "comingSoon": "Coming soon"
   },
@@ -144,6 +145,16 @@
     "reference": "Reference {{reference}}",
     "document": "Document: {{documentId}}",
     "unmatchedSource": "Associated source unavailable."
+  },
+  "evaluation": {
+    "eyebrow": "Retrieval quality", "title": "RAG evaluation", "description": "Historical retrieval benchmarks. These metrics measure document retrieval, not yet the overall reliability of generated answers.", "loading": "Loading benchmarks…", "error": "Benchmarks cannot be loaded right now.", "empty": "No historical benchmark is available.",
+    "summary": { "title": "Summary", "runs": "Historical runs", "configurations": "Configurations", "bestEvidence": "Best Evidence Hit@3", "meanLatency": "Mean latency" },
+    "history": { "title": "Benchmark history", "date": "Date", "run": "Run", "commit": "Commit", "engine": "Engine", "variable": "Variable", "previous": "Before", "new": "After", "source1": "Source Hit@1", "source3": "Source Hit@3", "evidence1": "Evidence Hit@1", "evidence3": "Evidence Hit@3", "latency": "Latency" },
+    "comparison": { "title": "Compare two runs", "previous": "Previous run", "new": "New run", "action": "Compare", "configuration": "Configuration", "metrics": "Metric differences", "noConfigurationChange": "No configuration change." },
+    "metrics": { "source_hit_at_1": "Source Hit@1", "source_hit_at_3": "Source Hit@3", "evidence_hit_at_1": "Evidence Hit@1", "evidence_hit_at_3": "Evidence Hit@3", "mean_latency_seconds": "Mean latency" },
+    "guide": {
+      "title": "Understanding the metrics", "baseline": { "title": "Baseline", "description": "A reproducible reference measurement used to compare changes." }, "bm25": { "title": "BM25", "description": "Lexical search based on words found in the question and documents." }, "qdrant": { "title": "Qdrant vector search", "description": "Semantic search using proximity between embedding vectors." }, "rrf": { "title": "RRF", "description": "Combines BM25 and Qdrant rankings without directly comparing their scores." }, "flashrank": { "title": "FlashRank", "description": "Contextual reranking of candidates returned by earlier engines." }, "source": { "title": "Source Hit@1 / @3", "description": "Checks whether the correct document is ranked first or within the top three." }, "evidence": { "title": "Evidence Hit@1 / @3", "description": "Checks whether the exact expected passage is ranked first or within the top three." }, "latency": { "title": "Mean latency", "description": "Average local retrieval time per question, not a production measurement." }, "difference": { "title": "Document, passage, answer", "description": "Finding the right document does not ensure the right passage; finding the right passage does not ensure a correct generated answer." }
+    }
   },
   "errors": {
     "unauthenticated": "Authentication is required.",

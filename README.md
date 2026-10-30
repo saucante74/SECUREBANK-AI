@@ -27,7 +27,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval, and FlashRank reranking orchestration | Semantic evidence validation |
 | Generation | Configurable OpenAI-compatible LLM service, lazy RAG factory, RAG context, citation mapping, and explicit abstention | Semantic evidence validation |
 | Orchestration and tools | None | LangGraph, FastMCP |
-| Observability | Privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse Python SDK 4.17.0 client | Live-server validation, dashboards, and alerts |
+| Observability | Privacy-preserving RAG instrumentation, conditional Langfuse Python SDK 4.17.0 client, and verified container-to-container connectivity | Dashboards and alerts |
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS, Vitest, i18next, native navigation, multilingual Assistant UI, typed native-fetch API client, development-only JWT connection | Production authentication and business interfaces |
 | Deployment | None | Render backend, Vercel frontend |
 
@@ -220,6 +220,7 @@ The implemented configuration accepts these variables:
 | `LOGIN_ATTEMPT_WINDOW_SECONDS` | `300` | Persistent login rate-limit window |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint |
 | `QDRANT_COLLECTION_NAME` | `securebank_chunks` | Collection used for chunk vectors |
+| `BENCHMARK_RESULTS_PATH` | `backend/benchmark_results` | Read-only benchmark history exposed to administrators |
 | `RAG_ENABLED` | `false` | Enables lazy construction of the generative RAG pipeline |
 | `RAG_CORPUS_PATH` | None | Path to the local JSON corpus used by BM25 and Qdrant |
 | `LLM_API_KEY` | None | Secret credential for the configured LLM provider |
@@ -320,6 +321,12 @@ Citation validation proves only that a cited chunk was present in the supplied c
 ### RAG API
 
 `POST /rag/ask` exposes the generative RAG orchestration through a typed FastAPI contract. It requires a valid Bearer JWT and permits the `analyst`, `compliance_officer`, and `admin` roles. The question must contain non-whitespace characters and at most 2,000 characters. `top_k` defaults to 3 and accepts values from 1 through 5.
+
+### Evaluation API and dashboard
+
+The administrator-only Evaluation dashboard is available at `/evaluation`. Its sidebar entry and direct route are hidden from non-administrators, while the backend remains the authoritative access control boundary. The read-only API provides `GET /evaluation/runs`, `GET /evaluation/runs/{run_id}`, and `GET /evaluation/compare`. It validates every historical JSON record before returning typed configuration and retrieval metrics and never serves files directly.
+
+One run may contain several engines. The dashboard therefore displays one history row per run and engine, aggregate retrieval indicators, configuration changes, metric deltas, empty and failure states, and a localized metric guide. Current metrics evaluate retrieval only; they do not establish generated-answer correctness.
 
 Synthetic request example:
 
@@ -468,7 +475,7 @@ The frontend is included in Docker Compose and is served locally through Nginx o
 
 ### Running Langfuse Locally
 
-The dedicated `compose.langfuse.yml` follows the current Langfuse v4 self-hosting architecture. It runs independently from `compose.yml` under the `securebank-langfuse` Compose project, so its containers, default network, and named volumes do not overlap with the backend and Qdrant stack.
+The dedicated `compose.langfuse.yml` follows the current Langfuse v4 self-hosting architecture. It is combined with `compose.yml` under the `securebank` project. A dedicated external network lets the backend reach `http://langfuse-web:3000` while the browser continues to use the loopback-only web port.
 
 Langfuse v4 requires six services: the web application, an asynchronous worker, PostgreSQL for transactional data, ClickHouse for traces and analytics, Redis for queues and caching, and MinIO for event and media object storage. For a VM deployment, the official Langfuse guide recommends at least 4 CPU cores, 16 GiB of memory, and sufficient disk for accumulated traces, with 100 GiB given as an example. Local evaluation requirements depend on workload, but all six containers must fit in available memory and disk.
 
@@ -491,16 +498,21 @@ Use URL-safe hexadecimal output for `POSTGRES_PASSWORD` because it is embedded i
 Validate the resolved Compose model without printing its environment:
 
 ```bash
-docker compose --project-name securebank-langfuse \
+docker network inspect securebank-observability >/dev/null 2>&1 || \
+  docker network create securebank-observability
+
+docker compose --project-name securebank \
   --env-file .env.langfuse \
+  -f compose.yml \
   -f compose.langfuse.yml config --quiet
 ```
 
 Starting the stack downloads several large images and requires explicit approval in this project workflow:
 
 ```bash
-docker compose --project-name securebank-langfuse \
+docker compose --project-name securebank \
   --env-file .env.langfuse \
+  -f compose.yml \
   -f compose.langfuse.yml up -d
 ```
 
@@ -511,8 +523,9 @@ Only `127.0.0.1:3000` for the web UI and `127.0.0.1:9090` for browser access to 
 Stop and remove the Langfuse containers and network while preserving all named volumes:
 
 ```bash
-docker compose --project-name securebank-langfuse \
+docker compose --project-name securebank \
   --env-file .env.langfuse \
+  -f compose.yml \
   -f compose.langfuse.yml down
 ```
 

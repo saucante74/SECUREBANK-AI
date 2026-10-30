@@ -2,17 +2,20 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../api/client";
-import { getCurrentUser } from "../api/services";
+import { getCurrentUser, getEvaluationRuns } from "../api/services";
 import { App } from "./App";
 
 vi.mock("../api/services", () => ({
   askRag: vi.fn(),
+  compareEvaluationRuns: vi.fn(),
+  getEvaluationRuns: vi.fn(),
   getCurrentUser: vi.fn(),
   loginUser: vi.fn(),
   logoutUser: vi.fn(),
 }));
 
 const getCurrentUserMock = vi.mocked(getCurrentUser);
+const getEvaluationRunsMock = vi.mocked(getEvaluationRuns);
 
 function navigation(): HTMLElement {
   return screen.getByRole("navigation", { name: "Sections de l’application" });
@@ -22,6 +25,8 @@ describe("App navigation", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
     getCurrentUserMock.mockReset();
+    getEvaluationRunsMock.mockReset();
+    getEvaluationRunsMock.mockResolvedValue([]);
     getCurrentUserMock.mockRejectedValue(
       new ApiError({ category: "unauthenticated", method: "GET", status: 401 }),
     );
@@ -39,6 +44,24 @@ describe("App navigation", () => {
       "href",
       "/",
     );
+  });
+
+  it("hides evaluation from anonymous users and protects direct access", async () => {
+    window.history.replaceState({}, "", "/evaluation");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe("/");
+    });
+    expect(within(navigation()).queryByRole("link", { name: "Évaluation" })).not.toBeInTheDocument();
+  });
+
+  it("shows evaluation navigation to administrators", async () => {
+    getCurrentUserMock.mockResolvedValue({ sub: "admin", role: "admin" });
+    window.history.replaceState({}, "", "/evaluation");
+    render(<App />);
+
+    expect(await within(navigation()).findByRole("link", { name: "Évaluation" })).toBeInTheDocument();
   });
 
   it("navigates to the assistant and back home", () => {

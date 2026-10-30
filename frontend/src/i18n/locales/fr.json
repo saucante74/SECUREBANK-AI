@@ -19,6 +19,7 @@
     "title": "Navigation",
     "home": "Accueil",
     "assistant": "Assistant",
+    "evaluation": "Évaluation",
     "about": "À propos",
     "comingSoon": "À venir"
   },
@@ -144,6 +145,30 @@
     "reference": "Référence {{reference}}",
     "document": "Document : {{documentId}}",
     "unmatchedSource": "Source associée non disponible."
+  },
+  "evaluation": {
+    "eyebrow": "Qualité du retrieval",
+    "title": "Évaluation du RAG",
+    "description": "Benchmarks historiques du retrieval. Ces métriques mesurent la récupération documentaire, pas encore la fiabilité globale des réponses générées.",
+    "loading": "Chargement des benchmarks…",
+    "error": "Les benchmarks ne peuvent pas être chargés actuellement.",
+    "empty": "Aucun benchmark historique n’est disponible.",
+    "summary": { "title": "Synthèse", "runs": "Runs historiques", "configurations": "Configurations", "bestEvidence": "Meilleur Evidence Hit@3", "meanLatency": "Latence moyenne" },
+    "history": { "title": "Historique des benchmarks", "date": "Date", "run": "Run", "commit": "Commit", "engine": "Moteur", "variable": "Variable", "previous": "Avant", "new": "Après", "source1": "Source Hit@1", "source3": "Source Hit@3", "evidence1": "Evidence Hit@1", "evidence3": "Evidence Hit@3", "latency": "Latence" },
+    "comparison": { "title": "Comparer deux runs", "previous": "Run précédent", "new": "Nouveau run", "action": "Comparer", "configuration": "Configuration", "metrics": "Écarts de métriques", "noConfigurationChange": "Aucun changement de configuration." },
+    "metrics": { "source_hit_at_1": "Source Hit@1", "source_hit_at_3": "Source Hit@3", "evidence_hit_at_1": "Evidence Hit@1", "evidence_hit_at_3": "Evidence Hit@3", "mean_latency_seconds": "Latence moyenne" },
+    "guide": {
+      "title": "Comprendre les métriques",
+      "baseline": { "title": "Baseline", "description": "Mesure de référence reproductible utilisée pour comparer les changements." },
+      "bm25": { "title": "BM25", "description": "Recherche lexicale fondée sur les mots présents dans la question et les documents." },
+      "qdrant": { "title": "Qdrant vectoriel", "description": "Recherche sémantique par proximité entre vecteurs d’embedding." },
+      "rrf": { "title": "RRF", "description": "Fusion des classements BM25 et Qdrant sans comparer directement leurs scores." },
+      "flashrank": { "title": "FlashRank", "description": "Reranking contextuel des candidats récupérés par les moteurs précédents." },
+      "source": { "title": "Source Hit@1 / @3", "description": "Vérifie si le bon document apparaît au premier rang ou dans les trois premiers." },
+      "evidence": { "title": "Evidence Hit@1 / @3", "description": "Vérifie si le passage précis attendu apparaît au premier rang ou dans les trois premiers." },
+      "latency": { "title": "Latence moyenne", "description": "Temps local moyen de recherche par question, distinct d’une mesure de production." },
+      "difference": { "title": "Document, passage, réponse", "description": "Trouver le bon document ne garantit pas le bon passage ; trouver le bon passage ne garantit pas une réponse générée correcte." }
+    }
   },
   "errors": {
     "unauthenticated": "Une authentification est requise.",

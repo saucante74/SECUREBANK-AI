@@ -1,4 +1,7 @@
 import json
+import os
+import subprocess
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -62,3 +65,25 @@ def test_generation_benchmark_documents_required_case_categories() -> None:
         "citation",
         "confidentiality",
     }
+
+
+def test_baseline_script_disables_onnx_telemetry_before_imports(
+    tmp_path: Path,
+) -> None:
+    backend_path = Path(__file__).resolve().parents[1]
+    environment = os.environ.copy()
+    environment.pop("ORT_DISABLE_TELEMETRY", None)
+    environment["PYTHONPATH"] = str(backend_path)
+
+    result = subprocess.run(
+        [sys.executable, "-c", "import scripts.run_rag_baseline"],
+        cwd=tmp_path,
+        env=environment,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 0
+    assert not (tmp_path / ":memory:.ses").exists()

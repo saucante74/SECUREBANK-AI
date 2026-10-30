@@ -43,3 +43,53 @@ export interface RagAskResponse {
   citations: RagCitation[];
   abstained: boolean;
 }
+
+export type ConfigurationValue = string | number | boolean | null;
+
+export interface EvaluationParameterChange {
+  name: string;
+  previous_value: ConfigurationValue;
+  new_value: ConfigurationValue;
+}
+
+export interface EvaluationMetrics {
+  source_hit_at_1: number;
+  source_hit_at_3: number;
+  evidence_hit_at_1: number;
+  evidence_hit_at_3: number;
+  mean_latency_seconds: number;
+}
+
+export interface EvaluationRun {
+  benchmark_id: string;
+  run_id: string;
+  created_at: string;
+  code_version: string;
+  rag_configuration: Record<string, ConfigurationValue>;
+  parameter_change: EvaluationParameterChange | null;
+  measured_metrics: Record<string, EvaluationMetrics>;
+  expected_behaviors: string[];
+  uncomputed_metrics: string[];
+  langfuse_trace_ids: string[];
+}
+
+export interface EvaluationConfigurationChange {
+  name: string;
+  previous_value: ConfigurationValue;
+  new_value: ConfigurationValue;
+}
+
+export interface EvaluationMetricDelta {
+  engine: string;
+  metric: keyof EvaluationMetrics;
+  previous_value: number | null;
+  new_value: number | null;
+  delta: number | null;
+}
+
+export interface EvaluationComparison {
+  previous_run_id: string;
+  new_run_id: string;
+  configuration_changes: EvaluationConfigurationChange[];
+  metric_deltas: EvaluationMetricDelta[];
+}

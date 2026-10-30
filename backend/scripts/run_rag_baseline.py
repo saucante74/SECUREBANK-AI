@@ -1,4 +1,7 @@
+import os
 from pathlib import Path
+
+os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
 
 from app.services.baseline_history import (
     build_baseline_run,

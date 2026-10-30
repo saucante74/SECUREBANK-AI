@@ -20,10 +20,15 @@ services:
       QDRANT_URL: http://qdrant:6333
       RAG_CORPUS_PATH: /app/data/rag_integration_corpus.json
       USER_DATABASE_PATH: /app/runtime/users.sqlite3
+      LANGFUSE_HOST: http://langfuse-web:3000
     volumes:
       - securebank_users:/app/runtime
+      - ./backend/benchmark_results:/app/benchmark_results:ro
     depends_on:
       - qdrant
+    networks:
+      - default
+      - securebank-observability
   qdrant:
     image: qdrant/qdrant:v1.19.0
     ports:
@@ -34,3 +39,7 @@ services:
 volumes:
   qdrant_data:
   securebank_users:
+
+networks:
+  securebank-observability:
+    external: true

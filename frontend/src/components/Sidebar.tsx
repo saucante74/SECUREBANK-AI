@@ -2,6 +2,7 @@ import type { MouseEvent, RefObject } from "react";
 import { useTranslation } from "react-i18next";
 
 import { pathForPage, type PageId } from "../app/navigation";
+import type { AuthMeResponse } from "../api/types";
 
 interface SidebarProps {
   closeButtonRef: RefObject<HTMLButtonElement | null>;
@@ -9,11 +10,13 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (page: PageId) => void;
+  user?: AuthMeResponse;
 }
 
 const navigationItems: { labelKey: string; page: PageId }[] = [
   { labelKey: "navigation.home", page: "home" },
   { labelKey: "navigation.assistant", page: "assistant" },
+  { labelKey: "navigation.evaluation", page: "evaluation" },
   { labelKey: "navigation.about", page: "about" },
 ];
 
@@ -36,6 +39,11 @@ function NavigationIcon({ page }: { page: PageId }) {
         </>
       ) : page === "assistant" ? (
         <path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4V7a2 2 0 0 1 2-2Z" />
+      ) : page === "evaluation" ? (
+        <>
+          <path d="M4 19V9m5 10V5m5 14v-7m5 7V3" />
+          <path d="M2 21h20" />
+        </>
       ) : (
         <>
           <circle cx="12" cy="12" r="9" />
@@ -52,6 +60,7 @@ export function Sidebar({
   isOpen,
   onClose,
   onNavigate,
+  user,
 }: SidebarProps) {
   const { t } = useTranslation();
   const visibilityClass = isOpen ? "translate-x-0" : "-translate-x-full";
@@ -131,7 +140,9 @@ export function Sidebar({
           {t("navigation.title")}
         </p>
         <ul className="mt-3 space-y-1.5">
-          {navigationItems.map(({ labelKey, page }) => {
+          {navigationItems
+            .filter(({ page }) => page !== "evaluation" || user?.role === "admin")
+            .map(({ labelKey, page }) => {
             const isCurrent = currentPage === page;
             const stateClass = isCurrent
               ? "bg-brand-active font-semibold text-white"
@@ -160,7 +171,7 @@ export function Sidebar({
                 </a>
               </li>
             );
-          })}
+            })}
         </ul>
       </nav>
 

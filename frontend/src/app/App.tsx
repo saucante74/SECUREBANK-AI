@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { HomePage } from "../pages/HomePage";
 import { AssistantPage } from "../pages/AssistantPage";
 import { AboutPage } from "../pages/AboutPage";
+import { EvaluationPage } from "../pages/EvaluationPage";
 import { AppShell } from "../components/AppShell";
 import { useAuthSession } from "../hooks/useAuthSession";
 import { pageFromPath, pathForPage, type PageId } from "./navigation";
@@ -34,17 +35,33 @@ export function App() {
     setCurrentPage(page);
   }, []);
 
-  const pageTitle = t(`navigation.${currentPage}`);
+  useEffect(() => {
+    if (
+      currentPage === "evaluation" &&
+      auth.status !== "checking" &&
+      auth.user?.role !== "admin"
+    ) {
+      window.history.replaceState({}, "", "/");
+    }
+  }, [auth.status, auth.user?.role, currentPage]);
+
+  const accessiblePage =
+    currentPage === "evaluation" && auth.user?.role !== "admin"
+      ? "home"
+      : currentPage;
+  const pageTitle = t(`navigation.${accessiblePage}`);
 
   const pageContent =
-    currentPage === "assistant" ? (
+    accessiblePage === "assistant" ? (
       <AssistantPage
         key={auth.clearVersion}
         authStatus={auth.status}
         onLogin={auth.login}
         onSessionExpired={auth.expireSession}
       />
-    ) : currentPage === "about" ? (
+    ) : accessiblePage === "evaluation" ? (
+      <EvaluationPage onSessionExpired={auth.expireSession} />
+    ) : accessiblePage === "about" ? (
       <AboutPage />
     ) : (
       <HomePage />
@@ -53,7 +70,7 @@ export function App() {
   return (
     <AppShell
       authStatus={auth.status}
-      currentPage={currentPage}
+      currentPage={accessiblePage}
       logoutErrorKey={auth.logoutErrorKey}
       onLogin={auth.login}
       onNavigate={navigate}
