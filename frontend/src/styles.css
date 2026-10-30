@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --color-brand-navy: #0d1e2e;
+  --color-brand-deep: #172838;
+  --color-brand-active: #223244;
+  --color-accent: #31d9a0;
+  --color-accent-strong: #087a5e;
+  --color-accent-soft: #eaf8f3;
+  --color-surface: #f4f5f7;
+  --color-ink: #121923;
+  --color-muted: #718093;
+  --color-border: #dfe3e7;
+  --shadow-soft: 0 2px 8px rgb(13 30 46 / 0.05);
+  --shadow-panel: 0 20px 50px rgb(5 20 33 / 0.22);
+}
+
+:root {
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  color: #121923;
+  background: #f4f5f7;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid #31d9a0;
+  outline-offset: 3px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "SecureBank-AI",
+    "securedInterface": "Interfaccia sicura",
+    "dashboard": "Pannello di controllo",
+    "demoEnvironment": "Ambiente dimostrativo",
+    "footer": "SecureBank-AI — Ambiente dimostrativo",
+    "demo": "Dimostrazione",
+    "demoDescription": "Interfaccia dimostrativa che utilizza esclusivamente dati sintetici.",
+    "languageLabel": "Lingua dell’interfaccia",
+    "languages": {
+      "fr": "Français",
+      "en": "English",
+      "it": "Italiano",
+      "de": "Deutsch"
+    }
+  },
+  "navigation": {
+    "title": "Navigazione",
+    "home": "Home",
+    "assistant": "Assistente",
+    "about": "Informazioni",
+    "comingSoon": "Prossimamente"
+  },
+  "home": {
+    "eyebrow": "Benvenuti in SecureBank-AI",
+    "title": "Assistente bancario intelligente e sicuro",
+    "description": "Un’interfaccia dedicata all’esplorazione di conoscenze bancarie sintetiche, con risposte documentate e particolare attenzione alla riservatezza.",
+    "assistantStatus": "Interfaccia disponibile",
+    "assistantTitle": "Uno spazio progettato per l’assistenza documentale",
+    "assistantDescription": "Lo spazio Assistente può essere consultato liberamente e richiede l’accesso solo quando viene inviata una domanda.",
+    "privacyEyebrow": "Protezione dei dati",
+    "privacyTitle": "Riservatezza",
+    "privacyDescription": "Il prototipo privilegia i dati sintetici e una presentazione sobria delle informazioni. Non deve essere utilizzato con dati bancari reali.",
+    "evidenceEyebrow": "Qualità dell’informazione",
+    "evidenceTitle": "Risposte con fonti",
+    "evidenceDescription": "L’esperienza prevista metterà in evidenza gli elementi documentali associati alle risposte, senza presentare oggi risultati fittizi o una connessione attiva.",
+    "usage": {
+      "title": "Come utilizzare SecureBank-AI?",
+      "question": { "title": "Fai la tua domanda", "description": "Inserisci una domanda bancaria o scegli una domanda suggerita." },
+      "login": { "title": "Accedi", "description": "Identificati nella finestra di accesso quando desideri inviare la domanda." },
+      "answer": { "title": "Consulta la risposta", "description": "L’assistente cerca informazioni nei documenti disponibili e presenta una risposta corredata di riferimenti quando disponibili." }
+    }
+  },
+  "about": {
+    "eyebrow": "Presentazione del servizio",
+    "title": "Informazioni su SecureBank-AI",
+    "introduction": {
+      "first": "SecureBank-AI è un assistente documentale progettato per facilitare la ricerca di informazioni in una raccolta di documenti bancari.",
+      "second": "Puoi porre una domanda in linguaggio naturale. L’assistente cerca i passaggi pertinenti nei documenti disponibili e utilizza queste informazioni per formulare una risposta chiara.",
+      "third": "Quando sono disponibili riferimenti, vengono visualizzati con la risposta per consentirti di ritrovare i documenti utilizzati.",
+      "disclaimer": "SecureBank-AI è uno strumento di supporto alla ricerca di informazioni. Non sostituisce un consulente bancario e non esegue alcuna operazione sui tuoi conti."
+    },
+    "operation": {
+      "title": "Come funziona il servizio?",
+      "question": "L’utente pone una domanda.",
+      "search": "Il sistema cerca i documenti pertinenti.",
+      "answer": "L’assistente prepara una risposta a partire dalle informazioni trovate.",
+      "sources": "Vengono visualizzate le fonti e le citazioni disponibili."
+    },
+    "faq": {
+      "title": "Domande frequenti",
+      "items": {
+        "1": { "question": "A cosa serve SecureBank-AI?", "answer": "SecureBank-AI aiuta a trovare e comprendere le informazioni presenti nei documenti bancari messi a disposizione dell’assistente." },
+        "2": { "question": "Devo accedere per utilizzare il servizio?", "answer": "Puoi consultare le pagine pubbliche senza effettuare l’accesso. Per inviare una domanda all’assistente è necessario accedere." },
+        "3": { "question": "Come posso porre una domanda?", "answer": "Apri la pagina Assistente, inserisci la domanda o seleziona una domanda suggerita, quindi fai clic su Invia." },
+        "4": { "question": "Da dove provengono le risposte?", "answer": "L’assistente cerca informazioni nella sua raccolta documentale. Quando trova passaggi pertinenti, li utilizza per preparare la risposta e visualizza i riferimenti disponibili." },
+        "5": { "question": "Le risposte sono sempre esatte?", "answer": "No. Come qualsiasi sistema di intelligenza artificiale, SecureBank-AI può commettere errori o interpretare male un’informazione. Verifica i riferimenti visualizzati prima di utilizzare una risposta per prendere una decisione importante." },
+        "6": { "question": "Cosa succede se non viene trovata alcuna informazione pertinente?", "answer": "L’assistente può indicare di non disporre di informazioni sufficienti per rispondere. Non deve inventare una risposta quando non è disponibile alcuna fonte affidabile." },
+        "7": { "question": "Posso effettuare un bonifico o consultare il saldo?", "answer": "No. SecureBank-AI è un assistente documentale. Non consente di effettuare operazioni bancarie né di accedere direttamente ai tuoi conti." },
+        "8": { "question": "Le mie informazioni personali sono protette?", "answer": "SecureBank-AI dispone di meccanismi destinati a limitare l’esposizione di alcuni dati personali, compreso il loro mascheramento durante il trattamento delle domande. Queste protezioni non garantiscono tuttavia l’assenza totale di rischi. Evita di inserire password, numeri di conto completi o altre informazioni sensibili." },
+        "9": { "question": "Perché alcune risposte mostrano delle fonti?", "answer": "Le fonti consentono di ritrovare i documenti utilizzati per preparare la risposta e di verificare le informazioni presentate." },
+        "10": { "question": "In quali lingue è disponibile l’interfaccia?", "answer": "L’interfaccia è disponibile in francese, inglese, italiano e tedesco." }
+      }
+    }
+  },
+  "assistant": {
+    "eyebrow": "Ricerca documentale",
+    "title": "Assistente documentale",
+    "description": "Fai una domanda sui documenti disponibili in SecureBank-AI.",
+    "questionSection": "La tua domanda",
+    "questionLabel": "Domanda documentale",
+    "placeholder": "Inserisci qui la tua domanda.",
+    "characterCount": "{{current}} / {{maximum}} caratteri",
+    "send": "Invia",
+    "loader": {
+      "title": "Elaborazione della richiesta",
+      "description": "SecureBank-AI sta preparando una risposta basata sui documenti disponibili.",
+      "accessibleStatus": "Elaborazione della domanda in corso.",
+      "analyzing": "Analisi della domanda…",
+      "searching": "Ricerca nei documenti…",
+      "preparing": "Preparazione della risposta…"
+    },
+    "errorTitle": "La richiesta non è stata completata",
+    "authenticatedReady": "Hai effettuato l’accesso. La domanda può essere inviata.",
+    "loginRequired": "La pagina rimane accessibile. L’accesso viene richiesto solo al momento dell’invio.",
+    "suggestions": {
+      "title": "Domande suggerite",
+      "dailyTransferLimit": "Qual è il limite giornaliero per i bonifici online?",
+      "accountDocuments": "Quali documenti sono necessari per aprire un conto bancario?",
+      "suspiciousTransaction": "Cosa fare in caso di transazione sospetta sul mio conto?"
+    },
+    "productionAuth": {
+      "title": "Accesso su richiesta",
+      "description": "L’accesso viene richiesto solo quando viene inviata una domanda.",
+      "formDisabled": "Accedi per inviare una domanda."
+    }
+  },
+  "auth": {
+    "connected": "Connesso · {{role}}",
+    "logout": "Disconnetti",
+    "logoutConfirmation": {
+      "title": "Disconnessione",
+      "description": "Vuoi davvero disconnetterti?",
+      "cancel": "Annulla",
+      "confirm": "Disconnetti",
+      "loading": "Disconnessione…"
+    },
+    "login": {
+      "eyebrow": "Assistente documentale",
+      "title": "Accesso richiesto",
+      "description": "Accedi per inviare questa domanda. Il testo inserito verrà conservato.",
+      "username": "Identificativo",
+      "password": "Password",
+      "submit": "Accedi",
+      "loading": "Accesso…",
+      "cancel": "Annulla",
+      "invalidCredentials": "Identificativo o password non corretti.",
+      "rateLimited": "Troppi tentativi. Riprova tra qualche minuto.",
+      "unavailable": "L’accesso è temporaneamente non disponibile."
+    }
+  },
+  "rag": {
+    "emptyTitle": "Conversazione vuota",
+    "emptyDescription": "Le risposte documentali appariranno in questo spazio quando l’invio sarà disponibile.",
+    "normalStatus": "Risposta documentale",
+    "abstainedStatus": "Risposta con astensione",
+    "abstainedDescription": "Gli elementi disponibili non consentono di fornire una risposta sufficientemente fondata.",
+    "answerTitle": "Risposta",
+    "sourcesTitle": "Fonti",
+    "noSources": "Nessuna fonte disponibile.",
+    "citationsTitle": "Citazioni",
+    "noCitations": "Nessuna citazione disponibile.",
+    "reference": "Riferimento {{reference}}",
+    "document": "Documento: {{documentId}}",
+    "unmatchedSource": "Fonte associata non disponibile."
+  },
+  "errors": {
+    "unauthenticated": "È richiesta l’autenticazione.",
+    "forbidden": "Non sei autorizzato a eseguire questa azione.",
+    "validation": "Le informazioni inviate non sono valide.",
+    "upstreamService": "Il servizio di generazione non può rispondere al momento.",
+    "serviceUnavailable": "Il servizio è temporaneamente non disponibile.",
+    "network": "La connessione al servizio non è riuscita.",
+    "aborted": "La richiesta è stata annullata.",
+    "unexpectedResponse": "Il servizio ha restituito una risposta inattesa.",
+    "http": "Non è stato possibile completare la richiesta."
+  },
+  "accessibility": {
+    "primaryNavigation": "Navigazione principale",
+    "sectionsNavigation": "Sezioni dell’applicazione",
+    "openNavigation": "Apri la navigazione",
+    "closeMenu": "Chiudi il menu",
+    "closeNavigation": "Chiudi la navigazione",
+    "projectPrinciples": "Principi del progetto",
+    "plannedFeatures": "Funzionalità pianificate"
+  }
+}

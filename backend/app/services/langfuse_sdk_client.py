@@ -13,6 +13,7 @@ class LangfuseSdkObservation(Protocol):
         as_type: str,
         metadata: dict[str, float | int] | None = None,
         model: str | None = None,
+        usage_details: dict[str, int] | None = None,
     ) -> "LangfuseSdkObservation": ...
 
     def update(
@@ -20,6 +21,7 @@ class LangfuseSdkObservation(Protocol):
         *,
         level: str,
         status_message: str,
+        metadata: dict[str, float | bool],
     ) -> "LangfuseSdkObservation": ...
 
     def end(self) -> "LangfuseSdkObservation": ...
@@ -74,13 +76,28 @@ class LangfuseSdkObservationClient:
         trace_id: str,
         duration_seconds: float,
         model: str,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        total_tokens: int | None,
     ) -> None:
         trace = self._get_trace(trace_id)
+        usage_details = None
+        if (
+            input_tokens is not None
+            and output_tokens is not None
+            and total_tokens is not None
+        ):
+            usage_details = {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": total_tokens,
+            }
         observation = trace.start_observation(
             name="rag-generation",
             as_type="generation",
             metadata={"duration_seconds": duration_seconds},
             model=model,
+            usage_details=usage_details,
         )
         observation.end()
 
@@ -89,12 +106,23 @@ class LangfuseSdkObservationClient:
         *,
         trace_id: str,
         status: RagRequestStatus,
+        total_duration_seconds: float,
+        abstained: bool | None,
     ) -> None:
         with self._lock:
             trace = self._traces.pop(trace_id)
-        level = "ERROR" if status is RagRequestStatus.ERROR else "DEFAULT"
+        level = "ERROR" if status == RagRequestStatus.ERROR else "DEFAULT"
+        metadata: dict[str, float | bool] = {
+            "total_duration_seconds": total_duration_seconds
+        }
+        if abstained is not None:
+            metadata["abstained"] = abstained
         try:
-            trace.update(level=level, status_message=status.value)
+            trace.update(
+                level=level,
+                status_message=status.value,
+                metadata=metadata,
+            )
         finally:
             trace.end()
 

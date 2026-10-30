@@ -28,7 +28,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Generation | Configurable OpenAI-compatible LLM service, lazy RAG factory, RAG context, citation mapping, and explicit abstention | Semantic evidence validation |
 | Orchestration and tools | None | LangGraph, FastMCP |
 | Observability | Privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse Python SDK 4.17.0 client | Live-server validation, dashboards, and alerts |
-| Frontend | None | React 19, TypeScript, Vite |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS, Vitest, i18next, native navigation, multilingual Assistant UI, typed native-fetch API client, development-only JWT connection | Production authentication and business interfaces |
 | Deployment | None | Render backend, Vercel frontend |
 
 The backend requirements file already declares packages for later iterations. A declared dependency does not mean that its related capability is implemented.
@@ -136,6 +136,15 @@ SECUREBANK-AI/
 │   │   └── test_rrf.py
 │   └── venv/
 ├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   ├── pages/
+│   │   └── test/
+│   ├── README.md
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── package.json
+│   └── vite.config.ts
 └── main.py
 ```
 
@@ -152,7 +161,7 @@ SECUREBANK-AI/
 - Docker Compose v2 for the application and isolated Langfuse stacks
 - OpenSSL for generating local Langfuse secrets
 
-Node.js is not required until frontend development begins.
+- Node.js 24 or later and npm 11 or later for frontend development
 
 ## Installation
 
@@ -200,6 +209,13 @@ The implemented configuration accepts these variables:
 | `JWT_ALGORITHM` | `HS256` | Explicitly allowed JWT signing algorithm |
 | `JWT_ISSUER` | None | Required JWT issuer |
 | `JWT_AUDIENCE` | None | Required JWT audience |
+| `USER_DATABASE_PATH` | `backend/data/users.sqlite3` | Persistent SQLite user database path |
+| `SESSION_LIFETIME_SECONDS` | `900` | Maximum server-side session lifetime |
+| `SESSION_COOKIE_SECURE` | `false` | Sends session cookies only over HTTPS when enabled |
+| `SESSION_COOKIE_SAMESITE` | `lax` | Session and CSRF cookie SameSite policy |
+| `AUTH_TRUSTED_ORIGINS` | `http://localhost:5173,http://localhost:8080,http://127.0.0.1:5173,http://127.0.0.1:8080` | Comma-separated origins allowed to submit credentials |
+| `LOGIN_ATTEMPT_LIMIT` | `5` | Failed attempts allowed during one rate-limit window |
+| `LOGIN_ATTEMPT_WINDOW_SECONDS` | `300` | Persistent login rate-limit window |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint |
 | `QDRANT_COLLECTION_NAME` | `securebank_chunks` | Collection used for chunk vectors |
 | `RAG_ENABLED` | `false` | Enables lazy construction of the generative RAG pipeline |
@@ -216,6 +232,8 @@ The implemented configuration accepts these variables:
 Environment variables override values loaded from `backend/.env`, which override the development defaults. Do not commit `.env` or place real banking data in it.
 
 JWT settings remain optional at application startup, so the public health endpoint works without them. Access to protected endpoints is denied until a secret of at least 32 characters, an issuer, and an audience are configured. Replace every example value before using authentication outside local development.
+
+Cookie sessions are stored server-side in the SQLite user database. Set `SESSION_COOKIE_SECURE=true` for HTTPS deployments; production configuration rejects insecure session cookies. `SameSite=None` is accepted only with a secure cookie. Add every frontend origin that may submit credentials to `AUTH_TRUSTED_ORIGINS`. The default `lax` policy is appropriate for the same-origin Vite and Nginx proxy architecture.
 
 The LLM API key is also optional at application startup. Creating a real LLM client requires it. To use an OpenAI-compatible provider, set `LLM_API_KEY`, set the provider's model identifier in `LLM_MODEL`, and set `LLM_BASE_URL` to its API base URL. Leave `LLM_BASE_URL` empty for the official OpenAI endpoint. Keep provider credentials only in the untracked `.env` file or a deployment secret store.
 
@@ -424,7 +442,19 @@ Read the service logs:
 docker compose logs
 ```
 
-The backend is available at `http://localhost:8000`, and Qdrant exposes its HTTP API at `http://localhost:6333`. Its dashboard is available at `http://localhost:6333/dashboard`. The named `qdrant_data` volume preserves vector data across container restarts.
+Compose loads the ignored `backend/.env` file into the backend container at runtime. The local JWT generator and the container therefore use the same `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `JWT_ISSUER`, and `JWT_AUDIENCE` values. The explicit Compose `QDRANT_URL` value still overrides the host-oriented value so the backend reaches Qdrant through the internal service name. The environment file is not copied into the image and must never be committed or printed.
+
+The backend image includes the committed synthetic integration corpus and the locally prepared MiniLM embedding directory. Compose selects `/app/data/rag_integration_corpus.json` through the existing `RAG_CORPUS_PATH` setting. Before building the image on a fresh clone, prepare the ignored local embedding model from `backend/` with `venv/bin/python -m scripts.prepare_embedding_model`. The build fails instead of downloading a model implicitly when that directory is absent.
+
+The backend is available at `http://localhost:8000`, and Qdrant exposes its HTTP API at `http://localhost:6333`. Its dashboard is available at `http://localhost:6333/dashboard`. The named `qdrant_data` volume preserves vector data across container restarts. Compose overrides `USER_DATABASE_PATH` with `/app/runtime/users.sqlite3` and mounts the named `securebank_users` volume at `/app/runtime`. The image creates that directory for the non-root UID/GID `10001`, while `.dockerignore` excludes SQLite files from the build context.
+
+Create an interactive demonstration user directly in the backend container:
+
+```bash
+docker compose exec backend python -m scripts.create_user demo.analyst --role analyst
+```
+
+The password is requested twice without being accepted as a command-line argument. Accounts and non-expired sessions remain available after backend restarts and container recreation. Do not pass `--volumes` or `-v` to `docker compose down` unless permanent deletion of the named application data is explicitly intended.
 
 Stop and remove the Compose resources:
 
@@ -432,7 +462,7 @@ Stop and remove the Compose resources:
 docker compose down
 ```
 
-The frontend will be added to Docker Compose after the React application is initialized.
+The frontend is included in Docker Compose and is served locally through Nginx on port `8080`.
 
 ### Running Langfuse Locally
 
@@ -488,7 +518,27 @@ Do not add `--volumes` or `-v` unless permanent deletion of all local Langfuse d
 
 ## Running the Frontend
 
-**Planned.** The `frontend/` directory is currently empty, so there is no frontend installation or start command yet.
+Install the locked dependencies and start the Vite development server:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The current frontend displays a responsive public dashboard, a public `/about` service overview with an accessible FAQ, and a documentary Assistant in French, English, Italian, and German. Native browser navigation connects `/`, `/assistant`, and `/about` without requiring authentication. Submitting an anonymous question opens an accessible login dialog; successful cookie login preserves and immediately sends the question. The header exposes a compact language selector followed by accessible icon actions for sign-in and confirmed sign-out. Session expiry reopens login, while successful logout clears in-memory Assistant content. The typed client sends cookies, copies the CSRF cookie into protected POST headers, and retains optional Bearer support for API compatibility without exposing manual token entry in React. JWTs, credentials, questions, and RAG content are not persisted in browser storage. See [Frontend README](frontend/README.md) for focused instructions and limitations.
+
+For the Dockerized local stack, build and start the frontend with its backend dependency:
+
+```bash
+docker compose up --build frontend
+```
+
+Open `http://localhost:8080`. Nginx serves the compiled SPA and forwards `/api/*` to the `backend` service over the internal Compose network after removing the prefix. Stop the stack without deleting the existing Qdrant volume:
+
+```bash
+docker compose down
+```
 
 ## Running Tests
 
@@ -500,6 +550,15 @@ python -m pytest
 ```
 
 The tests cover configuration defaults, environment overrides, the health endpoint contract, JWT validation, Bearer authentication and RBAC, local PII detection and masking, deterministic document chunking, in-memory BM25 retrieval, local embeddings, and Qdrant vector storage.
+
+Run the frontend quality checks separately:
+
+```bash
+cd frontend
+npm run build
+npm run lint
+npm run test
+```
 
 ### Local FlashRank Reranking Demonstration
 
@@ -779,6 +838,8 @@ Current endpoints:
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Reports service availability, identity, and version |
+| `POST` | `/auth/login` | Verifies local credentials and creates a cookie session |
+| `POST` | `/auth/logout` | Revokes the current cookie session |
 | `GET` | `/auth/me` | Returns the authenticated `sub` and `role` |
 | `GET` | `/auth/analyst` | Allows `analyst`, `compliance_officer`, and `admin` |
 | `GET` | `/auth/admin` | Allows only `admin` |
@@ -792,13 +853,33 @@ curl --fail --silent --show-error \
   http://127.0.0.1:8000/auth/me
 ```
 
-A valid HS256 token with matching `exp`, `iss`, `aud`, non-empty `sub`, and a recognized `role` can establish an authenticated identity. Missing or invalid credentials return HTTP 401 with `WWW-Authenticate: Bearer`. An authenticated identity without an explicitly allowed role receives HTTP 403. The application does not issue tokens.
+A valid HS256 token with matching `exp`, `iss`, `aud`, non-empty `sub`, and a recognized `role` can establish an authenticated identity. The same endpoints also accept an unexpired server-side session through the HttpOnly `securebank_session` cookie. Missing or invalid credentials return HTTP 401 with `WWW-Authenticate: Bearer`. An authenticated identity without an explicitly allowed role receives HTTP 403. The application does not issue JWTs.
+
+For local development only, generate a 15-minute `analyst` token from the JWT configuration in `backend/.env`:
+
+```bash
+cd backend
+venv/bin/python -m scripts.generate_development_jwt
+```
+
+The script requires `JWT_SECRET_KEY`, `JWT_ISSUER`, and `JWT_AUDIENCE`. It does not contain, persist, or log the secret or generated token. The token is printed once to standard output so it can be entered manually in the frontend development panel. This utility is not a production authentication mechanism, and the FastAPI application still does not expose a token-issuing endpoint.
 
 Available roles:
 
 - `analyst`
 - `compliance_officer`
 - `admin`
+
+Create a local user without placing a password in shell history:
+
+```bash
+cd backend
+venv/bin/python -m scripts.create_user demo.analyst --role analyst
+```
+
+The command prompts twice for a password, requires at least 12 characters and at most 72 UTF-8 bytes, stores only a bcrypt hash, and creates an active account by default. Add `--disabled` to create an inactive account. Usernames are unique case-insensitively. The ignored SQLite file is created at `USER_DATABASE_PATH` and supplies `POST /auth/login`.
+
+Browser login requires a trusted `Origin` header and returns the authenticated UUID and role. Successful responses set an opaque HttpOnly session cookie and a readable CSRF cookie. The raw session and CSRF values are never stored in SQLite; only SHA-256 fingerprints are persisted. State-changing requests authenticated by cookie must copy the CSRF cookie value into `X-CSRF-Token`. Logout deletes the server-side session before expiring both cookies. Failed logins are limited persistently per normalized username and use the same generic error for unknown users, wrong passwords, and disabled accounts.
 
 RBAC denies access unless an endpoint explicitly lists the authenticated role. The role comes only from the cryptographically verified JWT claim; it is never accepted from request parameters, custom headers, or request bodies.
 
@@ -824,12 +905,15 @@ Missing, invalid, or expired credentials return HTTP 401 with `WWW-Authenticate:
 - Development data must be synthetic.
 - JWT validation verifies HS256 signatures and requires valid `exp`, `iss`, `aud`, and non-empty `sub` claims.
 - Bearer authentication requires a recognized, non-empty `role` claim and returns the authenticated subject and role from `GET /auth/me`.
+- Cookie authentication uses opaque, time-limited, server-side SQLite sessions with HttpOnly transport and effective logout revocation.
+- Cookie-authenticated state changes require a matching CSRF cookie, request header, and server-side fingerprint.
+- Login requires an explicitly trusted origin and applies a persistent per-username attempt limit.
 - RBAC protects demonstration endpoints with explicit role allowlists and denies authenticated users with HTTP 403 when their role is insufficient.
 - PII detection runs locally with Presidio Analyzer and a French spaCy model; analyzed values are neither persisted nor logged by the service.
 - PII masking replaces detected values locally with typed markers and provides no restoration mechanism.
 - The protected PII endpoint sanitizes validation errors so rejected request values are not echoed in HTTP 422 responses.
 - E-mail validation uses the public-suffix snapshot bundled with `tldextract` and performs no runtime network refresh.
-- Token generation is not implemented.
+- Token issuance is not exposed by the API; a local 15-minute `analyst` token generator exists only for development.
 - In production, a trusted identity system must assign roles. Permission changes may require token revocation or short expiration because an issued JWT retains its embedded role until it expires or is revoked.
 - Future authorization decisions will remain deterministic and outside LLM control.
 - The observability contract accepts only explicitly typed technical measurements and excludes request, response, document, identity, authentication, and credential content.
@@ -859,6 +943,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 | Day 2 | Regulatory corpus, chunking, embeddings, Qdrant, BM25, RRF, reranking, evidence validation, abstention | In Progress: document models, character chunking, BM25, local embeddings, Qdrant vector search, RRF, hybrid orchestration, and independent FlashRank reranking completed |
 | Day 3 | Independent FastMCP server, simulated tools, MCP client, LangGraph state and routing | Planned |
 | Day 4 | Langfuse, tracing, evaluation, documentation, frontend integration, deployment | In Progress: privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse SDK client implemented; live integration remains planned |
+| Phase 6 | React frontend | In Progress: Vite, TypeScript, Tailwind CSS design system, responsive application shell, native navigation, French/English/Italian localization, development-only Assistant API connection, typed API client, ESLint, Vitest, and Docker integration implemented |
 
 ## Current Implementation Status
 
@@ -874,6 +959,12 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Independent JWT validator for HS256 signatures and required `exp`, `iss`, `aud`, and non-empty `sub` claims.
 - Deterministic JWT validation tests using synthetic tokens and secrets.
 - Reusable FastAPI Bearer authentication dependency.
+- Persistent SQLite user store with unique identifiers, bcrypt password hashes, explicit roles, and active status.
+- Interactive local user-creation command that does not accept passwords as command-line arguments.
+- Credential login with generic failures for unknown, incorrect, and inactive accounts.
+- Revocable, expiring SQLite sessions through configurable HttpOnly cookies.
+- CSRF double-submit protection backed by a server-side token fingerprint.
+- Persistent login-attempt limiting and trusted-origin validation.
 - Typed roles for `analyst`, `compliance_officer`, and `admin`.
 - Reusable deny-by-default RBAC dependency with explicit role allowlists.
 - Protected authentication demonstration endpoints for identity, analyst access, and admin access.
@@ -895,7 +986,8 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Fail-closed PII masking for RAG questions, retrieved source text and metadata, and generated answers.
 - Reproducible offline validation with the prepared local embedding model.
 - Backend Docker image using Python 3.12 slim and a non-root runtime user.
-- Backend Docker Compose service exposed on local port `8000`.
+- Backend and frontend Docker Compose services exposed on local ports `8000` and `8080`.
+- Persistent Docker named volume for SQLite users, login limits, and sessions, writable by the non-root backend user.
 - Pull Request-only backend GitHub Actions workflow.
 - Disabled-by-default Langfuse configuration with conditional credential validation and no network initialization.
 - Typed privacy-preserving `RagObserver` contract and stateless `NoOpRagObserver` implementation.
@@ -903,6 +995,17 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Offline `LangfuseRagObserver` adapter with an injected internal client contract and context-local trace correlation.
 - Conditional official Langfuse Python SDK 4.17.0 client with correlated root, retrieval, and generation observations.
 - Isolated Langfuse v4 Docker Compose definition with loopback-only published ports and persistent local volumes.
+- React 19 frontend initialized with strict TypeScript, Vite, Tailwind CSS, ESLint, and Vitest.
+- Responsive SecureBank-AI presentation dashboard with a reusable shell, accessible mobile navigation, and no API or authentication behavior.
+- Centralized typed native-fetch API client for health, current-user, and RAG requests with injectable transport, cancellation, Bearer headers, and structured safe errors.
+- Native browser navigation between the dashboard and a directly accessible documentary Assistant page.
+- Accessible disabled Assistant form and reusable typed presentation components for RAG answers, sources, citations, and abstentions, without backend calls or simulated production responses.
+- Local French, English, Italian, and German interface catalogs with a persistent validated language preference and synchronized HTML language metadata.
+- Development-only in-memory JWT panel connecting the Assistant to the typed RAG API service with loading, localized errors, cancellation, and stale-response protection.
+- On-demand accessible login dialog with keyboard focus management and preserved question submission.
+- Cookie session restoration, CSRF-protected RAG and logout requests, expiration handling, connected state, and logout cleanup.
+- Local Vite `/api` proxy prepared for the FastAPI backend without changing backend routes or CORS.
+- Multi-stage frontend image with a Node.js build stage and an Nginx runtime serving the SPA and reverse-proxying `/api` to the backend service.
 
 ### In Progress
 
@@ -910,11 +1013,11 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 
 ### Planned
 
-- Token generation and token revocation.
+- JWT revocation.
 - Document ingestion, automatic reranking integration, and semantic evidence validation.
 - FastMCP and LangGraph orchestration.
 - Live Langfuse trace export validation, dashboards, and alerts.
-- React frontend and cloud deployment.
+- Production authentication design, production Assistant submission, business interfaces, and cloud deployment.
 
 ## Known Limitations
 
@@ -930,13 +1033,14 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - FlashRank reranking is not yet connected automatically to `HybridRetriever`.
 - LLM generation has no semantic evidence validation. PII masking reduces exposure but cannot guarantee that every sensitive value is detected.
 - Enabling RAG transmits masked questions and passages to the configured LLM provider. False negatives can expose original values, so provider hosting, retention, access, and confidentiality controls must be assessed before use.
-- RAG PII integration has been tested with synthetic fakes only; no real OpenAI call or live Qdrant RAG flow has been performed.
+- RAG PII integration uses synthetic data only. A live Docker Compose Qdrant and configured LLM flow has been validated locally, but no production provider or real banking data has been tested.
 - Generative RAG validates citation references structurally but does not verify semantic support and cannot guarantee grounded answers when retrieved documents are misleading, incomplete, or malicious.
-- There is no token generation, user directory, token revocation, hybrid retrieval API, agent orchestration, MCP server, operational observability, frontend, or deployment configuration.
+- The frontend cookie login is implemented and the complete authentication and RAG flow has been validated through the live Docker HTTP endpoints. Visual browser interaction remains a manual verification step.
+- Login limiting is keyed by normalized username; it reduces brute-force attempts but can temporarily block a targeted account.
 - The RAG observer is no-op by default. The official SDK client has only been exercised with offline fakes; no real trace ingestion, persistence, dashboard, or alert behavior has been validated.
 - The Langfuse Compose stack has not been pulled, started, health-checked, or exercised through its UI; local capacity and image compatibility remain unverified.
 - Qdrant vector search requires a running Qdrant service; the vector store creates its collection when needed, but the demonstration corpus must be indexed before it can be searched.
-- Docker Compose currently starts the backend and Qdrant; frontend integration is planned after the React application is initialized.
+- Docker Compose starts the frontend, backend, and Qdrant; the frontend container depends on backend startup but not on backend health because the backend service has no Compose health check.
 - The backend workflow has not yet been executed and validated by GitHub Actions on a Pull Request.
 - The dependency manifest includes packages reserved for future iterations.
 - The existing backend virtual environment reports Python 3.12.13; the project supports Python 3.12.x.

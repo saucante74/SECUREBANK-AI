@@ -151,6 +151,7 @@ class RagGenerationService:
         question: str,
         top_k: int | None = None,
     ) -> RagGenerationResult:
+        request_started = time.perf_counter()
         self._notify(self._observer.on_request_started)
         try:
             if not isinstance(question, str) or not question.strip():
@@ -184,23 +185,34 @@ class RagGenerationService:
                 )
                 self._notify(
                     lambda: self._observer.on_request_completed(
-                        status=RagRequestStatus.SUCCESS
+                        status=RagRequestStatus.SUCCESS,
+                        total_duration_seconds=time.perf_counter() - request_started,
+                        abstained=result.abstained,
                     )
                 )
                 return result
 
             prompt = build_rag_prompt(masked_question, masked_chunks)
             generation_started = time.perf_counter()
-            response_text = self._llm_service.generate(prompt)
+            generation = self._llm_service.generate(prompt)
             generation_duration = time.perf_counter() - generation_started
             self._notify(
                 lambda: self._observer.on_generation_completed(
                     duration_seconds=generation_duration,
                     model=self._model_name,
+                    input_tokens=(
+                        generation.usage.input_tokens if generation.usage else None
+                    ),
+                    output_tokens=(
+                        generation.usage.output_tokens if generation.usage else None
+                    ),
+                    total_tokens=(
+                        generation.usage.total_tokens if generation.usage else None
+                    ),
                 )
             )
             answer, abstained, citations = parse_llm_response(
-                response_text,
+                generation.text,
                 masked_chunks,
             )
             masked_answer = self._mask_text(answer)
@@ -218,13 +230,19 @@ class RagGenerationService:
         except Exception:
             self._notify(
                 lambda: self._observer.on_request_completed(
-                    status=RagRequestStatus.ERROR
+                    status=RagRequestStatus.ERROR,
+                    total_duration_seconds=time.perf_counter() - request_started,
+                    abstained=None,
                 )
             )
             raise
 
         self._notify(
-            lambda: self._observer.on_request_completed(status=RagRequestStatus.SUCCESS)
+            lambda: self._observer.on_request_completed(
+                status=RagRequestStatus.SUCCESS,
+                total_duration_seconds=time.perf_counter() - request_started,
+                abstained=result.abstained,
+            )
         )
         return result
 

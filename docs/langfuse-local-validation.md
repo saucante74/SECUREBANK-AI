@@ -103,6 +103,7 @@ Run this command from `backend/`. It performs a local Langfuse request only afte
 ```bash
 ./venv/bin/python - <<'PY'
 import sys
+import time
 from uuid import uuid4
 
 from langfuse import Langfuse, is_langfuse_span
@@ -129,6 +130,7 @@ try:
     )
     client = LangfuseSdkObservationClient(sdk)
     trace_id = uuid4().hex
+    request_started = time.perf_counter()
     client.start_trace(trace_id=trace_id)
     client.record_retrieval(
         trace_id=trace_id,
@@ -139,8 +141,16 @@ try:
         trace_id=trace_id,
         duration_seconds=0.001,
         model="synthetic-local-validation-model",
+        input_tokens=None,
+        output_tokens=None,
+        total_tokens=None,
     )
-    client.finish_trace(trace_id=trace_id, status=RagRequestStatus.SUCCESS)
+    client.finish_trace(
+        trace_id=trace_id,
+        status=RagRequestStatus.SUCCESS,
+        total_duration_seconds=time.perf_counter() - request_started,
+        abstained=False,
+    )
     sdk.flush()
 except Exception:
     print("Synthetic Langfuse validation failed", file=sys.stderr)
@@ -158,8 +168,14 @@ In the local Langfuse interface, find the newest `rag-request` trace and confirm
 
 - one `rag-retrieval` child with numeric `duration_seconds` and `passage_count=0`;
 - one `rag-generation` child with numeric `duration_seconds` and model `synthetic-local-validation-model`;
-- final status `success`;
+- final status `success`, numeric non-negative `total_duration_seconds`, and boolean `abstained=false` on `rag-request`;
 - one shared technical trace identifier.
+
+`total_duration_seconds` measures the complete RAG request with a monotonic clock and is not calculated by adding retrieval and generation durations. `abstained` records the final business outcome only when it is known; failed requests omit it. `passage_count` is the integer number of retrieval results and remains attached only to `rag-retrieval`.
+
+For real OpenAI Responses API calls, `rag-generation` also receives `input_tokens`, `output_tokens`, and `total_tokens` from `response.usage` through Langfuse `usage_details`. The application exports them only when OpenAI returns a complete, non-negative, internally consistent set of integer counters. If usage is absent or inconsistent, all three counters are omitted rather than replaced with zero.
+
+Langfuse can use the generation model and `usage_details` with its server-side model and pricing configuration to display calculated costs. SecureBank-AI does not send `cost_details`, does not hard-code provider prices, and does not create `estimated_cost_usd`. A cost may therefore remain unavailable when the local Langfuse model catalog has no matching price. Any calculated value is an estimate based on Langfuse configuration, not an invoiced OpenAI amount.
 
 If no trace appears, inspect container status and sanitized logs. Do not paste full logs into external systems because SDK or infrastructure diagnostics may contain endpoints or operational identifiers.
 
@@ -172,7 +188,26 @@ Inspect the root and both child observations. Confirm that none contains:
 - arbitrary application metadata;
 - populated business `input` or `output` fields.
 
+The application exports only the status, technical timing and count metrics, token usage when available, observation names, and model identifier. It never adds questions, answers, prompts, passages, documents, titles, sources, citations, personal identifiers, JWTs, secret keys, or raw exceptions to Langfuse metadata.
+
 The SDK and OpenTelemetry protocol still add transport and tracing fields such as observation names, types, timestamps, span identifiers, SDK version, and authentication headers required by the local Langfuse server. The application-level allowlist cannot remove protocol-required fields. The `is_langfuse_span` filter excludes known third-party LLM instrumentation spans, but the exact server-side representation cannot be guaranteed until this visual inspection is completed.
+
+### Public key in technical metadata
+
+Langfuse Python SDK 4.17.0 creates its OpenTelemetry tracer with the project public key in the instrumentation scope attributes. The Langfuse span processor reads this attribute before export to associate SDK spans with the correct client and prevent cross-project export. OpenTelemetry serializes the resulting instrumentation scope as `scope.attributes.public_key`; OpenTelemetry does not create the value itself.
+
+The public key identifies the Langfuse project but does not grant access without the corresponding secret key. The secret key is used with the public key in the OTLP authentication header and must never appear in trace metadata, logs, documentation, screenshots, or diagnostics. The public key remains operational metadata and should still be disclosed only where needed.
+
+Langfuse 4.17.0 provides no public API that removes instrumentation scope attributes. Its public `mask_otel_spans` hook can change span attributes only and explicitly cannot change the instrumentation scope. A custom span exporter would require application-owned reconstruction of OpenTelemetry spans and manual preservation of the Langfuse endpoint, authentication headers, batching, and compatibility behavior. This validation therefore keeps `scope.attributes.public_key` unchanged rather than depending on SDK internals, a monkey patch, or a fragile exporter wrapper.
+
+Apply the following confidentiality policy:
+
+- treat the public key as a project identifier with limited disclosure, not as an authentication secret;
+- keep the secret key restricted to the ignored backend environment file and transport authentication;
+- restrict access to Langfuse traces, exports, screenshots, and diagnostic logs;
+- avoid copying raw trace payloads into external systems;
+- rotate the project credentials if project identifiers or authentication material are disclosed beyond the intended environment;
+- reassess this decision when upgrading Langfuse if a documented instrumentation-scope filtering API becomes available.
 
 ## I. Disable Langfuse
 

@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "SecureBank-AI",
+    "securedInterface": "Secure interface",
+    "dashboard": "Dashboard",
+    "demoEnvironment": "Demonstration environment",
+    "footer": "SecureBank-AI — Demonstration environment",
+    "demo": "Demonstration",
+    "demoDescription": "Presentation interface using synthetic data exclusively.",
+    "languageLabel": "Interface language",
+    "languages": {
+      "fr": "Français",
+      "en": "English",
+      "it": "Italiano",
+      "de": "Deutsch"
+    }
+  },
+  "navigation": {
+    "title": "Navigation",
+    "home": "Home",
+    "assistant": "Assistant",
+    "about": "About",
+    "comingSoon": "Coming soon"
+  },
+  "home": {
+    "eyebrow": "Welcome to SecureBank-AI",
+    "title": "Secure intelligent banking assistant",
+    "description": "An interface for exploring synthetic banking knowledge, with documented answers and a strong focus on confidentiality.",
+    "assistantStatus": "Interface available",
+    "assistantTitle": "A space designed for documentary assistance",
+    "assistantDescription": "The Assistant can be explored freely and requests sign-in only when a question is submitted.",
+    "privacyEyebrow": "Data protection",
+    "privacyTitle": "Confidentiality",
+    "privacyDescription": "The prototype prioritizes synthetic data and a restrained presentation of information. It must not be used with real banking data.",
+    "evidenceEyebrow": "Information quality",
+    "evidenceTitle": "Sourced answers",
+    "evidenceDescription": "The planned experience will highlight documentary evidence associated with answers, without presenting fictional results or an active connection today.",
+    "usage": {
+      "title": "How to use SecureBank-AI",
+      "question": { "title": "Ask your question", "description": "Enter a banking question or choose a suggested question." },
+      "login": { "title": "Sign in", "description": "Identify yourself in the sign-in window when you are ready to submit your question." },
+      "answer": { "title": "Review the answer", "description": "The assistant searches the available documents and presents an answer with references when they are available." }
+    }
+  },
+  "about": {
+    "eyebrow": "Service overview",
+    "title": "About SecureBank-AI",
+    "introduction": {
+      "first": "SecureBank-AI is a documentary assistant designed to make it easier to find information in a collection of banking documents.",
+      "second": "You can ask a question in natural language. The assistant searches the available documents for relevant passages and uses that information to prepare a clear answer.",
+      "third": "When references are available, they are displayed with the answer so that you can find the documents that were used.",
+      "disclaimer": "SecureBank-AI is an information research aid. It does not replace a banking adviser and cannot perform any operation on your accounts."
+    },
+    "operation": {
+      "title": "How does the service work?",
+      "question": "The user asks a question.",
+      "search": "The system searches for relevant documents.",
+      "answer": "The assistant prepares an answer from the information it finds.",
+      "sources": "Available sources and citations are displayed."
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "items": {
+        "1": { "question": "What is SecureBank-AI for?", "answer": "SecureBank-AI helps users find and understand information in the banking documents made available to the assistant." },
+        "2": { "question": "Do I need to sign in to use the service?", "answer": "You can browse public pages without signing in. You need to sign in to submit a question to the assistant." },
+        "3": { "question": "How do I ask a question?", "answer": "Open the Assistant page, enter your question or select a suggested question, then select Send." },
+        "4": { "question": "Where do the answers come from?", "answer": "The assistant searches its document collection. When it finds relevant passages, it uses them to prepare its answer and displays the available references." },
+        "5": { "question": "Are the answers always accurate?", "answer": "No. Like any artificial intelligence system, SecureBank-AI can make mistakes or misinterpret information. Check the displayed references before using an answer to make an important decision." },
+        "6": { "question": "What happens if no relevant information is found?", "answer": "The assistant may indicate that it does not have enough information to answer. It must not invent an answer when no reliable source is available." },
+        "7": { "question": "Can I make a transfer or check my balance?", "answer": "No. SecureBank-AI is a documentary assistant. It cannot perform banking operations or access your accounts directly." },
+        "8": { "question": "Is my personal information protected?", "answer": "SecureBank-AI includes mechanisms intended to limit the exposure of certain personal data, including masking during question processing. These protections do not guarantee that there is no risk. Avoid entering passwords, full account numbers, or other sensitive information." },
+        "9": { "question": "Why do some answers display sources?", "answer": "Sources help you find the documents used to prepare the answer and verify the information presented." },
+        "10": { "question": "Which languages is the interface available in?", "answer": "The interface is available in French, English, Italian, and German." }
+      }
+    }
+  },
+  "assistant": {
+    "eyebrow": "Document search",
+    "title": "Documentary assistant",
+    "description": "Ask a question about the documents available in SecureBank-AI.",
+    "questionSection": "Your question",
+    "questionLabel": "Documentary question",
+    "placeholder": "Enter your question here.",
+    "characterCount": "{{current}} / {{maximum}} characters",
+    "send": "Send",
+    "loader": {
+      "title": "Processing your request",
+      "description": "SecureBank-AI is preparing an answer grounded in the available documents.",
+      "accessibleStatus": "The question is being processed.",
+      "analyzing": "Analyzing your question…",
+      "searching": "Searching the documents…",
+      "preparing": "Preparing the answer…"
+    },
+    "errorTitle": "The request was not completed",
+    "authenticatedReady": "You are signed in. The question can be submitted.",
+    "loginRequired": "This page remains available. Sign-in is requested only when submitting.",
+    "suggestions": {
+      "title": "Suggested questions",
+      "dailyTransferLimit": "What is the daily limit for online bank transfers?",
+      "accountDocuments": "Which documents are required to open a bank account?",
+      "suspiciousTransaction": "What should I do if I notice a suspicious transaction on my account?"
+    },
+    "productionAuth": {
+      "title": "On-demand sign-in",
+      "description": "Sign-in is requested only when a question is submitted.",
+      "formDisabled": "Sign in to submit a question."
+    }
+  },
+  "auth": {
+    "connected": "Connected · {{role}}",
+    "logout": "Sign out",
+    "logoutConfirmation": {
+      "title": "Sign out",
+      "description": "Are you sure you want to sign out?",
+      "cancel": "Cancel",
+      "confirm": "Sign out",
+      "loading": "Signing out…"
+    },
+    "login": {
+      "eyebrow": "Documentary assistant",
+      "title": "Sign-in required",
+      "description": "Sign in to submit this question. Your text will be preserved.",
+      "username": "Username",
+      "password": "Password",
+      "submit": "Sign in",
+      "loading": "Signing in…",
+      "cancel": "Cancel",
+      "invalidCredentials": "Incorrect username or password.",
+      "rateLimited": "Too many attempts. Try again in a few minutes.",
+      "unavailable": "Sign-in is temporarily unavailable."
+    }
+  },
+  "rag": {
+    "emptyTitle": "Empty conversation",
+    "emptyDescription": "Documentary answers will appear in this area when submission becomes available.",
+    "normalStatus": "Documentary answer",
+    "abstainedStatus": "Answer with abstention",
+    "abstainedDescription": "The available evidence does not support a sufficiently grounded answer.",
+    "answerTitle": "Answer",
+    "sourcesTitle": "Sources",
+    "noSources": "No source available.",
+    "citationsTitle": "Citations",
+    "noCitations": "No citation available.",
+    "reference": "Reference {{reference}}",
+    "document": "Document: {{documentId}}",
+    "unmatchedSource": "Associated source unavailable."
+  },
+  "errors": {
+    "unauthenticated": "Authentication is required.",
+    "forbidden": "You are not authorized to perform this action.",
+    "validation": "The submitted information is invalid.",
+    "upstreamService": "The generation service cannot respond at this time.",
+    "serviceUnavailable": "The service is temporarily unavailable.",
+    "network": "The connection to the service failed.",
+    "aborted": "The request was cancelled.",
+    "unexpectedResponse": "The service returned an unexpected response.",
+    "http": "The request could not be completed."
+  },
+  "accessibility": {
+    "primaryNavigation": "Main navigation",
+    "sectionsNavigation": "Application sections",
+    "openNavigation": "Open navigation",
+    "closeMenu": "Close menu",
+    "closeNavigation": "Close navigation",
+    "projectPrinciples": "Project principles",
+    "plannedFeatures": "Planned features"
+  }
+}

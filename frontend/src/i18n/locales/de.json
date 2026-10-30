@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "SecureBank-AI",
+    "securedInterface": "Sichere Benutzeroberfläche",
+    "dashboard": "Übersicht",
+    "demoEnvironment": "Demonstrationsumgebung",
+    "footer": "SecureBank-AI — Demonstrationsumgebung",
+    "demo": "Demonstration",
+    "demoDescription": "Präsentationsoberfläche, die ausschließlich synthetische Daten verwendet.",
+    "languageLabel": "Sprache der Benutzeroberfläche",
+    "languages": {
+      "fr": "Französisch",
+      "en": "Englisch",
+      "it": "Italienisch",
+      "de": "Deutsch"
+    }
+  },
+  "navigation": {
+    "title": "Navigation",
+    "home": "Startseite",
+    "assistant": "Assistent",
+    "about": "Über uns",
+    "comingSoon": "Demnächst"
+  },
+  "home": {
+    "eyebrow": "Willkommen bei SecureBank-AI",
+    "title": "Intelligenter und sicherer Bankassistent",
+    "description": "Eine Benutzeroberfläche zur Erkundung synthetischer Bankinformationen mit dokumentierten Antworten und besonderem Augenmerk auf Vertraulichkeit.",
+    "assistantStatus": "Benutzeroberfläche verfügbar",
+    "assistantTitle": "Ein Bereich für die dokumentenbasierte Unterstützung",
+    "assistantDescription": "Der Assistent kann frei aufgerufen werden. Eine Anmeldung ist erst beim Absenden einer Frage erforderlich.",
+    "privacyEyebrow": "Datenschutz",
+    "privacyTitle": "Vertraulichkeit",
+    "privacyDescription": "Der Prototyp verwendet vorrangig synthetische Daten und stellt Informationen zurückhaltend dar. Er darf nicht mit echten Bankdaten verwendet werden.",
+    "evidenceEyebrow": "Informationsqualität",
+    "evidenceTitle": "Quellengestützte Antworten",
+    "evidenceDescription": "Die Benutzeroberfläche hebt die den Antworten zugrunde liegenden Dokumente hervor, ohne erfundene Ergebnisse oder eine aktive Verbindung vorzutäuschen.",
+    "usage": {
+      "title": "Wie verwende ich SecureBank-AI?",
+      "question": { "title": "Stellen Sie Ihre Frage", "description": "Geben Sie eine Frage zum Bankwesen ein oder wählen Sie eine vorgeschlagene Frage aus." },
+      "login": { "title": "Melden Sie sich an", "description": "Melden Sie sich im Anmeldefenster an, wenn Sie Ihre Frage absenden möchten." },
+      "answer": { "title": "Lesen Sie die Antwort", "description": "Der Assistent durchsucht die verfügbaren Dokumente und zeigt eine Antwort mit Referenzen an, sofern diese verfügbar sind." }
+    }
+  },
+  "about": {
+    "eyebrow": "Überblick über den Dienst",
+    "title": "Über SecureBank-AI",
+    "introduction": {
+      "first": "SecureBank-AI ist ein dokumentenbasierter Assistent, der die Suche nach Informationen in einer Sammlung von Bankdokumenten erleichtert.",
+      "second": "Sie können eine Frage in natürlicher Sprache stellen. Der Assistent sucht in den verfügbaren Dokumenten nach relevanten Passagen und verwendet diese Informationen, um eine verständliche Antwort zu formulieren.",
+      "third": "Wenn Referenzen verfügbar sind, werden sie zusammen mit der Antwort angezeigt, damit Sie die verwendeten Dokumente wiederfinden können.",
+      "disclaimer": "SecureBank-AI ist ein Hilfsmittel für die Informationssuche. Es ersetzt keine Bankberatung und führt keine Vorgänge auf Ihren Konten aus."
+    },
+    "operation": {
+      "title": "Wie funktioniert der Dienst?",
+      "question": "Die Nutzerin oder der Nutzer stellt eine Frage.",
+      "search": "Das System sucht nach relevanten Dokumenten.",
+      "answer": "Der Assistent erstellt anhand der gefundenen Informationen eine Antwort.",
+      "sources": "Verfügbare Quellen und Zitate werden angezeigt."
+    },
+    "faq": {
+      "title": "Häufig gestellte Fragen",
+      "items": {
+        "1": { "question": "Wozu dient SecureBank-AI?", "answer": "SecureBank-AI hilft dabei, Informationen in den für den Assistenten bereitgestellten Bankdokumenten zu finden und zu verstehen." },
+        "2": { "question": "Muss ich mich anmelden, um den Dienst zu nutzen?", "answer": "Sie können die öffentlichen Seiten ohne Anmeldung aufrufen. Zum Absenden einer Frage an den Assistenten ist eine Anmeldung erforderlich." },
+        "3": { "question": "Wie stelle ich eine Frage?", "answer": "Öffnen Sie die Seite Assistent, geben Sie Ihre Frage ein oder wählen Sie eine vorgeschlagene Frage aus und klicken Sie anschließend auf Senden." },
+        "4": { "question": "Woher stammen die Antworten?", "answer": "Der Assistent sucht in seiner Dokumentensammlung nach Informationen. Wenn er relevante Passagen findet, verwendet er sie zur Erstellung seiner Antwort und zeigt die verfügbaren Referenzen an." },
+        "5": { "question": "Sind die Antworten immer richtig?", "answer": "Nein. Wie jedes System mit künstlicher Intelligenz kann SecureBank-AI Fehler machen oder Informationen falsch interpretieren. Prüfen Sie die angezeigten Referenzen, bevor Sie eine Antwort für eine wichtige Entscheidung verwenden." },
+        "6": { "question": "Was geschieht, wenn keine relevanten Informationen gefunden werden?", "answer": "Der Assistent kann darauf hinweisen, dass nicht genügend Informationen für eine Antwort vorliegen. Wenn keine verlässliche Quelle verfügbar ist, darf er keine Antwort erfinden." },
+        "7": { "question": "Kann ich eine Überweisung tätigen oder meinen Kontostand abrufen?", "answer": "Nein. SecureBank-AI ist ein dokumentenbasierter Assistent. Er ermöglicht weder Bankgeschäfte noch den direkten Zugriff auf Ihre Konten." },
+        "8": { "question": "Sind meine personenbezogenen Daten geschützt?", "answer": "SecureBank-AI verfügt über Mechanismen, die die Offenlegung bestimmter personenbezogener Daten begrenzen sollen, darunter deren Maskierung bei der Verarbeitung von Fragen. Diese Schutzmaßnahmen können jedoch keine vollständige Risikofreiheit garantieren. Geben Sie keine Passwörter, vollständigen Kontonummern oder andere sensible Informationen ein." },
+        "9": { "question": "Warum werden bei manchen Antworten Quellen angezeigt?", "answer": "Anhand der Quellen können Sie die zur Erstellung der Antwort verwendeten Dokumente finden und die dargestellten Informationen überprüfen." },
+        "10": { "question": "In welchen Sprachen ist die Benutzeroberfläche verfügbar?", "answer": "Die Benutzeroberfläche ist auf Französisch, Englisch, Italienisch und Deutsch verfügbar." }
+      }
+    }
+  },
+  "assistant": {
+    "eyebrow": "Dokumentensuche",
+    "title": "Dokumentenassistent",
+    "description": "Stellen Sie eine Frage zu den in SecureBank-AI verfügbaren Dokumenten.",
+    "questionSection": "Ihre Frage",
+    "questionLabel": "Dokumentenfrage",
+    "placeholder": "Geben Sie hier Ihre Frage ein.",
+    "characterCount": "{{current}} / {{maximum}} Zeichen",
+    "send": "Senden",
+    "loader": {
+      "title": "Ihre Anfrage wird verarbeitet",
+      "description": "SecureBank-AI erstellt eine Antwort auf Grundlage der verfügbaren Dokumente.",
+      "accessibleStatus": "Die Frage wird verarbeitet.",
+      "analyzing": "Ihre Frage wird analysiert…",
+      "searching": "Die Dokumente werden durchsucht…",
+      "preparing": "Die Antwort wird vorbereitet…"
+    },
+    "errorTitle": "Die Anfrage konnte nicht abgeschlossen werden",
+    "authenticatedReady": "Sie sind angemeldet. Die Frage kann gesendet werden.",
+    "loginRequired": "Diese Seite bleibt zugänglich. Eine Anmeldung ist nur beim Absenden erforderlich.",
+    "suggestions": {
+      "title": "Vorgeschlagene Fragen",
+      "dailyTransferLimit": "Wie hoch ist das tägliche Limit für Online-Überweisungen?",
+      "accountDocuments": "Welche Unterlagen werden für die Eröffnung eines Bankkontos benötigt?",
+      "suspiciousTransaction": "Was soll ich tun, wenn ich eine verdächtige Transaktion auf meinem Konto feststelle?"
+    },
+    "productionAuth": {
+      "title": "Anmeldung bei Bedarf",
+      "description": "Eine Anmeldung ist nur beim Absenden einer Frage erforderlich.",
+      "formDisabled": "Melden Sie sich an, um eine Frage zu senden."
+    }
+  },
+  "auth": {
+    "connected": "Angemeldet · {{role}}",
+    "logout": "Abmelden",
+    "logoutConfirmation": {
+      "title": "Abmeldung",
+      "description": "Möchten Sie sich wirklich abmelden?",
+      "cancel": "Abbrechen",
+      "confirm": "Abmelden",
+      "loading": "Abmeldung…"
+    },
+    "login": {
+      "eyebrow": "Dokumentenassistent",
+      "title": "Anmeldung erforderlich",
+      "description": "Melden Sie sich an, um diese Frage zu senden. Ihre Eingabe bleibt erhalten.",
+      "username": "Benutzername",
+      "password": "Passwort",
+      "submit": "Anmelden",
+      "loading": "Anmeldung…",
+      "cancel": "Abbrechen",
+      "invalidCredentials": "Benutzername oder Passwort ist falsch.",
+      "rateLimited": "Zu viele Versuche. Bitte versuchen Sie es in einigen Minuten erneut.",
+      "unavailable": "Die Anmeldung ist vorübergehend nicht verfügbar."
+    }
+  },
+  "rag": {
+    "emptyTitle": "Leere Unterhaltung",
+    "emptyDescription": "Dokumentenbasierte Antworten werden in diesem Bereich angezeigt, sobald eine Frage gesendet wurde.",
+    "normalStatus": "Dokumentenbasierte Antwort",
+    "abstainedStatus": "Antwort mit Enthaltung",
+    "abstainedDescription": "Die verfügbaren Belege reichen für eine ausreichend fundierte Antwort nicht aus.",
+    "answerTitle": "Antwort",
+    "sourcesTitle": "Quellen",
+    "noSources": "Keine Quelle verfügbar.",
+    "citationsTitle": "Zitate",
+    "noCitations": "Kein Zitat verfügbar.",
+    "reference": "Referenz {{reference}}",
+    "document": "Dokument: {{documentId}}",
+    "unmatchedSource": "Zugehörige Quelle nicht verfügbar."
+  },
+  "errors": {
+    "unauthenticated": "Eine Authentifizierung ist erforderlich.",
+    "forbidden": "Sie sind nicht berechtigt, diese Aktion auszuführen.",
+    "validation": "Die übermittelten Informationen sind ungültig.",
+    "upstreamService": "Der Generierungsdienst kann derzeit nicht antworten.",
+    "serviceUnavailable": "Der Dienst ist vorübergehend nicht verfügbar.",
+    "network": "Die Verbindung zum Dienst ist fehlgeschlagen.",
+    "aborted": "Die Anfrage wurde abgebrochen.",
+    "unexpectedResponse": "Der Dienst hat eine unerwartete Antwort zurückgegeben.",
+    "http": "Die Anfrage konnte nicht abgeschlossen werden."
+  },
+  "accessibility": {
+    "primaryNavigation": "Hauptnavigation",
+    "sectionsNavigation": "Anwendungsbereiche",
+    "openNavigation": "Navigation öffnen",
+    "closeMenu": "Menü schließen",
+    "closeNavigation": "Navigation schließen",
+    "projectPrinciples": "Projektgrundsätze",
+    "plannedFeatures": "Geplante Funktionen"
+  }
+}

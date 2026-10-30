@@ -1,0 +1,15 @@
+node_modules
+dist
+coverage
+.env
+.env.*
+.git
+.gitignore
+.vite
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

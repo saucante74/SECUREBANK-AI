@@ -6,6 +6,7 @@ import pytest
 
 from app.schemas.documents import Chunk
 from app.schemas.retrieval import RetrievalResult
+from app.services.llm import LLMGeneration, LLMTokenUsage
 from app.services.pii_masking import PiiMaskingError
 from app.services.rag_generation import (
     INSUFFICIENT_EVIDENCE_ANSWER,
@@ -38,12 +39,13 @@ class FakeLLMService:
         self.answer = answer
         self.prompts: list[str] = []
         self.error: Exception | None = None
+        self.usage: LLMTokenUsage | None = None
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str) -> LLMGeneration:
         self.prompts.append(prompt)
         if self.error is not None:
             raise self.error
-        return self.answer
+        return LLMGeneration(text=self.answer, usage=self.usage)
 
 
 class FakePiiMasker:
@@ -94,11 +96,32 @@ class RecordingObserver:
         *,
         duration_seconds: float,
         model: str,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        total_tokens: int | None,
     ) -> None:
-        self._record("generation_completed", (duration_seconds, model))
+        self._record(
+            "generation_completed",
+            (
+                duration_seconds,
+                model,
+                input_tokens,
+                output_tokens,
+                total_tokens,
+            ),
+        )
 
-    def on_request_completed(self, *, status: RagRequestStatus) -> None:
-        self._record("request_completed", status)
+    def on_request_completed(
+        self,
+        *,
+        status: RagRequestStatus,
+        total_duration_seconds: float,
+        abstained: bool | None,
+    ) -> None:
+        self._record(
+            "request_completed",
+            (status, total_duration_seconds, abstained),
+        )
 
 
 def create_generation_service(
@@ -646,10 +669,16 @@ def test_observer_is_optional_and_defaults_to_noop() -> None:
 def test_observer_records_successful_cited_generation_in_order() -> None:
     observer = RecordingObserver()
     results = [create_result("one"), create_result("two")]
+    llm = FakeLLMService()
+    llm.usage = LLMTokenUsage(
+        input_tokens=100,
+        output_tokens=25,
+        total_tokens=125,
+    )
 
     generated = create_generation_service(
         FakeRetriever(results),
-        FakeLLMService(),
+        llm,
         observer=observer,
     ).generate("Question synthétique")
 
@@ -661,14 +690,23 @@ def test_observer_records_successful_cited_generation_in_order() -> None:
         "request_completed",
     ]
     retrieval_duration, passage_count = observer.events[1][1]
-    generation_duration, model = observer.events[2][1]
+    generation_duration, model, input_tokens, output_tokens, total_tokens = (
+        observer.events[2][1]
+    )
     assert isinstance(retrieval_duration, float)
     assert retrieval_duration >= 0
     assert passage_count == 2
     assert isinstance(generation_duration, float)
     assert generation_duration >= 0
     assert model == "synthetic-model"
-    assert observer.events[3][1] is RagRequestStatus.SUCCESS
+    assert input_tokens == 100
+    assert output_tokens == 25
+    assert total_tokens == 125
+    status, total_duration, abstained = observer.events[3][1]
+    assert status is RagRequestStatus.SUCCESS
+    assert isinstance(total_duration, float)
+    assert total_duration >= 0
+    assert abstained is False
 
 
 def test_observer_records_successful_llm_abstention() -> None:
@@ -687,7 +725,11 @@ def test_observer_records_successful_llm_abstention() -> None:
         "generation_completed",
         "request_completed",
     ]
-    assert observer.events[-1][1] is RagRequestStatus.SUCCESS
+    status, total_duration, abstained = observer.events[-1][1]
+    assert status is RagRequestStatus.SUCCESS
+    assert isinstance(total_duration, float)
+    assert total_duration >= 0
+    assert abstained is True
 
 
 def test_observer_records_retrieval_error() -> None:
@@ -704,10 +746,15 @@ def test_observer_records_retrieval_error() -> None:
         ).generate("Private question")
 
     assert raised.value is error
-    assert observer.events == [
-        ("request_started", None),
-        ("request_completed", RagRequestStatus.ERROR),
+    assert [name for name, value in observer.events] == [
+        "request_started",
+        "request_completed",
     ]
+    status, total_duration, abstained = observer.events[-1][1]
+    assert status is RagRequestStatus.ERROR
+    assert isinstance(total_duration, float)
+    assert total_duration >= 0
+    assert abstained is None
 
 
 def test_observer_records_llm_error_without_second_llm_call() -> None:
@@ -730,7 +777,11 @@ def test_observer_records_llm_error_without_second_llm_call() -> None:
         "retrieval_completed",
         "request_completed",
     ]
-    assert observer.events[-1][1] is RagRequestStatus.ERROR
+    status, total_duration, abstained = observer.events[-1][1]
+    assert status is RagRequestStatus.ERROR
+    assert isinstance(total_duration, float)
+    assert total_duration >= 0
+    assert abstained is None
 
 
 def test_observer_records_response_validation_error_without_second_llm_call() -> None:
@@ -751,7 +802,11 @@ def test_observer_records_response_validation_error_without_second_llm_call() ->
         "generation_completed",
         "request_completed",
     ]
-    assert observer.events[-1][1] is RagRequestStatus.ERROR
+    status, total_duration, abstained = observer.events[-1][1]
+    assert status is RagRequestStatus.ERROR
+    assert isinstance(total_duration, float)
+    assert total_duration >= 0
+    assert abstained is None
 
 
 def test_observer_failure_does_not_change_pipeline_result_or_repeat_llm_call() -> None:

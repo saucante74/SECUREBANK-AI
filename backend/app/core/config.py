@@ -16,6 +16,16 @@ class Settings(BaseSettings):
     jwt_algorithm: Literal["HS256"] = "HS256"
     jwt_issuer: str | None = None
     jwt_audience: str | None = None
+    user_database_path: Path = BACKEND_DIR / "data" / "users.sqlite3"
+    session_lifetime_seconds: int = 900
+    session_cookie_secure: bool = False
+    session_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
+    auth_trusted_origins: str = (
+        "http://localhost:5173,http://localhost:8080,"
+        "http://127.0.0.1:5173,http://127.0.0.1:8080"
+    )
+    login_attempt_limit: int = 5
+    login_attempt_window_seconds: int = 300
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection_name: str = "securebank_chunks"
     rag_enabled: bool = False
@@ -42,6 +52,36 @@ class Settings(BaseSettings):
         if value is not None and not value.strip():
             raise ValueError("JWT claim settings must not be empty")
         return value
+
+    @field_validator("user_database_path")
+    @classmethod
+    def validate_user_database_path(cls, value: Path) -> Path:
+        if not str(value).strip():
+            raise ValueError("User database path must not be empty")
+        return value
+
+    @field_validator(
+        "session_lifetime_seconds",
+        "login_attempt_limit",
+        "login_attempt_window_seconds",
+    )
+    @classmethod
+    def validate_positive_auth_setting(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError(
+                "Authentication duration and limit settings must be positive"
+            )
+        return value
+
+    @field_validator("auth_trusted_origins")
+    @classmethod
+    def validate_auth_trusted_origins(cls, value: str) -> str:
+        origins = [origin.strip() for origin in value.split(",") if origin.strip()]
+        if not origins:
+            raise ValueError("At least one authentication origin is required")
+        if any(not origin.startswith(("http://", "https://")) for origin in origins):
+            raise ValueError("Authentication origins must use HTTP or HTTPS")
+        return ",".join(origins)
 
     @field_validator("qdrant_url", "qdrant_collection_name")
     @classmethod
@@ -101,6 +141,18 @@ class Settings(BaseSettings):
                 "Langfuse public and secret keys are required when observability is enabled"
             )
         return self
+
+    @model_validator(mode="after")
+    def validate_session_cookie_configuration(self) -> "Settings":
+        if self.session_cookie_samesite == "none" and not self.session_cookie_secure:
+            raise ValueError("SameSite=None requires a secure session cookie")
+        if self.app_env == "production" and not self.session_cookie_secure:
+            raise ValueError("Production requires a secure session cookie")
+        return self
+
+    @property
+    def trusted_auth_origins(self) -> frozenset[str]:
+        return frozenset(self.auth_trusted_origins.split(","))
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",
