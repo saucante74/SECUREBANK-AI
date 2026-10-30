@@ -34,7 +34,7 @@ export function RagSources({ citations, sources }: RagSourcesProps) {
               <li
                 id={`rag-source-${String(index + 1)}`}
                 key={`${source.document_id}-${source.id}`}
-                className="rounded-xl border border-border bg-surface p-4"
+                className="rounded-2xl border border-border bg-surface p-5"
               >
                 <p className="text-sm font-semibold text-brand-navy">
                   {source.title}
@@ -68,7 +68,7 @@ export function RagSources({ citations, sources }: RagSourcesProps) {
               return (
                 <li
                   key={`${String(citation.reference)}-${citation.document_id}-${citation.chunk_id}`}
-                  className="rounded-xl border border-border bg-white p-4 text-sm"
+                  className="rounded-2xl border border-border bg-white p-5 text-sm shadow-soft"
                 >
                   {sourceIndex >= 0 ? (
                     <a

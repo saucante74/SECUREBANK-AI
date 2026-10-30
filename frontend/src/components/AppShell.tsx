@@ -2,21 +2,34 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next";
 
 import type { PageId } from "../app/navigation";
+import type { AuthMeResponse, LoginRequest } from "../api/types";
+import type { ApiErrorTranslationKey } from "../i18n/apiErrorKeys";
+import type { AuthStatus } from "../hooks/useAuthSession";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 
 interface AppShellProps {
+  authStatus: AuthStatus;
   children: ReactNode;
   currentPage: PageId;
+  logoutErrorKey?: ApiErrorTranslationKey;
   onNavigate: (page: PageId) => void;
+  onLogin: (credentials: LoginRequest) => Promise<void>;
+  onLogout: () => Promise<void>;
   pageTitle: string;
+  user?: AuthMeResponse;
 }
 
 export function AppShell({
+  authStatus,
   children,
   currentPage,
+  logoutErrorKey,
   onNavigate,
+  onLogin,
+  onLogout,
   pageTitle,
+  user,
 }: AppShellProps) {
   const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -76,17 +89,22 @@ export function AppShell({
         onClose={closeMenu}
         onNavigate={navigate}
       />
-      <div className="flex min-h-screen min-w-0 flex-col lg:pl-72">
+      <div className="flex min-h-screen min-w-0 flex-col lg:pl-[17rem] xl:pl-72">
         <Header
+          authStatus={authStatus}
           menuButtonRef={menuButtonRef}
           isMenuOpen={isMenuOpen}
+          logoutErrorKey={logoutErrorKey}
+          onLogin={onLogin}
+          onLogout={onLogout}
           onMenuOpen={openMenu}
           pageTitle={pageTitle}
+          user={user}
         />
-        <main className="flex-1 px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8 xl:px-10">
+          <div className="mx-auto w-full max-w-5xl">{children}</div>
         </main>
-        <footer className="border-t border-border bg-white px-5 py-5 text-center text-sm text-muted sm:px-8 lg:text-left">
+        <footer className="border-t border-border bg-white px-5 py-5 text-center text-sm text-muted sm:px-8 lg:hidden">
           {t("app.footer")}
         </footer>
       </div>

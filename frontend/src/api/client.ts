@@ -47,6 +47,7 @@ export class ApiError extends Error {
 export type FetchImplementation = typeof fetch;
 
 export interface ApiRequestOptions {
+  csrfToken?: string;
   signal?: AbortSignal;
   token?: string;
 }
@@ -88,6 +89,9 @@ async function readJson<ResponseBody>(
   }
 
   if (!body.trim()) {
+    if (response.status === 204) {
+      return undefined as ResponseBody;
+    }
     throw new ApiError({
       category: "unexpected_response",
       method,
@@ -122,6 +126,9 @@ export function createApiClient(
     if (options.token) {
       headers.set("Authorization", `Bearer ${options.token}`);
     }
+    if (options.csrfToken) {
+      headers.set("X-CSRF-Token", options.csrfToken);
+    }
     if (body !== undefined) {
       headers.set("Content-Type", "application/json");
     }
@@ -129,6 +136,7 @@ export function createApiClient(
     try {
       const response = await fetchImplementation(`${basePath}${path}`, {
         method,
+        credentials: "include",
         headers,
         signal: options.signal,
         body: body === undefined ? undefined : JSON.stringify(body),

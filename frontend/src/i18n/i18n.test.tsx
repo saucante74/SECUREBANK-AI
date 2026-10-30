@@ -10,6 +10,7 @@ import i18n, {
   readLanguagePreference,
 } from ".";
 import { apiErrorTranslationKey } from "./apiErrorKeys";
+import germanCatalog from "./locales/de.json";
 import en from "./locales/en.json";
 import fr from "./locales/fr.json";
 import italianCatalog from "./locales/it.json";
@@ -46,10 +47,10 @@ function flattenKeys(value: object, prefix = ""): string[] {
   });
 }
 
-function languageSelect(): HTMLSelectElement {
-  return screen.getByRole("combobox", {
-    name: i18n.t("app.languageLabel"),
-  });
+function languageButton(
+  name: "Deutsch" | "English" | "Français" | "Italiano",
+): HTMLButtonElement {
+  return screen.getByRole("button", { name });
 }
 
 describe("internationalization", () => {
@@ -63,7 +64,7 @@ describe("internationalization", () => {
     render(<App />);
 
     expect(document.documentElement.lang).toBe("fr");
-    expect(languageSelect()).toHaveValue("fr");
+    expect(languageButton("Français")).toHaveAttribute("aria-pressed", "true");
     expect(
       screen.getByRole("heading", {
         name: "Assistant bancaire intelligent et sécurisé",
@@ -75,7 +76,7 @@ describe("internationalization", () => {
     render(<App />);
     const pathname = window.location.pathname;
 
-    fireEvent.change(languageSelect(), { target: { value: "en" } });
+    fireEvent.click(languageButton("English"));
 
     expect(screen.getByRole("heading", { name: "Secure intelligent banking assistant" })).toBeInTheDocument();
     expect(document.documentElement.lang).toBe("en");
@@ -85,7 +86,7 @@ describe("internationalization", () => {
   it("selects Italian", () => {
     render(<App />);
 
-    fireEvent.change(languageSelect(), { target: { value: "it" } });
+    fireEvent.click(languageButton("Italiano"));
 
     expect(
       screen.getByRole("heading", {
@@ -93,6 +94,28 @@ describe("internationalization", () => {
       }),
     ).toBeInTheDocument();
     expect(document.documentElement.lang).toBe("it");
+  });
+
+  it("displays four radio segments and selects German immediately", () => {
+    render(<App />);
+    const selector = screen.getByRole("group", {
+      name: "Langue de l’interface",
+    });
+
+    expect(within(selector).getAllByRole("button")).toHaveLength(4);
+    fireEvent.click(languageButton("Deutsch"));
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Intelligenter und sicherer Bankassistent",
+      }),
+    ).toBeInTheDocument();
+    expect(document.documentElement.lang).toBe("de");
+    expect(window.localStorage.getItem(languageStorageKey)).toBe("de");
+    expect(languageButton("Deutsch")).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "Französisch" }),
+    ).toHaveAttribute("aria-pressed", "false");
   });
 
   it("preserves the current page and user input", () => {
@@ -103,7 +126,7 @@ describe("internationalization", () => {
     });
     fireEvent.change(textarea, { target: { value: "Question conservée" } });
 
-    fireEvent.change(languageSelect(), { target: { value: "en" } });
+    fireEvent.click(languageButton("English"));
 
     expect(window.location.pathname).toBe("/assistant");
     expect(screen.getByRole("heading", { name: "Documentary assistant" })).toBeInTheDocument();
@@ -115,7 +138,7 @@ describe("internationalization", () => {
   it("persists only the selected language", () => {
     render(<App />);
 
-    fireEvent.change(languageSelect(), { target: { value: "it" } });
+    fireEvent.click(languageButton("Italiano"));
 
     expect(window.localStorage).toHaveLength(1);
     expect(window.localStorage.getItem(languageStorageKey)).toBe("it");
@@ -123,7 +146,7 @@ describe("internationalization", () => {
 
   it("falls back to French for an invalid preference", () => {
     const storage = {
-      getItem: vi.fn(() => "de"),
+      getItem: vi.fn(() => "es"),
       setItem: vi.fn(),
     };
 
@@ -149,21 +172,21 @@ describe("internationalization", () => {
     setItemSpy.mockRestore();
   });
 
-  it("provides a keyboard-accessible native language selector", () => {
+  it("provides a keyboard-accessible segmented language selector", () => {
     render(<App />);
-    const select = languageSelect();
+    const englishButton = languageButton("English");
 
-    select.focus();
-    fireEvent.keyDown(select, { key: "ArrowDown" });
-    fireEvent.change(select, { target: { value: "en" } });
+    englishButton.focus();
+    fireEvent.keyDown(englishButton, { key: "Enter" });
+    fireEvent.click(englishButton);
 
-    expect(select).toHaveFocus();
-    expect(select).toHaveValue("en");
+    expect(englishButton).toHaveFocus();
+    expect(englishButton).toHaveAttribute("aria-pressed", "true");
   });
 
   it("translates navigation and the Assistant page", () => {
     render(<App />);
-    fireEvent.change(languageSelect(), { target: { value: "it" } });
+    fireEvent.click(languageButton("Italiano"));
     const navigation = screen.getByRole("navigation", {
       name: "Sezioni dell’applicazione",
     });
@@ -201,8 +224,8 @@ describe("internationalization", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     render(<App />);
 
-    fireEvent.change(languageSelect(), { target: { value: "en" } });
-    fireEvent.change(languageSelect(), { target: { value: "it" } });
+    fireEvent.click(languageButton("English"));
+    fireEvent.click(languageButton("Italiano"));
 
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
@@ -213,5 +236,6 @@ describe("internationalization", () => {
 
     expect(flattenKeys(en).sort()).toEqual(frenchKeys);
     expect(flattenKeys(italianCatalog).sort()).toEqual(frenchKeys);
+    expect(flattenKeys(germanCatalog).sort()).toEqual(frenchKeys);
   });
 });

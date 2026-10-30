@@ -15,21 +15,15 @@ interface RagRequestState {
 }
 
 interface RagRequestController extends RagRequestState {
-  reset: () => void;
-  submit: (question: string, token: string) => Promise<void>;
+  submit: (question: string) => Promise<void>;
 }
 
-export function useRagRequest(): RagRequestController {
+export function useRagRequest(
+  onAuthenticationRequired?: () => void,
+): RagRequestController {
   const [state, setState] = useState<RagRequestState>({ isLoading: false });
   const abortControllerRef = useRef<AbortController | undefined>(undefined);
   const requestSequenceRef = useRef(0);
-
-  const reset = useCallback(() => {
-    requestSequenceRef.current += 1;
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = undefined;
-    setState({ isLoading: false });
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -38,7 +32,7 @@ export function useRagRequest(): RagRequestController {
     };
   }, []);
 
-  const submit = useCallback(async (question: string, token: string) => {
+  const submit = useCallback(async (question: string) => {
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     const requestSequence = requestSequenceRef.current + 1;
@@ -47,12 +41,7 @@ export function useRagRequest(): RagRequestController {
     setState({ isLoading: true });
 
     try {
-      const response = await askRag(
-        { question },
-        token,
-        undefined,
-        controller.signal,
-      );
+      const response = await askRag({ question }, undefined, undefined, controller.signal);
       if (requestSequenceRef.current !== requestSequence) {
         return;
       }
@@ -65,6 +54,11 @@ export function useRagRequest(): RagRequestController {
         setState({ isLoading: false });
         return;
       }
+      if (error instanceof ApiError && error.category === "unauthenticated") {
+        setState({ isLoading: false });
+        onAuthenticationRequired?.();
+        return;
+      }
       const errorKey =
         error instanceof ApiError
           ? apiErrorTranslationKey(error.category)
@@ -75,7 +69,7 @@ export function useRagRequest(): RagRequestController {
         abortControllerRef.current = undefined;
       }
     }
-  }, []);
+  }, [onAuthenticationRequired]);
 
-  return { ...state, reset, submit };
+  return { ...state, submit };
 }

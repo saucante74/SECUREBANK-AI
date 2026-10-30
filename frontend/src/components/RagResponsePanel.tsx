@@ -12,13 +12,18 @@ export function RagResponsePanel({ response }: RagResponsePanelProps) {
   if (response === undefined) {
     return (
       <section
-        className="flex min-h-64 items-center justify-center rounded-2xl border border-dashed border-border bg-white/65 p-8 text-center"
+        className="flex min-h-60 items-center justify-center rounded-2xl border border-border bg-white p-6 text-center shadow-soft sm:min-h-64"
         aria-labelledby="empty-conversation-title"
       >
         <div className="max-w-md">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-surface text-muted" aria-hidden="true">
+            <svg className="size-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4V7a2 2 0 0 1 2-2Z" />
+            </svg>
+          </span>
           <h2
             id="empty-conversation-title"
-            className="text-xl font-semibold text-brand-navy"
+            className="mt-5 text-lg font-bold text-ink sm:text-xl"
           >
             {t("rag.emptyTitle")}
           </h2>
@@ -31,7 +36,7 @@ export function RagResponsePanel({ response }: RagResponsePanelProps) {
   }
 
   return (
-    <article className="space-y-6 rounded-2xl border border-border bg-white p-6 shadow-soft sm:p-8">
+    <article className="space-y-6 rounded-2xl border border-border bg-white p-5 shadow-soft sm:p-6">
       <div
         className={
           response.abstained

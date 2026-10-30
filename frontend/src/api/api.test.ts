@@ -1,15 +1,18 @@
-import { render } from "@testing-library/react";
-import { createElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { App } from "../app/App";
 import {
   ApiError,
   createApiClient,
   type ApiErrorCategory,
   type FetchImplementation,
 } from "./client";
-import { askRag, getCurrentUser, getHealth } from "./services";
+import {
+  askRag,
+  getCurrentUser,
+  getHealth,
+  loginUser,
+  logoutUser,
+} from "./services";
 import type { RagAskResponse } from "./types";
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -41,7 +44,7 @@ describe("API services", () => {
     await expect(getHealth(createApiClient(fetchMock))).resolves.toEqual(payload);
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/health",
-      expect.objectContaining({ method: "GET" }),
+      expect.objectContaining({ credentials: "include", method: "GET" }),
     );
   });
 
@@ -83,6 +86,60 @@ describe("API services", () => {
     expect(options.body).toBe(
       JSON.stringify({ question: "Question synthétique", top_k: 2 }),
     );
+  });
+
+  it("uses cookie authentication when no Bearer token is provided", async () => {
+    const payload = { sub: "session-user", role: "analyst" } as const;
+    const fetchMock = createFetch(jsonResponse(payload));
+
+    await getCurrentUser(undefined, createApiClient(fetchMock));
+
+    const options = requestFrom(fetchMock);
+    const headers = new Headers(options.headers);
+    expect(options.credentials).toBe("include");
+    expect(headers.has("Authorization")).toBe(false);
+  });
+
+  it("submits credentials without storing or returning a token", async () => {
+    const payload = { sub: "session-user", role: "analyst" } as const;
+    const fetchMock = createFetch(jsonResponse(payload));
+
+    await loginUser(
+      { username: "demo.user", password: "synthetic-password" },
+      createApiClient(fetchMock),
+    );
+
+    const options = requestFrom(fetchMock);
+    expect(options.credentials).toBe("include");
+    expect(options.body).toBe(
+      JSON.stringify({ username: "demo.user", password: "synthetic-password" }),
+    );
+    expect(new Headers(options.headers).has("Authorization")).toBe(false);
+  });
+
+  it("copies the CSRF cookie into protected session requests", async () => {
+    document.cookie = "securebank_csrf=synthetic-csrf-token; path=/";
+    const fetchMock = createFetch(jsonResponse({ abstained: true }));
+
+    await askRag(
+      { question: "Question synthétique" },
+      undefined,
+      createApiClient(fetchMock),
+    );
+
+    const headers = new Headers(requestFrom(fetchMock).headers);
+    expect(headers.get("X-CSRF-Token")).toBe("synthetic-csrf-token");
+  });
+
+  it("supports an empty 204 logout response with CSRF", async () => {
+    document.cookie = "securebank_csrf=logout-csrf-token; path=/";
+    const fetchMock = createFetch(new Response(null, { status: 204 }));
+
+    await expect(logoutUser(createApiClient(fetchMock))).resolves.toBeUndefined();
+
+    const headers = new Headers(requestFrom(fetchMock).headers);
+    expect(headers.get("X-CSRF-Token")).toBe("logout-csrf-token");
+    expect(requestFrom(fetchMock).credentials).toBe("include");
   });
 
   it("omits Authorization when no token is provided", async () => {
@@ -199,12 +256,4 @@ describe("API services", () => {
     expect(response.citations[0]?.reference).toBe(1);
   });
 
-  it("does not call the API when App is rendered", () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
-
-    render(createElement(App));
-
-    expect(fetchSpy).not.toHaveBeenCalled();
-    fetchSpy.mockRestore();
-  });
 });

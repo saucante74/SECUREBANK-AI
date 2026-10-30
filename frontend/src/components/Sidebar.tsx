@@ -14,7 +14,37 @@ interface SidebarProps {
 const navigationItems: { labelKey: string; page: PageId }[] = [
   { labelKey: "navigation.home", page: "home" },
   { labelKey: "navigation.assistant", page: "assistant" },
+  { labelKey: "navigation.about", page: "about" },
 ];
+
+function NavigationIcon({ page }: { page: PageId }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-6 shrink-0"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {page === "home" ? (
+        <>
+          <path d="m3 11 9-8 9 8" />
+          <path d="M5 10v10h5v-6h4v6h5V10" />
+        </>
+      ) : page === "assistant" ? (
+        <path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4V7a2 2 0 0 1 2-2Z" />
+      ) : (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v6m0-10h.01" />
+        </>
+      )}
+    </svg>
+  );
+}
 
 export function Sidebar({
   closeButtonRef,
@@ -43,15 +73,33 @@ export function Sidebar({
   return (
     <aside
       id="app-navigation"
-      className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-brand-navy text-white shadow-panel transition-transform duration-200 ease-out lg:translate-x-0 ${visibilityClass}`}
+      className={`fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[88vw] flex-col bg-brand-navy text-white shadow-panel transition-transform duration-200 ease-out lg:w-[17rem] lg:translate-x-0 xl:w-72 ${visibilityClass}`}
       aria-label={t("accessibility.primaryNavigation")}
     >
-      <div className="flex items-center justify-between border-b border-white/10 px-6 py-6">
-        <div>
-          <p className="text-xl font-semibold tracking-tight">{t("app.name")}</p>
-          <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-white/60">
-            {t("app.securedInterface")}
-          </p>
+      <div className="flex items-center justify-between px-5 py-6 xl:px-6">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-brand-navy shadow-soft">
+            <svg
+              aria-hidden="true"
+              className="size-6"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 3 5.5 5.8v5.7c0 4.2 2.7 7.9 6.5 9.5 3.8-1.6 6.5-5.3 6.5-9.5V5.8L12 3Z" />
+            </svg>
+          </span>
+          <div className="min-w-0">
+            <p className="truncate font-display text-lg font-extrabold tracking-tight">
+              {t("app.name")}
+            </p>
+            <p className="mt-0.5 truncate text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-white/50">
+              {t("app.securedInterface")}
+            </p>
+          </div>
         </div>
         <button
           ref={closeButtonRef}
@@ -76,33 +124,36 @@ export function Sidebar({
       </div>
 
       <nav
-        className="flex-1 px-4 py-6"
+        className="flex-1 px-4 py-5 xl:px-5"
         aria-label={t("accessibility.sectionsNavigation")}
       >
-        <p className="px-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/45">
+        <p className="px-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
           {t("navigation.title")}
         </p>
-        <ul className="mt-3 space-y-2">
+        <ul className="mt-3 space-y-1.5">
           {navigationItems.map(({ labelKey, page }) => {
             const isCurrent = currentPage === page;
             const stateClass = isCurrent
-              ? "bg-white/12 font-semibold text-white ring-1 ring-inset ring-white/15"
-              : "font-medium text-white/70 hover:bg-white/8 hover:text-white";
+              ? "bg-brand-active font-semibold text-white"
+              : "font-medium text-white/60 hover:bg-white/5 hover:text-white";
 
             return (
               <li key={page}>
                 <a
-                  className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm transition-colors ${stateClass}`}
+                  className={`flex min-h-12 items-center justify-between rounded-xl px-4 text-sm transition-colors ${stateClass}`}
                   href={pathForPage(page)}
                   aria-current={isCurrent ? "page" : undefined}
                   onClick={(event) => {
                     navigate(event, page);
                   }}
                 >
-                  <span>{t(labelKey)}</span>
+                  <span className="flex items-center gap-4">
+                    <NavigationIcon page={page} />
+                    <span>{t(labelKey)}</span>
+                  </span>
                   {isCurrent && (
                     <span
-                      className="size-2 rounded-full bg-accent"
+                      className="size-2.5 rounded-full bg-accent shadow-[0_0_0_5px_rgb(49_217_160_/_0.14)]"
                       aria-hidden="true"
                     />
                   )}
@@ -110,23 +161,16 @@ export function Sidebar({
               </li>
             );
           })}
-          <li>
-            <div className="flex cursor-not-allowed items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-white/55">
-              <span>{t("navigation.about")}</span>
-              <span className="rounded-full border border-white/10 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-white/45">
-                {t("navigation.comingSoon")}
-              </span>
-            </div>
-          </li>
         </ul>
       </nav>
 
-      <div className="border-t border-white/10 p-6">
-        <div className="rounded-2xl bg-brand-deep p-4 ring-1 ring-inset ring-white/10">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-accent">
-            {t("app.demo")}
+      <div className="p-4 xl:p-5">
+        <div className="rounded-2xl bg-brand-deep p-5 ring-1 ring-inset ring-white/10">
+          <p className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.17em] text-accent">
+            <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
+            <span>{t("app.demo")}</span>
           </p>
-          <p className="mt-2 text-sm leading-6 text-white/65">
+          <p className="mt-4 text-sm leading-6 text-white/60">
             {t("app.demoDescription")}
           </p>
         </div>

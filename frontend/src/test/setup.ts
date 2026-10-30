@@ -9,5 +9,6 @@ afterEach(async () => {
   cleanup();
   window.history.replaceState({}, "", "/");
   window.localStorage.clear();
+  document.cookie = "securebank_csrf=; Max-Age=0; path=/";
   await i18n.changeLanguage("fr");
 });

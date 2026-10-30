@@ -44,27 +44,79 @@ describe("AssistantPage", () => {
     ).toHaveAttribute("maxlength", "2000");
   });
 
-  it("keeps the send button explicitly disabled", () => {
+  it("keeps public discovery available before authentication", () => {
     render(<AssistantPage />);
 
     expect(screen.getByRole("button", { name: "Envoyer" })).toBeDisabled();
     expect(
       screen.getByText(
-        "Ajoutez un JWT de développement pour activer l’envoi.",
+        "La page reste accessible. Une connexion sera demandée uniquement lors de l’envoi.",
       ),
     ).toBeInTheDocument();
   });
 
-  it("prevents form submission without an HTTP request", () => {
+  it("opens authentication on a valid anonymous submission without an HTTP request", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     render(<AssistantPage />);
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Question documentaire" }),
+      { target: { value: "Question conservée" } },
+    );
     const button = screen.getByRole("button", { name: "Envoyer" });
-    const form = button.closest("form");
-
-    expect(form).not.toBeNull();
-    fireEvent.submit(form as HTMLFormElement);
+    fireEvent.click(button);
 
     expect(fetchSpy).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("dialog", { name: "Connexion requise" }),
+    ).toBeInTheDocument();
     fetchSpy.mockRestore();
+  });
+
+  it("displays three keyboard-accessible suggested questions", () => {
+    render(<AssistantPage />);
+
+    const suggestions = screen.getAllByRole("button", {
+      name: /plafond quotidien|documents sont nécessaires|transaction suspecte/,
+    });
+    expect(suggestions).toHaveLength(3);
+    suggestions[0].focus();
+    expect(suggestions[0]).toHaveFocus();
+  });
+
+  it("replaces the question after an explicit suggestion click without submitting", () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    render(<AssistantPage />);
+    const question = screen.getByRole("textbox", {
+      name: "Question documentaire",
+    });
+    fireEvent.change(question, { target: { value: "Brouillon existant" } });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Quel est le plafond quotidien des virements en ligne ?",
+      }),
+    );
+
+    expect(question).toHaveValue(
+      "Quel est le plafond quotidien des virements en ligne ?",
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fetchSpy.mockRestore();
+  });
+
+  it("keeps on-demand authentication after selecting a suggestion", () => {
+    render(<AssistantPage />);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Quels documents sont nécessaires pour ouvrir un compte bancaire ?",
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer" }));
+
+    expect(
+      screen.getByRole("dialog", { name: "Connexion requise" }),
+    ).toBeInTheDocument();
   });
 });

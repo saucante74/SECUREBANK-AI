@@ -1,8 +1,8 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, type ApiErrorCategory } from "../api/client";
-import { askRag } from "../api/services";
+import { askRag, getCurrentUser } from "../api/services";
 import type { RagAskResponse } from "../api/types";
 import { App } from "../app/App";
 import i18n, { changeLanguage } from "../i18n";
@@ -10,10 +10,17 @@ import { AssistantPage } from "./AssistantPage";
 
 vi.mock("../api/services", () => ({
   askRag: vi.fn(),
+  getCurrentUser: vi.fn(),
+  loginUser: vi.fn(),
+  logoutUser: vi.fn(),
 }));
 
 const askRagMock = vi.mocked(askRag);
-const testToken = "synthetic-test-token";
+const getCurrentUserMock = vi.mocked(getCurrentUser);
+const authenticatedUser = {
+  sub: "synthetic-user-id",
+  role: "compliance_officer",
+} as const;
 
 const responseFixture: RagAskResponse = {
   question: "Question envoyée",
@@ -54,23 +61,10 @@ function deferred<Value>(): Deferred<Value> {
   return { promise, reject: rejectPromise, resolve: resolvePromise };
 }
 
-function tokenInput(): HTMLInputElement {
-  return screen.getByLabelText(i18n.t("assistant.developmentToken.label"));
-}
-
 function questionInput(): HTMLTextAreaElement {
   return screen.getByRole("textbox", {
     name: i18n.t("assistant.questionLabel"),
   });
-}
-
-function useDevelopmentToken(token = testToken): void {
-  fireEvent.change(tokenInput(), { target: { value: token } });
-  fireEvent.click(
-    screen.getByRole("button", {
-      name: i18n.t("assistant.developmentToken.use"),
-    }),
-  );
 }
 
 function enterQuestion(question = "Question envoyée"): void {
@@ -86,68 +80,28 @@ function sendQuestion(): void {
 describe("Assistant RAG integration", () => {
   beforeEach(async () => {
     askRagMock.mockReset();
+    getCurrentUserMock.mockReset();
+    getCurrentUserMock.mockRejectedValue(
+      new ApiError({ category: "unauthenticated", method: "GET", status: 401 }),
+    );
     await i18n.changeLanguage("fr");
   });
 
-  it("shows the development panel only in DEV mode", () => {
-    const developmentView = render(<AssistantPage isDevelopment />);
-
-    expect(
-      screen.getByRole("heading", { name: "Accès JWT de développement" }),
-    ).toBeInTheDocument();
-    developmentView.unmount();
-
-    render(<AssistantPage isDevelopment={false} />);
-    expect(
-      screen.queryByRole("heading", { name: "Accès JWT de développement" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Authentification indisponible" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Envoyer" })).toBeDisabled();
-  });
-
-  it("uses a masked token field and clears its visible draft", () => {
-    render(<AssistantPage isDevelopment />);
-
-    expect(tokenInput()).toHaveAttribute("type", "password");
-    fireEvent.change(tokenInput(), { target: { value: testToken } });
-    useDevelopmentToken();
-
-    expect(tokenInput()).toHaveValue("");
-    expect(screen.getByText("Un jeton de développement est actif en mémoire.")).toBeInTheDocument();
-  });
-
-  it("keeps the token in memory only and loses it after remount", () => {
-    const view = render(<AssistantPage isDevelopment />);
-    useDevelopmentToken();
-
-    expect(JSON.stringify(window.localStorage)).not.toContain(testToken);
-    expect(JSON.stringify(window.sessionStorage)).not.toContain(testToken);
-    expect(document.cookie).not.toContain(testToken);
-
-    view.unmount();
-    render(<AssistantPage isDevelopment />);
-    expect(screen.getByText("Aucun jeton de développement actif.")).toBeInTheDocument();
-  });
-
-  it("enables submission only with a token and a non-blank valid question", () => {
-    render(<AssistantPage isDevelopment />);
+  it("enables on-demand authentication for a non-blank valid question", () => {
+    render(<AssistantPage authStatus="authenticated" />);
     const sendButton = screen.getByRole("button", { name: "Envoyer" });
 
     enterQuestion();
-    expect(sendButton).toBeDisabled();
-    useDevelopmentToken();
+    expect(sendButton).toBeEnabled();
     fireEvent.change(questionInput(), { target: { value: "   " } });
     expect(sendButton).toBeDisabled();
     enterQuestion();
     expect(sendButton).toBeEnabled();
   });
 
-  it("calls askRag with the question, token, and AbortSignal", async () => {
+  it("calls askRag with the question, cookie session, and AbortSignal", async () => {
     askRagMock.mockResolvedValue(responseFixture);
-    render(<AssistantPage isDevelopment />);
-    useDevelopmentToken();
+    render(<AssistantPage authStatus="authenticated" />);
     enterQuestion();
 
     sendQuestion();
@@ -157,7 +111,7 @@ describe("Assistant RAG integration", () => {
     });
     expect(askRagMock).toHaveBeenCalledWith(
       { question: "Question envoyée" },
-      testToken,
+      undefined,
       undefined,
       expect.any(AbortSignal),
     );
@@ -166,31 +120,39 @@ describe("Assistant RAG integration", () => {
   it("shows loading, preserves the question, and blocks duplicate submissions", () => {
     const pendingResponse = deferred<RagAskResponse>();
     askRagMock.mockReturnValue(pendingResponse.promise);
-    render(<AssistantPage isDevelopment />);
-    useDevelopmentToken();
+    render(<AssistantPage authStatus="authenticated" />);
     enterQuestion();
 
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     sendQuestion();
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Recherche d’une réponse documentée…",
+      "Traitement de la question en cours.",
     );
+    expect(screen.getByText("Analyse de votre question…")).toBeInTheDocument();
+    expect(screen.getByText("Recherche dans les documents…")).toBeInTheDocument();
+    expect(screen.getByText("Préparation de la réponse…")).toBeInTheDocument();
     expect(questionInput()).toHaveValue("Question envoyée");
     expect(screen.getByRole("button", { name: "Envoyer" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Quel est le plafond quotidien des virements en ligne ?",
+      }),
+    ).toBeDisabled();
     sendQuestion();
     expect(askRagMock).toHaveBeenCalledTimes(1);
   });
 
   it("displays the returned answer, sources, and citations", async () => {
     askRagMock.mockResolvedValue(responseFixture);
-    render(<AssistantPage isDevelopment />);
-    useDevelopmentToken();
+    render(<AssistantPage authStatus="authenticated" />);
     enterQuestion();
     sendQuestion();
 
     expect(
       await screen.findByText("Réponse réelle simulée par le service mocké [1]."),
     ).toBeInTheDocument();
+    expect(screen.queryByText("Traitement de votre demande")).not.toBeInTheDocument();
     expect(screen.getByText("Document synthétique retourné")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Référence 1" })).toHaveAttribute(
       "href",
@@ -205,8 +167,7 @@ describe("Assistant RAG integration", () => {
       citations: [],
       abstained: true,
     });
-    render(<AssistantPage isDevelopment />);
-    useDevelopmentToken();
+    render(<AssistantPage authStatus="authenticated" />);
     enterQuestion();
     sendQuestion();
 
@@ -220,7 +181,6 @@ describe("Assistant RAG integration", () => {
   });
 
   it.each<[string, ApiErrorCategory, number | undefined, string]>([
-    ["HTTP 401", "unauthenticated", 401, "Une authentification est requise."],
     ["HTTP 403", "forbidden", 403, "Vous n’avez pas l’autorisation d’effectuer cette action."],
     ["HTTP 422", "validation", 422, "Les informations envoyées ne sont pas valides."],
     ["HTTP 502", "upstream_service", 502, "Le service de génération ne peut pas répondre actuellement."],
@@ -232,32 +192,12 @@ describe("Assistant RAG integration", () => {
     askRagMock.mockRejectedValue(
       new ApiError({ category, method: "POST", status }),
     );
-    render(<AssistantPage isDevelopment />);
-    useDevelopmentToken();
+    render(<AssistantPage authStatus="authenticated" />);
     enterQuestion();
     sendQuestion();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(message);
-  });
-
-  it("does not display an alarming error for a voluntary cancellation", async () => {
-    askRagMock.mockImplementation(
-      (_request, _token, _client, signal) =>
-        new Promise((_resolve, reject) => {
-          signal?.addEventListener("abort", () => {
-            reject(new ApiError({ category: "aborted", method: "POST" }));
-          });
-        }),
-    );
-    render(<AssistantPage isDevelopment />);
-    useDevelopmentToken();
-    enterQuestion();
-    sendQuestion();
-
-    fireEvent.click(screen.getByRole("button", { name: "Effacer" }));
-
-    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
-    expect(screen.getByRole("heading", { name: "Conversation vide" })).toBeInTheDocument();
+    expect(screen.queryByText("Traitement de votre demande")).not.toBeInTheDocument();
   });
 
   it("aborts the active request on unmount", () => {
@@ -266,8 +206,7 @@ describe("Assistant RAG integration", () => {
       requestSignal = signal;
       return new Promise(() => undefined);
     });
-    const view = render(<AssistantPage isDevelopment />);
-    useDevelopmentToken();
+    const view = render(<AssistantPage authStatus="authenticated" />);
     enterQuestion();
     sendQuestion();
 
@@ -276,15 +215,16 @@ describe("Assistant RAG integration", () => {
     expect(requestSignal?.aborted).toBe(true);
   });
 
-  it("aborts the active request when leaving the Assistant page", () => {
+  it("aborts the active request when leaving the Assistant page", async () => {
     let requestSignal: AbortSignal | undefined;
     askRagMock.mockImplementation((_request, _token, _client, signal) => {
       requestSignal = signal;
       return new Promise(() => undefined);
     });
     window.history.replaceState({}, "", "/assistant");
+    getCurrentUserMock.mockResolvedValue(authenticatedUser);
     render(<App />);
-    useDevelopmentToken();
+    await screen.findByText("Connecté · compliance_officer");
     enterQuestion();
     sendQuestion();
     const navigation = screen.getByRole("navigation", {
@@ -296,36 +236,10 @@ describe("Assistant RAG integration", () => {
     expect(requestSignal?.aborted).toBe(true);
   });
 
-  it("aborts and ignores an obsolete response after token clearing", async () => {
-    const pendingResponse = deferred<RagAskResponse>();
-    let requestSignal: AbortSignal | undefined;
-    askRagMock.mockImplementation((_request, _token, _client, signal) => {
-      requestSignal = signal;
-      return pendingResponse.promise;
-    });
-    render(<AssistantPage isDevelopment />);
-    useDevelopmentToken();
-    enterQuestion();
-    sendQuestion();
-
-    fireEvent.click(screen.getByRole("button", { name: "Effacer" }));
-    expect(requestSignal?.aborted).toBe(true);
-    await act(async () => {
-      pendingResponse.resolve(responseFixture);
-      await pendingResponse.promise;
-    });
-
-    expect(
-      screen.queryByText("Réponse réelle simulée par le service mocké [1]."),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Conversation vide" })).toBeInTheDocument();
-  });
-
   it("translates request states without translating RAG content", async () => {
     askRagMock.mockResolvedValue(responseFixture);
     await changeLanguage("it");
-    render(<AssistantPage isDevelopment />);
-    useDevelopmentToken();
+    render(<AssistantPage authStatus="authenticated" />);
     enterQuestion("Domanda invariata");
     sendQuestion();
 
@@ -345,21 +259,21 @@ describe("Assistant RAG integration", () => {
       new ApiError({ category: "network", method: "POST" }),
     );
     await changeLanguage(language);
-    render(<AssistantPage isDevelopment />);
-    useDevelopmentToken();
+    render(<AssistantPage authStatus="authenticated" />);
     enterQuestion();
     sendQuestion();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(message);
   });
 
-  it("does not call askRag automatically or without a token", () => {
-    render(<AssistantPage isDevelopment />);
+  it("does not call askRag automatically or for an anonymous session", () => {
+    render(<AssistantPage />);
     expect(askRagMock).not.toHaveBeenCalled();
     enterQuestion();
     const form = screen.getByRole("button", { name: "Envoyer" }).closest("form");
     expect(form).not.toBeNull();
     fireEvent.submit(form as HTMLFormElement);
     expect(askRagMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Connexion requise" })).toBeInTheDocument();
   });
 });

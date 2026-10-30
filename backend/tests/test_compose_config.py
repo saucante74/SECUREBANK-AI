@@ -15,6 +15,12 @@ def test_backend_compose_service_loads_backend_environment() -> None:
         "      RAG_CORPUS_PATH: /app/data/rag_integration_corpus.json\n"
         in backend_service
     )
+    assert "      USER_DATABASE_PATH: /app/runtime/users.sqlite3\n" in backend_service
+    assert "    volumes:\n      - securebank_users:/app/runtime\n" in backend_service
+
+    volumes = compose_content.rsplit("volumes:\n", maxsplit=1)[1]
+    assert "  qdrant_data:\n" in volumes
+    assert "  securebank_users:\n" in volumes
 
 
 def test_backend_image_includes_rag_runtime_assets() -> None:
@@ -24,6 +30,22 @@ def test_backend_image_includes_rag_runtime_assets() -> None:
 
     assert "COPY --chown=app:app data ./data\n" in dockerfile
     assert (
+        "COPY --chown=app:app scripts/create_user.py ./scripts/create_user.py\n"
+        in dockerfile
+    )
+    assert (
         "COPY --chown=app:app models/paraphrase-multilingual-MiniLM-L12-v2 "
         "./models/paraphrase-multilingual-MiniLM-L12-v2\n" in dockerfile
     )
+    assert "    && mkdir --parents /app/runtime \\\n" in dockerfile
+    assert "    && chown app:app /app/runtime\n" in dockerfile
+
+
+def test_backend_image_excludes_sqlite_databases() -> None:
+    dockerignore = (REPOSITORY_ROOT / "backend" / ".dockerignore").read_text(
+        encoding="utf-8"
+    )
+
+    assert "*.db\n" in dockerignore
+    assert "*.sqlite\n" in dockerignore
+    assert "*.sqlite3\n" in dockerignore

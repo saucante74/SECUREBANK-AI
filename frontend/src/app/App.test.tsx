@@ -1,7 +1,18 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ApiError } from "../api/client";
+import { getCurrentUser } from "../api/services";
 import { App } from "./App";
+
+vi.mock("../api/services", () => ({
+  askRag: vi.fn(),
+  getCurrentUser: vi.fn(),
+  loginUser: vi.fn(),
+  logoutUser: vi.fn(),
+}));
+
+const getCurrentUserMock = vi.mocked(getCurrentUser);
 
 function navigation(): HTMLElement {
   return screen.getByRole("navigation", { name: "Sections de l’application" });
@@ -10,6 +21,10 @@ function navigation(): HTMLElement {
 describe("App navigation", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
+    getCurrentUserMock.mockReset();
+    getCurrentUserMock.mockRejectedValue(
+      new ApiError({ category: "unauthenticated", method: "GET", status: 401 }),
+    );
   });
 
   it("keeps the home page accessible", () => {
@@ -103,13 +118,32 @@ describe("App navigation", () => {
     ).not.toHaveAttribute("aria-current");
   });
 
-  it("keeps About non-interactive", () => {
+  it("navigates to the public About page", () => {
     render(<App />);
 
+    fireEvent.click(within(navigation()).getByRole("link", { name: "À propos" }));
+
     expect(
-      within(navigation()).queryByRole("link", { name: "À propos" }),
-    ).not.toBeInTheDocument();
-    expect(within(navigation()).getByText("À venir")).toBeInTheDocument();
+      screen.getByRole("heading", { name: "À propos de SecureBank-AI" }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/about");
+    expect(
+      within(navigation()).getByRole("link", { name: "À propos" }),
+    ).toHaveAttribute("aria-current", "page");
+  });
+
+  it("places the compact language control immediately before sign-in", async () => {
+    render(<App />);
+
+    const languageControl = screen.getByRole("group", {
+      name: "Langue de l’interface",
+    });
+    const loginButton = await screen.findByRole("button", {
+      name: "Se connecter",
+    });
+
+    expect(languageControl.nextElementSibling).toBe(loginButton);
+    expect(within(languageControl).getAllByRole("button")).toHaveLength(4);
   });
 
   it("closes the mobile menu after navigation", () => {
@@ -125,13 +159,15 @@ describe("App navigation", () => {
     expect(menuButton).toHaveFocus();
   });
 
-  it("makes no automatic backend call", () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
-
+  it("checks the optional session without blocking public navigation", async () => {
     render(<App />);
     fireEvent.click(within(navigation()).getByRole("link", { name: "Assistant" }));
 
-    expect(fetchSpy).not.toHaveBeenCalled();
-    fetchSpy.mockRestore();
+    await waitFor(() => {
+      expect(getCurrentUserMock).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      screen.getByRole("heading", { name: "Assistant documentaire" }),
+    ).toBeInTheDocument();
   });
 });
