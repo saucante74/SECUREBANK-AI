@@ -1,0 +1,63 @@
+{
+  "benchmark_id": "securebank-rag-retrieval-v1",
+  "run_id": "9f7d9cadfc6f4033b3448b5515e1ee21",
+  "created_at": "2026-10-30T15:06:43.873952Z",
+  "code_version": "2083519fae3fc2d026991322c23da6db67a387f6",
+  "rag_configuration": {
+    "top_k": 3,
+    "chunk_size_characters": 180,
+    "chunk_overlap_characters": 30,
+    "embedding_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "embedding_dimension": 384,
+    "qdrant_collection": "securebank_benchmark_chunks",
+    "qdrant_distance": "cosine",
+    "candidate_multiplier": 3,
+    "rrf_k": 60,
+    "reranker_model": "ms-marco-MultiBERT-L-12"
+  },
+  "parameter_change": null,
+  "measured_metrics": {
+    "BM25": {
+      "source_hit_at_1": 0.575,
+      "source_hit_at_3": 0.8,
+      "evidence_hit_at_1": 0.45,
+      "evidence_hit_at_3": 0.7,
+      "mean_latency_seconds": 0.0003443284000695712
+    },
+    "Qdrant": {
+      "source_hit_at_1": 0.55,
+      "source_hit_at_3": 0.7,
+      "evidence_hit_at_1": 0.35,
+      "evidence_hit_at_3": 0.525,
+      "mean_latency_seconds": 0.02183379424996019
+    },
+    "RRF": {
+      "source_hit_at_1": 0.6,
+      "source_hit_at_3": 0.8,
+      "evidence_hit_at_1": 0.425,
+      "evidence_hit_at_3": 0.675,
+      "mean_latency_seconds": 0.015365136624996011
+    },
+    "RRF + FlashRank": {
+      "source_hit_at_1": 0.3,
+      "source_hit_at_3": 0.825,
+      "evidence_hit_at_1": 0.25,
+      "evidence_hit_at_3": 0.65,
+      "mean_latency_seconds": 0.22954698734993145
+    }
+  },
+  "expected_behaviors": [
+    "answerable cases retrieve their documented source and evidence",
+    "unanswerable cases abstain without citations",
+    "ambiguous cases avoid unsupported assumptions",
+    "grounded answers cite only retrieved passages",
+    "sensitive input and output remain masked"
+  ],
+  "uncomputed_metrics": [
+    "answer_correctness",
+    "abstention_accuracy",
+    "citation_correctness",
+    "pii_masking_recall"
+  ],
+  "langfuse_trace_ids": []
+}

@@ -37,6 +37,8 @@ The backend requirements file already declares packages for later iterations. A 
 
 The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, a protected PII masking endpoint, and a protected generative RAG endpoint that is disabled by default. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. When enabled and configured, the generative RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates and fuses both rankings with RRF. FlashRank remains available as an independent retrieval experiment but is not part of the default generative pipeline. `RagGenerationService` emits privacy-preserving lifecycle measurements through an injected typed observer and uses a stateless no-op observer by default.
 
+The reproducible retrieval baseline uses a dedicated synthetic corpus and Qdrant collection. Successful runs are stored as append-only JSON records under `backend/benchmark_results`. The detailed pipeline, Langfuse audit, measured baseline, and limitations are documented in [docs/rag-baseline-audit.md](docs/rag-baseline-audit.md).
+
 ## Repository Structure
 
 ```text
