@@ -1,0 +1,87 @@
+{
+  "benchmark_id": "securebank-rag-retrieval-v1",
+  "run_id": "9e75585b4fb4465fabeba34e48a9562a",
+  "created_at": "2026-10-31T17:32:56.929555Z",
+  "code_version": "90e2b8a2b2ef05dea482205201df40bbd83bae90",
+  "rag_configuration": {
+    "top_k": 3,
+    "chunk_size_characters": 180,
+    "chunk_overlap_characters": 30,
+    "embedding_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "embedding_dimension": 384,
+    "qdrant_collection": "securebank_benchmark_chunks",
+    "qdrant_distance": "cosine",
+    "candidate_multiplier": 3,
+    "rrf_k": 60,
+    "reranker_model": "ms-marco-MultiBERT-L-12"
+  },
+  "parameter_change": null,
+  "measured_metrics": {
+    "BM25": {
+      "source_hit_at_1": 0.575,
+      "source_hit_at_3": 0.8,
+      "evidence_hit_at_1": 0.45,
+      "evidence_hit_at_3": 0.7,
+      "mean_latency_seconds": 0.0003629975250987627,
+      "latency_p50_seconds": 0.0003704325008584419,
+      "latency_p95_seconds": 0.00047043004960869425,
+      "error_rate": 0.0,
+      "mean_returned_chunk_count": 3.0,
+      "mean_distinct_document_count_at_3": 2.525,
+      "mean_source_diversity_at_3": 0.8416666666666666
+    },
+    "Qdrant": {
+      "source_hit_at_1": 0.55,
+      "source_hit_at_3": 0.7,
+      "evidence_hit_at_1": 0.35,
+      "evidence_hit_at_3": 0.525,
+      "mean_latency_seconds": 0.015630853074981133,
+      "latency_p50_seconds": 0.01545359600095253,
+      "latency_p95_seconds": 0.019237176852220726,
+      "error_rate": 0.0,
+      "mean_returned_chunk_count": 3.0,
+      "mean_distinct_document_count_at_3": 2.65,
+      "mean_source_diversity_at_3": 0.8833333333333334
+    },
+    "RRF": {
+      "source_hit_at_1": 0.6,
+      "source_hit_at_3": 0.8,
+      "evidence_hit_at_1": 0.425,
+      "evidence_hit_at_3": 0.675,
+      "mean_latency_seconds": 0.01609105097477368,
+      "latency_p50_seconds": 0.016414869998698123,
+      "latency_p95_seconds": 0.018505393799568993,
+      "error_rate": 0.0,
+      "mean_returned_chunk_count": 3.0,
+      "mean_distinct_document_count_at_3": 2.575,
+      "mean_source_diversity_at_3": 0.8583333333333334
+    },
+    "RRF + FlashRank": {
+      "source_hit_at_1": 0.3,
+      "source_hit_at_3": 0.825,
+      "evidence_hit_at_1": 0.25,
+      "evidence_hit_at_3": 0.65,
+      "mean_latency_seconds": 0.2510845003247596,
+      "latency_p50_seconds": 0.24990507200163847,
+      "latency_p95_seconds": 0.3212659178008835,
+      "error_rate": 0.0,
+      "mean_returned_chunk_count": 3.0,
+      "mean_distinct_document_count_at_3": 2.775,
+      "mean_source_diversity_at_3": 0.925
+    }
+  },
+  "expected_behaviors": [
+    "answerable cases retrieve their documented source and evidence",
+    "unanswerable cases abstain without citations",
+    "ambiguous cases avoid unsupported assumptions",
+    "grounded answers cite only retrieved passages",
+    "sensitive input and output remain masked"
+  ],
+  "uncomputed_metrics": [
+    "answer_correctness",
+    "abstention_accuracy",
+    "citation_correctness",
+    "pii_masking_recall"
+  ],
+  "langfuse_trace_ids": []
+}

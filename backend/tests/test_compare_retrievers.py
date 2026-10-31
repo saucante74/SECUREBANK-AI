@@ -87,6 +87,28 @@ def test_prepare_comparison_builds_the_four_real_configurations() -> None:
     vector_store.store_chunks.assert_called_once()
 
 
+def test_prepare_comparison_can_reuse_existing_index_without_ingestion() -> None:
+    dataset = load_benchmark_dataset()
+    embeddings = MagicMock(spec=LocalEmbeddingService)
+    vector_store = MagicMock(spec=QdrantVectorStore)
+    reranker = MagicMock(spec=FlashRankReranker)
+
+    pipeline = prepare_comparison(
+        dataset,
+        CharacterChunker(chunk_size=1_000),
+        embeddings,
+        vector_store,
+        reranker,
+        point_counter=lambda chunks: len(chunks),
+        index_chunks=False,
+    )
+
+    assert len(pipeline.chunks) == 30
+    embeddings.embed_chunks.assert_not_called()
+    vector_store.ensure_collection.assert_not_called()
+    vector_store.store_chunks.assert_not_called()
+
+
 def test_semantic_retriever_embeds_question_before_qdrant_search() -> None:
     embeddings = MagicMock(spec=LocalEmbeddingService)
     vector_store = MagicMock(spec=QdrantVectorStore)

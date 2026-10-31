@@ -146,11 +146,13 @@ def prepare_comparison(
     vector_store: QdrantVectorStore,
     flashrank_reranker: FlashRankReranker,
     point_counter: Callable[[Sequence[Chunk]], int],
+    index_chunks: bool = True,
 ) -> ComparisonPipeline:
     chunks = create_benchmark_chunks(dataset.documents, chunker)
-    embeddings = embedding_service.embed_chunks(chunks)
-    vector_store.ensure_collection()
-    vector_store.store_chunks(chunks, embeddings)
+    if index_chunks:
+        embeddings = embedding_service.embed_chunks(chunks)
+        vector_store.ensure_collection()
+        vector_store.store_chunks(chunks, embeddings)
     point_count = point_counter(chunks)
     if point_count != len(chunks):
         raise ValueError(
@@ -325,7 +327,7 @@ def run_comparison(
     return comparisons
 
 
-def create_local_comparison() -> ComparisonPipeline:
+def create_local_comparison(index_chunks: bool = True) -> ComparisonPipeline:
     client = QdrantClient(url=settings.qdrant_url)
     vector_store = QdrantVectorStore(
         url=settings.qdrant_url,
@@ -355,6 +357,7 @@ def create_local_comparison() -> ComparisonPipeline:
         vector_store,
         FlashRankReranker(),
         count_points,
+        index_chunks=index_chunks,
     )
 
 
