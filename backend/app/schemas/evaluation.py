@@ -34,6 +34,15 @@ class EvaluationCase(BaseModel):
         return value
 
 
+class UnannotatedBenchmarkQuestion(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: NonBlankString
+    question: NonBlankString
+    difficulty: Literal["factual", "semantic", "difficult"]
+    rationale: NonBlankString
+
+
 class CaseEvaluation(BaseModel):
     model_config = ConfigDict(frozen=True)
 
