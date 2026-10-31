@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -62,6 +63,41 @@ describe("App navigation", () => {
     render(<App />);
 
     expect(await within(navigation()).findByRole("link", { name: "Évaluation" })).toBeInTheDocument();
+  });
+
+  it("keeps the restored administrator session under StrictMode", async () => {
+    let rejectDiscardedRequest: (reason: unknown) => void = () => undefined;
+    getCurrentUserMock
+      .mockImplementationOnce(
+        () =>
+          new Promise((_, reject) => {
+            rejectDiscardedRequest = reject;
+          }),
+      )
+      .mockResolvedValueOnce({ sub: "admin", role: "admin" });
+
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+
+    expect(
+      await within(navigation()).findByRole("link", { name: "Évaluation" }),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      rejectDiscardedRequest(
+        new ApiError({ category: "aborted", method: "GET" }),
+      );
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(
+        within(navigation()).getByRole("link", { name: "Évaluation" }),
+      ).toBeInTheDocument();
+    });
   });
 
   it("navigates to the assistant and back home", () => {
