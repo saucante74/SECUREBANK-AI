@@ -114,7 +114,7 @@ def main() -> int:
     arguments = parse_arguments()
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
-    pipeline = create_local_comparison()
+    pipeline = create_local_comparison(index_chunks=False)
     comparisons = compare_retrievers(pipeline)
     pool = build_annotation_pool(pipeline.cases, comparisons)
     save_annotation_pool(pool, arguments.output)
