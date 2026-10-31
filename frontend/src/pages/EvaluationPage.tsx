@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
@@ -17,6 +17,28 @@ function formatMetric(value: number): string {
   return value.toFixed(3);
 }
 
+function configurationSummary(run: EvaluationRun): string {
+  if (run.parameter_change) {
+    return `${run.parameter_change.name}: ${displayValue(run.parameter_change.previous_value)} → ${displayValue(run.parameter_change.new_value)}`;
+  }
+  const entries = Object.entries(run.rag_configuration);
+  const visibleEntries = entries
+    .slice(0, 2)
+    .map(([name, value]) => `${name}=${displayValue(value)}`);
+  const remainingEntries = entries.length - visibleEntries.length;
+  const summary = [
+    ...visibleEntries,
+    ...(remainingEntries > 0 ? [`+${String(remainingEntries)}`] : []),
+  ].join(" · ");
+  return summary || "—";
+}
+
+function fullConfiguration(run: EvaluationRun): string {
+  return Object.entries(run.rag_configuration)
+    .map(([name, value]) => `${name}=${displayValue(value)}`)
+    .join(" · ");
+}
+
 export function EvaluationPage() {
   const { t, i18n } = useTranslation();
   const [runs, setRuns] = useState<EvaluationRun[]>([]);
@@ -25,6 +47,9 @@ export function EvaluationPage() {
   const [previousRunId, setPreviousRunId] = useState("");
   const [newRunId, setNewRunId] = useState("");
   const [comparison, setComparison] = useState<EvaluationComparison>();
+  const [expandedRunIds, setExpandedRunIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -49,6 +74,9 @@ export function EvaluationPage() {
 
   const summary = useMemo(() => {
     const engines = runs.flatMap((run) => Object.values(run.measured_metrics));
+    const engineNames = new Set(
+      runs.flatMap((run) => Object.keys(run.measured_metrics)),
+    );
     const configurations = new Set(
       runs.map((run) => JSON.stringify(run.rag_configuration)),
     ).size;
@@ -59,8 +87,25 @@ export function EvaluationPage() {
       ? engines.reduce((total, metrics) => total + metrics.mean_latency_seconds, 0) /
         engines.length
       : undefined;
-    return { configurations, bestEvidence, meanLatency };
+    return {
+      configurations,
+      engines: engineNames.size,
+      bestEvidence,
+      meanLatency,
+    };
   }, [runs]);
+
+  const toggleRun = (runId: string) => {
+    setExpandedRunIds((current) => {
+      const next = new Set(current);
+      if (next.has(runId)) {
+        next.delete(runId);
+      } else {
+        next.add(runId);
+      }
+      return next;
+    });
+  };
 
   const compare = async () => {
     if (!previousRunId || !newRunId) return;
@@ -92,10 +137,11 @@ export function EvaluationPage() {
 
       {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-red-800">{t("evaluation.error")}</p>}
 
-      <section aria-label={t("evaluation.summary.title")} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label={t("evaluation.summary.title")} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {[
           [t("evaluation.summary.runs"), String(runs.length)],
           [t("evaluation.summary.configurations"), String(summary.configurations)],
+          [t("evaluation.summary.engines"), String(summary.engines)],
           [t("evaluation.summary.bestEvidence"), summary.bestEvidence === undefined ? "—" : formatMetric(summary.bestEvidence)],
           [t("evaluation.summary.meanLatency"), summary.meanLatency === undefined ? "—" : `${(summary.meanLatency * 1000).toFixed(1)} ms`],
         ].map(([label, value]) => (
@@ -112,27 +158,72 @@ export function EvaluationPage() {
           <p className="mt-4 text-muted">{t("evaluation.empty")}</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="min-w-[64rem] text-left text-sm">
               <thead className="border-b border-border text-xs uppercase tracking-wide text-muted">
-                <tr>{["date", "run", "engine", "variable", "previous", "new", "source1", "source3", "evidence1", "evidence3", "latency"].map((key) => <th key={key} className="whitespace-nowrap px-3 py-3">{t(`evaluation.history.${key}`)}</th>)}</tr>
+                <tr>{["details", "date", "run", "configuration", "engines", "source1", "source3", "evidence1", "evidence3", "latency"].map((key) => <th key={key} className="whitespace-nowrap px-3 py-3">{t(`evaluation.history.${key}`)}</th>)}</tr>
               </thead>
-              <tbody>
-                {runs.flatMap((run) => Object.entries(run.measured_metrics).map(([engine, metrics]) => (
-                  <tr key={`${run.run_id}-${engine}`} className="border-b border-border/70">
-                    <td className="whitespace-nowrap px-3 py-3">{new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(run.created_at))}</td>
-                    <td className="max-w-32 truncate px-3 py-3 font-mono" title={run.run_id}>{run.run_id}</td>
-                    <td className="whitespace-nowrap px-3 py-3 font-semibold">{engine}</td>
-                    <td className="px-3 py-3">{run.parameter_change?.name ?? "—"}</td>
-                    <td className="px-3 py-3">{displayValue(run.parameter_change?.previous_value)}</td>
-                    <td className="px-3 py-3">{displayValue(run.parameter_change?.new_value)}</td>
-                    <td className="px-3 py-3">{formatMetric(metrics.source_hit_at_1)}</td>
-                    <td className="px-3 py-3">{formatMetric(metrics.source_hit_at_3)}</td>
-                    <td className="px-3 py-3">{formatMetric(metrics.evidence_hit_at_1)}</td>
-                    <td className="px-3 py-3">{formatMetric(metrics.evidence_hit_at_3)}</td>
-                    <td className="whitespace-nowrap px-3 py-3">{(metrics.mean_latency_seconds * 1000).toFixed(1)} ms</td>
-                  </tr>
-                )))}
-              </tbody>
+              {runs.map((run) => {
+                const engines = Object.entries(run.measured_metrics);
+                const isExpanded = expandedRunIds.has(run.run_id);
+                const detailsId = `evaluation-run-${run.run_id}-engines`;
+                return (
+                  <Fragment key={run.run_id}>
+                    <tbody>
+                      <tr className="border-b border-border bg-surface/80 font-semibold text-brand-navy transition-colors hover:bg-accent-soft/60">
+                        <td className="px-3 py-3">
+                          <button
+                            type="button"
+                            className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-white text-sm transition-colors hover:border-accent/50 hover:text-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            aria-controls={detailsId}
+                            aria-expanded={isExpanded}
+                            aria-label={t(
+                              isExpanded
+                                ? "evaluation.history.collapse"
+                                : "evaluation.history.expand",
+                              { runId: run.run_id },
+                            )}
+                            onClick={() => {
+                              toggleRun(run.run_id);
+                            }}
+                          >
+                            <span aria-hidden="true">{isExpanded ? "▼" : "▶"}</span>
+                          </button>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3">
+                          {new Intl.DateTimeFormat(i18n.language, {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          }).format(new Date(run.created_at))}
+                        </td>
+                        <td className="max-w-36 truncate px-3 py-3 font-mono" title={run.run_id}>
+                          {run.run_id}
+                        </td>
+                        <td className="max-w-72 truncate px-3 py-3 font-normal text-muted" title={fullConfiguration(run)}>
+                          {configurationSummary(run)}
+                        </td>
+                        <td className="px-3 py-3 text-center">{engines.length}</td>
+                        <td className="px-3 py-3 text-muted" colSpan={5}>—</td>
+                      </tr>
+                    </tbody>
+                    <tbody id={detailsId}>
+                      {isExpanded &&
+                        engines.map(([engine, metrics]) => (
+                          <tr key={`${run.run_id}-${engine}`} className="border-b border-border/70 bg-white transition-colors hover:bg-surface/70">
+                            <td className="px-3 py-3" aria-hidden="true" />
+                            <th scope="row" className="whitespace-nowrap px-3 py-3 pl-6 font-semibold text-ink" colSpan={4}>
+                              {engine}
+                            </th>
+                            <td className="px-3 py-3">{formatMetric(metrics.source_hit_at_1)}</td>
+                            <td className="px-3 py-3">{formatMetric(metrics.source_hit_at_3)}</td>
+                            <td className="px-3 py-3">{formatMetric(metrics.evidence_hit_at_1)}</td>
+                            <td className="px-3 py-3">{formatMetric(metrics.evidence_hit_at_3)}</td>
+                            <td className="whitespace-nowrap px-3 py-3">{(metrics.mean_latency_seconds * 1000).toFixed(1)} ms</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </Fragment>
+                );
+              })}
             </table>
           </div>
         )}

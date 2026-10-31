@@ -153,8 +153,8 @@
     "loading": "Chargement des benchmarks…",
     "error": "Les benchmarks ne peuvent pas être chargés actuellement.",
     "empty": "Aucun benchmark historique n’est disponible.",
-    "summary": { "title": "Synthèse", "runs": "Runs historiques", "configurations": "Configurations", "bestEvidence": "Meilleur Evidence Hit@3", "meanLatency": "Latence moyenne" },
-    "history": { "title": "Historique des benchmarks", "date": "Date", "run": "Run", "commit": "Commit", "engine": "Moteur", "variable": "Variable", "previous": "Avant", "new": "Après", "source1": "Source Hit@1", "source3": "Source Hit@3", "evidence1": "Evidence Hit@1", "evidence3": "Evidence Hit@3", "latency": "Latence" },
+    "summary": { "title": "Synthèse", "runs": "Runs historiques", "configurations": "Configurations", "engines": "Moteurs évalués", "bestEvidence": "Meilleur Evidence Hit@3", "meanLatency": "Latence moyenne" },
+    "history": { "title": "Historique des benchmarks", "details": "Détails", "date": "Date", "run": "Run", "configuration": "Configuration", "engines": "Moteurs", "source1": "Source Hit@1", "source3": "Source Hit@3", "evidence1": "Evidence Hit@1", "evidence3": "Evidence Hit@3", "latency": "Latence", "expand": "Développer les moteurs du run {{runId}}", "collapse": "Réduire les moteurs du run {{runId}}" },
     "comparison": { "title": "Comparer deux runs", "previous": "Run précédent", "new": "Nouveau run", "action": "Comparer", "configuration": "Configuration", "metrics": "Écarts de métriques", "noConfigurationChange": "Aucun changement de configuration." },
     "metrics": { "source_hit_at_1": "Source Hit@1", "source_hit_at_3": "Source Hit@3", "evidence_hit_at_1": "Evidence Hit@1", "evidence_hit_at_3": "Evidence Hit@3", "mean_latency_seconds": "Latence moyenne" },
     "guide": {

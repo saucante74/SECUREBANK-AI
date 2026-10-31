@@ -148,8 +148,8 @@
   },
   "evaluation": {
     "eyebrow": "Qualità del retrieval", "title": "Valutazione del RAG", "description": "Benchmark storici del retrieval. Queste metriche misurano il recupero documentale, non ancora l’affidabilità complessiva delle risposte generate.", "loading": "Caricamento dei benchmark…", "error": "I benchmark non possono essere caricati al momento.", "empty": "Nessun benchmark storico disponibile.",
-    "summary": { "title": "Sintesi", "runs": "Run storici", "configurations": "Configurazioni", "bestEvidence": "Miglior Evidence Hit@3", "meanLatency": "Latenza media" },
-    "history": { "title": "Storico dei benchmark", "date": "Data", "run": "Run", "commit": "Commit", "engine": "Motore", "variable": "Variabile", "previous": "Prima", "new": "Dopo", "source1": "Source Hit@1", "source3": "Source Hit@3", "evidence1": "Evidence Hit@1", "evidence3": "Evidence Hit@3", "latency": "Latenza" },
+    "summary": { "title": "Sintesi", "runs": "Run storici", "configurations": "Configurazioni", "engines": "Motori valutati", "bestEvidence": "Miglior Evidence Hit@3", "meanLatency": "Latenza media" },
+    "history": { "title": "Storico dei benchmark", "details": "Dettagli", "date": "Data", "run": "Run", "configuration": "Configurazione", "engines": "Motori", "source1": "Source Hit@1", "source3": "Source Hit@3", "evidence1": "Evidence Hit@1", "evidence3": "Evidence Hit@3", "latency": "Latenza", "expand": "Espandi i motori del run {{runId}}", "collapse": "Riduci i motori del run {{runId}}" },
     "comparison": { "title": "Confronta due run", "previous": "Run precedente", "new": "Nuovo run", "action": "Confronta", "configuration": "Configurazione", "metrics": "Differenze delle metriche", "noConfigurationChange": "Nessuna modifica della configurazione." },
     "metrics": { "source_hit_at_1": "Source Hit@1", "source_hit_at_3": "Source Hit@3", "evidence_hit_at_1": "Evidence Hit@1", "evidence_hit_at_3": "Evidence Hit@3", "mean_latency_seconds": "Latenza media" },
     "guide": {

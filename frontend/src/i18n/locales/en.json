@@ -148,8 +148,8 @@
   },
   "evaluation": {
     "eyebrow": "Retrieval quality", "title": "RAG evaluation", "description": "Historical retrieval benchmarks. These metrics measure document retrieval, not yet the overall reliability of generated answers.", "loading": "Loading benchmarks…", "error": "Benchmarks cannot be loaded right now.", "empty": "No historical benchmark is available.",
-    "summary": { "title": "Summary", "runs": "Historical runs", "configurations": "Configurations", "bestEvidence": "Best Evidence Hit@3", "meanLatency": "Mean latency" },
-    "history": { "title": "Benchmark history", "date": "Date", "run": "Run", "commit": "Commit", "engine": "Engine", "variable": "Variable", "previous": "Before", "new": "After", "source1": "Source Hit@1", "source3": "Source Hit@3", "evidence1": "Evidence Hit@1", "evidence3": "Evidence Hit@3", "latency": "Latency" },
+    "summary": { "title": "Summary", "runs": "Historical runs", "configurations": "Configurations", "engines": "Evaluated engines", "bestEvidence": "Best Evidence Hit@3", "meanLatency": "Mean latency" },
+    "history": { "title": "Benchmark history", "details": "Details", "date": "Date", "run": "Run", "configuration": "Configuration", "engines": "Engines", "source1": "Source Hit@1", "source3": "Source Hit@3", "evidence1": "Evidence Hit@1", "evidence3": "Evidence Hit@3", "latency": "Latency", "expand": "Expand engines for run {{runId}}", "collapse": "Collapse engines for run {{runId}}" },
     "comparison": { "title": "Compare two runs", "previous": "Previous run", "new": "New run", "action": "Compare", "configuration": "Configuration", "metrics": "Metric differences", "noConfigurationChange": "No configuration change." },
     "metrics": { "source_hit_at_1": "Source Hit@1", "source_hit_at_3": "Source Hit@3", "evidence_hit_at_1": "Evidence Hit@1", "evidence_hit_at_3": "Evidence Hit@3", "mean_latency_seconds": "Mean latency" },
     "guide": {

@@ -148,8 +148,8 @@
   },
   "evaluation": {
     "eyebrow": "Retrieval-Qualität", "title": "RAG-Auswertung", "description": "Historische Retrieval-Benchmarks. Diese Metriken messen die Dokumentensuche, noch nicht die Gesamtzuverlässigkeit generierter Antworten.", "loading": "Benchmarks werden geladen…", "error": "Benchmarks können derzeit nicht geladen werden.", "empty": "Kein historischer Benchmark verfügbar.",
-    "summary": { "title": "Übersicht", "runs": "Historische Läufe", "configurations": "Konfigurationen", "bestEvidence": "Bester Evidence Hit@3", "meanLatency": "Mittlere Latenz" },
-    "history": { "title": "Benchmark-Verlauf", "date": "Datum", "run": "Lauf", "commit": "Commit", "engine": "Engine", "variable": "Variable", "previous": "Vorher", "new": "Nachher", "source1": "Source Hit@1", "source3": "Source Hit@3", "evidence1": "Evidence Hit@1", "evidence3": "Evidence Hit@3", "latency": "Latenz" },
+    "summary": { "title": "Übersicht", "runs": "Historische Läufe", "configurations": "Konfigurationen", "engines": "Ausgewertete Engines", "bestEvidence": "Bester Evidence Hit@3", "meanLatency": "Mittlere Latenz" },
+    "history": { "title": "Benchmark-Verlauf", "details": "Details", "date": "Datum", "run": "Lauf", "configuration": "Konfiguration", "engines": "Engines", "source1": "Source Hit@1", "source3": "Source Hit@3", "evidence1": "Evidence Hit@1", "evidence3": "Evidence Hit@3", "latency": "Latenz", "expand": "Engines für Lauf {{runId}} ausklappen", "collapse": "Engines für Lauf {{runId}} einklappen" },
     "comparison": { "title": "Zwei Läufe vergleichen", "previous": "Vorheriger Lauf", "new": "Neuer Lauf", "action": "Vergleichen", "configuration": "Konfiguration", "metrics": "Metrikdifferenzen", "noConfigurationChange": "Keine Konfigurationsänderung." },
     "metrics": { "source_hit_at_1": "Source Hit@1", "source_hit_at_3": "Source Hit@3", "evidence_hit_at_1": "Evidence Hit@1", "evidence_hit_at_3": "Evidence Hit@3", "mean_latency_seconds": "Mittlere Latenz" },
     "guide": {
