@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { ApiError } from "../api/client";
 import { getCurrentUser, loginUser, logoutUser } from "../api/services";
@@ -26,26 +26,24 @@ export function useAuthSession(): AuthSessionController {
   const [clearVersion, setClearVersion] = useState(0);
   const [logoutErrorKey, setLogoutErrorKey] =
     useState<ApiErrorTranslationKey>();
-  const mountedRef = useRef(true);
-
   useEffect(() => {
-    mountedRef.current = true;
+    let isActive = true;
     const controller = new AbortController();
 
     void getCurrentUser(undefined, undefined, controller.signal)
       .then((identity) => {
-        if (!mountedRef.current) return;
+        if (!isActive) return;
         setUser(identity);
         setStatus("authenticated");
       })
       .catch(() => {
-        if (!mountedRef.current) return;
+        if (!isActive) return;
         setUser(undefined);
         setStatus("anonymous");
       });
 
     return () => {
-      mountedRef.current = false;
+      isActive = false;
       controller.abort();
     };
   }, []);

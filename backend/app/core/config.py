@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     login_attempt_window_seconds: int = 300
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection_name: str = "securebank_chunks"
+    benchmark_results_path: Path = BACKEND_DIR / "benchmark_results"
     rag_enabled: bool = False
     rag_corpus_path: Path | None = None
     llm_api_key: SecretStr | None = None
@@ -53,7 +54,7 @@ class Settings(BaseSettings):
             raise ValueError("JWT claim settings must not be empty")
         return value
 
-    @field_validator("user_database_path")
+    @field_validator("user_database_path", "benchmark_results_path")
     @classmethod
     def validate_user_database_path(cls, value: Path) -> Path:
         if not str(value).strip():

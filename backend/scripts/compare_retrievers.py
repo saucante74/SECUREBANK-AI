@@ -63,12 +63,69 @@ class ComparisonPipeline:
 class EngineComparison:
     results_by_case_id: dict[str, list[RetrievalResult]]
     latency_by_case_id: dict[str, float]
+    failed_case_ids: frozenset[str]
     report_at_1: EvaluationReport
     report_at_3: EvaluationReport
 
     @property
     def mean_latency_seconds(self) -> float:
         return fsum(self.latency_by_case_id.values()) / len(self.latency_by_case_id)
+
+    @property
+    def latency_p50_seconds(self) -> float:
+        return percentile(tuple(self.latency_by_case_id.values()), 0.5)
+
+    @property
+    def latency_p95_seconds(self) -> float:
+        return percentile(tuple(self.latency_by_case_id.values()), 0.95)
+
+    @property
+    def error_rate(self) -> float:
+        return len(self.failed_case_ids) / len(self.results_by_case_id)
+
+    @property
+    def mean_returned_chunk_count(self) -> float:
+        return fsum(len(results) for results in self.results_by_case_id.values()) / len(
+            self.results_by_case_id
+        )
+
+    @property
+    def mean_distinct_document_count_at_3(self) -> float:
+        counts = (
+            len({result.chunk.document_id for result in results[:TOP_K]})
+            for results in self.results_by_case_id.values()
+        )
+        return fsum(counts) / len(self.results_by_case_id)
+
+    @property
+    def mean_source_diversity_at_3(self) -> float:
+        diversities = (
+            source_diversity_at_3(results)
+            for results in self.results_by_case_id.values()
+        )
+        return fsum(diversities) / len(self.results_by_case_id)
+
+
+def percentile(values: Sequence[float], quantile: float) -> float:
+    ordered_values = sorted(values)
+    if not ordered_values:
+        raise ValueError("percentile values must not be empty")
+    position = (len(ordered_values) - 1) * quantile
+    lower_index = int(position)
+    upper_index = min(lower_index + 1, len(ordered_values) - 1)
+    fraction = position - lower_index
+    return (
+        ordered_values[lower_index] * (1 - fraction)
+        + ordered_values[upper_index] * fraction
+    )
+
+
+def source_diversity_at_3(results: Sequence[RetrievalResult]) -> float:
+    selected_results = results[:TOP_K]
+    if not selected_results:
+        return 0.0
+    distinct_documents = {result.chunk.document_id for result in selected_results}
+    return len(distinct_documents) / len(selected_results)
 
 
 def validate_results(
@@ -89,11 +146,13 @@ def prepare_comparison(
     vector_store: QdrantVectorStore,
     flashrank_reranker: FlashRankReranker,
     point_counter: Callable[[Sequence[Chunk]], int],
+    index_chunks: bool = True,
 ) -> ComparisonPipeline:
     chunks = create_benchmark_chunks(dataset.documents, chunker)
-    embeddings = embedding_service.embed_chunks(chunks)
-    vector_store.ensure_collection()
-    vector_store.store_chunks(chunks, embeddings)
+    if index_chunks:
+        embeddings = embedding_service.embed_chunks(chunks)
+        vector_store.ensure_collection()
+        vector_store.store_chunks(chunks, embeddings)
     point_count = point_counter(chunks)
     if point_count != len(chunks):
         raise ValueError(
@@ -127,15 +186,21 @@ def evaluate_engine(
 ) -> EngineComparison:
     results_by_case_id: dict[str, list[RetrievalResult]] = {}
     latency_by_case_id: dict[str, float] = {}
+    failed_case_ids: set[str] = set()
     for case in cases:
         started_at = timer()
-        results = engine.search(case.question, top_k=TOP_K)
+        try:
+            results = engine.search(case.question, top_k=TOP_K)
+            validate_results(chunks, results)
+        except Exception:
+            results = []
+            failed_case_ids.add(case.id)
         latency_by_case_id[case.id] = timer() - started_at
-        validate_results(chunks, results)
         results_by_case_id[case.id] = results
     return EngineComparison(
         results_by_case_id=results_by_case_id,
         latency_by_case_id=latency_by_case_id,
+        failed_case_ids=frozenset(failed_case_ids),
         report_at_1=evaluate_cases(cases, results_by_case_id, k=1),
         report_at_3=evaluate_cases(cases, results_by_case_id, k=3),
     )
@@ -159,7 +224,8 @@ def print_metric_table(comparisons: Mapping[str, EngineComparison]) -> None:
     print("\nAggregate metrics")
     print(
         "Engine           | Source Hit@1 | Source Hit@3 | "
-        "Evidence Hit@1 | Evidence Hit@3 | Mean latency (ms)"
+        "Evidence Hit@1 | Evidence Hit@3 | P50 (ms) | P95 (ms) | Error rate | "
+        "Mean chunks | Mean docs@3 | Diversity@3"
     )
     for name, comparison in comparisons.items():
         print(
@@ -168,7 +234,12 @@ def print_metric_table(comparisons: Mapping[str, EngineComparison]) -> None:
             f"{comparison.report_at_3.mean_source_hit_at_k:>12.3f} | "
             f"{comparison.report_at_1.mean_evidence_hit_at_k:>14.3f} | "
             f"{comparison.report_at_3.mean_evidence_hit_at_k:>14.3f} | "
-            f"{comparison.mean_latency_seconds * 1_000:>17.3f}"
+            f"{comparison.latency_p50_seconds * 1_000:>8.3f} | "
+            f"{comparison.latency_p95_seconds * 1_000:>8.3f} | "
+            f"{comparison.error_rate:>10.3f} | "
+            f"{comparison.mean_returned_chunk_count:>11.3f} | "
+            f"{comparison.mean_distinct_document_count_at_3:>11.3f} | "
+            f"{comparison.mean_source_diversity_at_3:>11.3f}"
         )
 
 
@@ -251,11 +322,12 @@ def run_comparison(
     print_case_comparisons(selected_cases, comparisons)
     print_failed_cases(comparisons)
     print_flashrank_changes(selected_cases, comparisons)
+    print("\nDiversity@3 is 0 when a question returns no chunks.")
     print("\nLocal latency measurements are not a production benchmark.")
     return comparisons
 
 
-def create_local_comparison() -> ComparisonPipeline:
+def create_local_comparison(index_chunks: bool = True) -> ComparisonPipeline:
     client = QdrantClient(url=settings.qdrant_url)
     vector_store = QdrantVectorStore(
         url=settings.qdrant_url,
@@ -285,6 +357,7 @@ def create_local_comparison() -> ComparisonPipeline:
         vector_store,
         FlashRankReranker(),
         count_points,
+        index_chunks=index_chunks,
     )
 
 

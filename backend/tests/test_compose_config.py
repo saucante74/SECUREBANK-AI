@@ -17,10 +17,31 @@ def test_backend_compose_service_loads_backend_environment() -> None:
     )
     assert "      USER_DATABASE_PATH: /app/runtime/users.sqlite3\n" in backend_service
     assert "    volumes:\n      - securebank_users:/app/runtime\n" in backend_service
+    assert "    healthcheck:\n" in backend_service
+    assert "http://127.0.0.1:8000/health" in backend_service
 
     volumes = compose_content.rsplit("volumes:\n", maxsplit=1)[1]
     assert "  qdrant_data:\n" in volumes
     assert "  securebank_users:\n" in volumes
+
+
+def test_frontend_waits_for_healthy_backend() -> None:
+    compose_content = (REPOSITORY_ROOT / "compose.yml").read_text(encoding="utf-8")
+
+    assert (
+        "    depends_on:\n      backend:\n        condition: service_healthy\n"
+        in compose_content
+    )
+
+
+def test_frontend_proxy_uses_docker_dns_runtime_resolution() -> None:
+    nginx_content = (REPOSITORY_ROOT / "frontend" / "nginx.conf").read_text(
+        encoding="utf-8"
+    )
+
+    assert "resolver 127.0.0.11 valid=10s ipv6=off;" in nginx_content
+    assert "rewrite ^/api/(.*)$ /$1 break;" in nginx_content
+    assert "proxy_pass $backend_upstream;" in nginx_content
 
 
 def test_backend_image_includes_rag_runtime_assets() -> None:

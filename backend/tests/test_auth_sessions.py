@@ -96,6 +96,56 @@ def test_login_sets_session_and_allows_auth_me(tmp_path: Path) -> None:
     )
     assert all("SameSite=lax" in cookie for cookie in cookies)
     assert all("Secure" not in cookie for cookie in cookies)
+    assert all("Path=/" in cookie for cookie in cookies)
+    assert all("Domain=" not in cookie for cookie in cookies)
+
+
+def test_admin_session_restores_evaluation_access_and_logs_out(
+    tmp_path: Path,
+) -> None:
+    settings = create_test_settings(tmp_path / "users.sqlite3").model_copy(
+        update={"benchmark_results_path": tmp_path / "benchmark_results"}
+    )
+    create_user(settings, role=Role.ADMIN)
+
+    async def scenario() -> tuple[Response, Response, Response, Response, Response]:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url=TEST_ORIGIN) as client:
+            anonymous_me = await client.get("/auth/me")
+            login_response = await client.post(
+                "/auth/login",
+                headers={"Origin": TEST_ORIGIN},
+                json={"username": "session-user", "password": TEST_PASSWORD},
+            )
+            restored_me = await client.get("/auth/me")
+            evaluation_response = await client.get("/evaluation/runs")
+            csrf_token = client.cookies.get("securebank_csrf")
+            await client.post(
+                "/auth/logout",
+                headers={"X-CSRF-Token": csrf_token},
+            )
+            logged_out_me = await client.get("/auth/me")
+            return (
+                anonymous_me,
+                login_response,
+                restored_me,
+                evaluation_response,
+                logged_out_me,
+            )
+
+    result = run_session_scenario(settings, scenario())
+
+    assert isinstance(result, tuple)
+    anonymous_me, login_response, restored_me, evaluation_response, logged_out_me = (
+        result
+    )
+    assert anonymous_me.status_code == 401
+    assert login_response.status_code == 200
+    assert login_response.json()["role"] == "admin"
+    assert restored_me.status_code == 200
+    assert restored_me.json()["role"] == "admin"
+    assert evaluation_response.status_code == 200
+    assert logged_out_me.status_code == 401
 
 
 def test_secure_cookie_is_enabled_by_configuration(tmp_path: Path) -> None:

@@ -27,7 +27,7 @@ The prototype treats FINMA expectations and the Swiss Federal Act on Data Protec
 | Retrieval | Typed documents, character chunking, in-memory BM25, local multilingual embeddings, cosine similarity, Qdrant vector storage and search, RRF, hybrid retrieval, and FlashRank reranking orchestration | Semantic evidence validation |
 | Generation | Configurable OpenAI-compatible LLM service, lazy RAG factory, RAG context, citation mapping, and explicit abstention | Semantic evidence validation |
 | Orchestration and tools | None | LangGraph, FastMCP |
-| Observability | Privacy-preserving RAG instrumentation, no-op default, and conditional Langfuse Python SDK 4.17.0 client | Live-server validation, dashboards, and alerts |
+| Observability | Privacy-preserving RAG instrumentation, conditional Langfuse Python SDK 4.17.0 client, and verified container-to-container connectivity | Dashboards and alerts |
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS, Vitest, i18next, native navigation, multilingual Assistant UI, typed native-fetch API client, development-only JWT connection | Production authentication and business interfaces |
 | Deployment | None | Render backend, Vercel frontend |
 
@@ -36,6 +36,8 @@ The backend requirements file already declares packages for later iterations. A 
 ## System Architecture
 
 The current runtime consists of one FastAPI application and a Qdrant vector database. The API exposes a public health endpoint, protected authentication demonstration endpoints, a protected PII masking endpoint, and a protected generative RAG endpoint that is disabled by default. HTTP authentication and RBAC dependencies are separated from JWT validation, typed request and response schemas, and local PII services. When enabled and configured, the generative RAG pipeline retrieves lexical BM25 and semantic MiniLM/Qdrant candidates and fuses both rankings with RRF. FlashRank remains available as an independent retrieval experiment but is not part of the default generative pipeline. `RagGenerationService` emits privacy-preserving lifecycle measurements through an injected typed observer and uses a stateless no-op observer by default.
+
+The reproducible retrieval baseline uses a dedicated synthetic corpus and Qdrant collection. Successful runs are stored as append-only JSON records under `backend/benchmark_results`. The detailed pipeline, Langfuse audit, measured baseline, and limitations are documented in [docs/rag-baseline-audit.md](docs/rag-baseline-audit.md).
 
 ## Repository Structure
 
@@ -218,6 +220,7 @@ The implemented configuration accepts these variables:
 | `LOGIN_ATTEMPT_WINDOW_SECONDS` | `300` | Persistent login rate-limit window |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint |
 | `QDRANT_COLLECTION_NAME` | `securebank_chunks` | Collection used for chunk vectors |
+| `BENCHMARK_RESULTS_PATH` | `backend/benchmark_results` | Internal source directory for the public read-only benchmark projection |
 | `RAG_ENABLED` | `false` | Enables lazy construction of the generative RAG pipeline |
 | `RAG_CORPUS_PATH` | None | Path to the local JSON corpus used by BM25 and Qdrant |
 | `LLM_API_KEY` | None | Secret credential for the configured LLM provider |
@@ -318,6 +321,12 @@ Citation validation proves only that a cited chunk was present in the supplied c
 ### RAG API
 
 `POST /rag/ask` exposes the generative RAG orchestration through a typed FastAPI contract. It requires a valid Bearer JWT and permits the `analyst`, `compliance_officer`, and `admin` roles. The question must contain non-whitespace characters and at most 2,000 characters. `top_k` defaults to 3 and accepts values from 1 through 5.
+
+### Evaluation API and dashboard
+
+The public Evaluation dashboard is available at `/evaluation` without authentication. The read-only API provides `GET /evaluation/runs`, `GET /evaluation/runs/{run_id}`, and `GET /evaluation/compare`. It validates every historical JSON record and returns an explicit public projection containing only run identifiers, timestamps, allowlisted technical configuration values, and aggregate retrieval metrics. It excludes code revisions, internal collection names, filesystem paths, benchmark questions, document passages, and Langfuse trace identifiers, and it never serves the JSON files directly.
+
+One run may contain several engines. The dashboard therefore displays one history row per run and engine, aggregate retrieval indicators, configuration changes, metric deltas, empty and failure states, and a localized metric guide. Current metrics evaluate retrieval only; they do not establish generated-answer correctness.
 
 Synthetic request example:
 
@@ -466,7 +475,7 @@ The frontend is included in Docker Compose and is served locally through Nginx o
 
 ### Running Langfuse Locally
 
-The dedicated `compose.langfuse.yml` follows the current Langfuse v4 self-hosting architecture. It runs independently from `compose.yml` under the `securebank-langfuse` Compose project, so its containers, default network, and named volumes do not overlap with the backend and Qdrant stack.
+The dedicated `compose.langfuse.yml` follows the current Langfuse v4 self-hosting architecture. It is combined with `compose.yml` under the `securebank` project. A dedicated external network lets the backend reach `http://langfuse-web:3000` while the browser continues to use the loopback-only web port.
 
 Langfuse v4 requires six services: the web application, an asynchronous worker, PostgreSQL for transactional data, ClickHouse for traces and analytics, Redis for queues and caching, and MinIO for event and media object storage. For a VM deployment, the official Langfuse guide recommends at least 4 CPU cores, 16 GiB of memory, and sufficient disk for accumulated traces, with 100 GiB given as an example. Local evaluation requirements depend on workload, but all six containers must fit in available memory and disk.
 
@@ -489,16 +498,21 @@ Use URL-safe hexadecimal output for `POSTGRES_PASSWORD` because it is embedded i
 Validate the resolved Compose model without printing its environment:
 
 ```bash
-docker compose --project-name securebank-langfuse \
+docker network inspect securebank-observability >/dev/null 2>&1 || \
+  docker network create securebank-observability
+
+docker compose --project-name securebank \
   --env-file .env.langfuse \
+  -f compose.yml \
   -f compose.langfuse.yml config --quiet
 ```
 
 Starting the stack downloads several large images and requires explicit approval in this project workflow:
 
 ```bash
-docker compose --project-name securebank-langfuse \
+docker compose --project-name securebank \
   --env-file .env.langfuse \
+  -f compose.yml \
   -f compose.langfuse.yml up -d
 ```
 
@@ -509,8 +523,9 @@ Only `127.0.0.1:3000` for the web UI and `127.0.0.1:9090` for browser access to 
 Stop and remove the Langfuse containers and network while preserving all named volumes:
 
 ```bash
-docker compose --project-name securebank-langfuse \
+docker compose --project-name securebank \
   --env-file .env.langfuse \
+  -f compose.yml \
   -f compose.langfuse.yml down
 ```
 
@@ -526,7 +541,7 @@ npm install
 npm run dev
 ```
 
-The current frontend displays a responsive public dashboard, a public `/about` service overview with an accessible FAQ, and a documentary Assistant in French, English, Italian, and German. Native browser navigation connects `/`, `/assistant`, and `/about` without requiring authentication. Submitting an anonymous question opens an accessible login dialog; successful cookie login preserves and immediately sends the question. The header exposes a compact language selector followed by accessible icon actions for sign-in and confirmed sign-out. Session expiry reopens login, while successful logout clears in-memory Assistant content. The typed client sends cookies, copies the CSRF cookie into protected POST headers, and retains optional Bearer support for API compatibility without exposing manual token entry in React. JWTs, credentials, questions, and RAG content are not persisted in browser storage. See [Frontend README](frontend/README.md) for focused instructions and limitations.
+The current frontend displays a responsive public dashboard, a public `/about` service overview with an accessible FAQ, a public `/evaluation` retrieval benchmark dashboard, and a documentary Assistant in French, English, Italian, and German. Native browser navigation connects all four pages without requiring authentication. Submitting an anonymous question opens an accessible login dialog; successful cookie login preserves and immediately sends the question. The header exposes a compact language selector followed by explicit sign-in and confirmed sign-out actions. Session expiry reopens login, while successful logout clears in-memory Assistant content. The typed client sends cookies, copies the CSRF cookie into protected POST headers, and retains optional Bearer support for API compatibility without exposing manual token entry in React. JWTs, credentials, questions, and RAG content are not persisted in browser storage. See [Frontend README](frontend/README.md) for focused instructions and limitations.
 
 For the Dockerized local stack, build and start the frontend with its backend dependency:
 
@@ -843,6 +858,9 @@ Current endpoints:
 | `GET` | `/auth/me` | Returns the authenticated `sub` and `role` |
 | `GET` | `/auth/analyst` | Allows `analyst`, `compliance_officer`, and `admin` |
 | `GET` | `/auth/admin` | Allows only `admin` |
+| `GET` | `/evaluation/runs` | Returns the public benchmark history projection |
+| `GET` | `/evaluation/runs/{run_id}` | Returns one public benchmark run projection |
+| `GET` | `/evaluation/compare` | Compares two public benchmark runs |
 | `POST` | `/pii/mask` | Masks detected PII for authenticated and authorized users |
 
 Call the protected endpoint with an existing token:
@@ -972,6 +990,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Deterministic local PII masking with typed markers and overlap resolution.
 - Protected `POST /pii/mask` endpoint with sanitized validation errors.
 - Protected `POST /rag/ask` endpoint with typed input, RBAC, safe upstream errors, and replaceable pipeline injection.
+- Public read-only Evaluation dashboard and typed benchmark API projection without internal revisions, paths, raw questions, document passages, or private trace identifiers.
 - Immutable document and chunk contracts with deterministic character chunking.
 - Deterministic in-memory BM25 retrieval with typed scored results.
 - Local multilingual embeddings for text and chunks with deterministic input validation.

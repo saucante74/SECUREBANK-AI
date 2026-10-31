@@ -21,6 +21,7 @@ from scripts.compare_retrievers import (
     compare_retrievers,
     evaluate_engine,
     main,
+    percentile,
     prepare_comparison,
     run_comparison,
 )
@@ -84,6 +85,28 @@ def test_prepare_comparison_builds_the_four_real_configurations() -> None:
     assert pipeline.qdrant_point_count == 30
     embeddings.embed_chunks.assert_called_once_with(pipeline.chunks)
     vector_store.store_chunks.assert_called_once()
+
+
+def test_prepare_comparison_can_reuse_existing_index_without_ingestion() -> None:
+    dataset = load_benchmark_dataset()
+    embeddings = MagicMock(spec=LocalEmbeddingService)
+    vector_store = MagicMock(spec=QdrantVectorStore)
+    reranker = MagicMock(spec=FlashRankReranker)
+
+    pipeline = prepare_comparison(
+        dataset,
+        CharacterChunker(chunk_size=1_000),
+        embeddings,
+        vector_store,
+        reranker,
+        point_counter=lambda chunks: len(chunks),
+        index_chunks=False,
+    )
+
+    assert len(pipeline.chunks) == 30
+    embeddings.embed_chunks.assert_not_called()
+    vector_store.ensure_collection.assert_not_called()
+    vector_store.store_chunks.assert_not_called()
 
 
 def test_semantic_retriever_embeds_question_before_qdrant_search() -> None:
@@ -164,6 +187,58 @@ def test_evaluate_engine_associates_results_and_measures_latency() -> None:
     assert comparison.latency_by_case_id[cases[0].id] == pytest.approx(0.1)
     assert comparison.latency_by_case_id[cases[1].id] == pytest.approx(0.4)
     assert comparison.mean_latency_seconds == pytest.approx(0.25)
+    assert comparison.latency_p50_seconds == pytest.approx(0.25)
+    assert comparison.latency_p95_seconds == pytest.approx(0.385)
+    assert comparison.error_rate == 0.0
+    assert comparison.mean_returned_chunk_count == 0.5
+    assert comparison.mean_distinct_document_count_at_3 == 0.5
+    assert comparison.mean_source_diversity_at_3 == 0.5
+
+
+def test_percentile_interpolates_and_supports_one_measurement() -> None:
+    assert percentile((0.1, 0.2, 0.3, 0.4), 0.5) == pytest.approx(0.25)
+    assert percentile((0.1, 0.2, 0.3, 0.4), 0.95) == pytest.approx(0.385)
+    assert percentile((0.7,), 0.95) == 0.7
+
+
+def test_evaluate_engine_counts_errors_and_continues() -> None:
+    cases = SYNTHETIC_EVALUATION_CASES[:2]
+    result = create_result(
+        "demo-credit-immobilier",
+        "demo-credit-immobilier:chunk:0",
+    )
+    engine = MagicMock()
+    engine.search.side_effect = [RuntimeError("synthetic failure"), [result]]
+    timer = create_timer([1.0, 1.2, 2.0, 2.3])
+
+    comparison = evaluate_engine(
+        engine,
+        [result.chunk],
+        cases,
+        timer=lambda: next(timer),
+    )
+
+    assert comparison.failed_case_ids == {cases[0].id}
+    assert comparison.results_by_case_id[cases[0].id] == []
+    assert comparison.results_by_case_id[cases[1].id] == [result]
+    assert comparison.error_rate == 0.5
+    assert comparison.latency_p50_seconds == pytest.approx(0.25)
+
+
+def test_evaluate_engine_counts_duplicate_documents_once_at_rank_three() -> None:
+    case = SYNTHETIC_EVALUATION_CASES[0]
+    results = [
+        create_result("document-a", f"document-a:chunk:{position}")
+        for position in range(2)
+    ] + [create_result("document-b", "document-b:chunk:0")]
+    engine = MagicMock()
+    engine.search.return_value = results
+
+    comparison = evaluate_engine(engine, [item.chunk for item in results], [case])
+
+    assert comparison.mean_returned_chunk_count == 3.0
+    assert comparison.mean_distinct_document_count_at_3 == 2.0
+    assert comparison.mean_source_diversity_at_3 == pytest.approx(2 / 3)
 
 
 def test_run_comparison_displays_tables_and_empty_results(
@@ -177,24 +252,34 @@ def test_run_comparison_displays_tables_and_empty_results(
         comparison.report_at_1.mean_source_hit_at_k == 0.0
         for comparison in comparisons.values()
     )
+    assert all(
+        comparison.mean_returned_chunk_count == 0.0
+        and comparison.mean_distinct_document_count_at_3 == 0.0
+        and comparison.mean_source_diversity_at_3 == 0.0
+        for comparison in comparisons.values()
+    )
     output = capsys.readouterr().out
     assert "Aggregate metrics" in output
     assert "Source Hit@1" in output
     assert "Evidence Hit@3" in output
+    assert "Diversity@3 is 0 when a question returns no chunks." in output
     assert "Per-question comparison" in output
     assert output.count("first=No result") == 24
     assert "not a production benchmark" in output
 
 
-def test_dependency_error_is_propagated() -> None:
+def test_dependency_errors_are_counted_for_every_attempt() -> None:
     pipeline = create_pipeline()
-    error = RuntimeError("synthetic retriever failure")
-    pipeline.engines["BM25"].search.side_effect = error
+    pipeline.engines["BM25"].search.side_effect = RuntimeError(
+        "synthetic retriever failure"
+    )
 
-    with pytest.raises(RuntimeError) as raised:
-        compare_retrievers(pipeline)
+    comparisons = compare_retrievers(pipeline)
 
-    assert raised.value is error
+    assert comparisons["BM25"].error_rate == 1.0
+    assert comparisons["BM25"].failed_case_ids == {
+        case.id for case in SYNTHETIC_EVALUATION_CASES
+    }
 
 
 def test_main_reports_dependency_error(capsys: pytest.CaptureFixture[str]) -> None:

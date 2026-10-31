@@ -88,7 +88,7 @@ export function Header({
             <button
               ref={loginButtonRef}
               type="button"
-              className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-white text-brand-navy transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-accent-strong"
+              className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-border bg-white px-3 text-sm font-semibold text-brand-navy transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-accent-strong"
               aria-label={t("auth.login.submit")}
               onClick={() => {
                 setIsLoginOpen(true);
@@ -107,6 +107,7 @@ export function Header({
                 <path d="M14 7l5 5-5 5M19 12H8" />
                 <path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4" />
               </svg>
+              <span>{t("auth.login.submit")}</span>
             </button>
           )}
           {authStatus === "authenticated" && user && (
