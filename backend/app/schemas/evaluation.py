@@ -70,6 +70,20 @@ class PublicEvaluationMetrics(BaseModel):
     evidence_hit_at_1: float = Field(ge=0.0, le=1.0)
     evidence_hit_at_3: float = Field(ge=0.0, le=1.0)
     mean_latency_seconds: float = Field(ge=0.0)
+    latency_p50_seconds: float | None = Field(default=None, ge=0.0)
+    latency_p95_seconds: float | None = Field(default=None, ge=0.0)
+    error_rate: float | None = Field(default=None, ge=0.0, le=1.0)
+    mean_returned_chunk_count: float | None = Field(default=None, ge=0.0)
+    mean_distinct_document_count_at_3: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=3.0,
+    )
+    mean_source_diversity_at_3: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class PublicEvaluationRun(BaseModel):

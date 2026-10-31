@@ -39,9 +39,9 @@ export const dashboardMetrics: DashboardMetric[] = [
   { key: "p50Latency", field: "latency_p50_seconds", group: "performance", format: "latency", direction: "lower" },
   { key: "p95Latency", field: "latency_p95_seconds", group: "performance", format: "latency", direction: "lower" },
   { key: "errorRate", field: "error_rate", group: "performance", format: "percentage", direction: "lower" },
-  { key: "meanChunks", field: "mean_returned_chunks", group: "performance", format: "count", direction: "descriptive" },
-  { key: "distinctDocuments3", field: "distinct_documents_at_3", group: "diversity", format: "count", direction: "descriptive" },
-  { key: "sourceDiversity3", field: "source_diversity_at_3", group: "diversity", format: "percentage", direction: "descriptive" },
+  { key: "meanChunks", field: "mean_returned_chunk_count", group: "performance", format: "count", direction: "descriptive" },
+  { key: "distinctDocuments3", field: "mean_distinct_document_count_at_3", group: "diversity", format: "count", direction: "descriptive" },
+  { key: "sourceDiversity3", field: "mean_source_diversity_at_3", group: "diversity", format: "percentage", direction: "descriptive" },
 ];
 
 function timestamp(run: EvaluationRun): number {

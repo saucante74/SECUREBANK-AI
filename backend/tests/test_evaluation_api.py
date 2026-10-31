@@ -18,7 +18,29 @@ JWT_ISSUER = "securebank-ai-evaluation-test"
 JWT_AUDIENCE = "securebank-ai-evaluation-api"
 
 
-def create_run(run_id: str, evidence_hit: float = 0.7) -> BaselineRun:
+def create_run(
+    run_id: str,
+    evidence_hit: float = 0.7,
+    include_operational_metrics: bool = False,
+) -> BaselineRun:
+    metrics = {
+        "source_hit_at_1": 0.6,
+        "source_hit_at_3": 0.8,
+        "evidence_hit_at_1": 0.5,
+        "evidence_hit_at_3": evidence_hit,
+        "mean_latency_seconds": 0.02,
+    }
+    if include_operational_metrics:
+        metrics.update(
+            {
+                "latency_p50_seconds": 0.015,
+                "latency_p95_seconds": 0.04,
+                "error_rate": 0.025,
+                "mean_returned_chunk_count": 2.8,
+                "mean_distinct_document_count_at_3": 2.1,
+                "mean_source_diversity_at_3": 0.75,
+            }
+        )
     return BaselineRun(
         benchmark_id="securebank-rag-retrieval-v1",
         run_id=run_id,
@@ -26,15 +48,7 @@ def create_run(run_id: str, evidence_hit: float = 0.7) -> BaselineRun:
         code_version="a" * 40,
         rag_configuration={"top_k": 3, "strategy": "rrf"},
         parameter_change=None,
-        measured_metrics={
-            "RRF": {
-                "source_hit_at_1": 0.6,
-                "source_hit_at_3": 0.8,
-                "evidence_hit_at_1": 0.5,
-                "evidence_hit_at_3": evidence_hit,
-                "mean_latency_seconds": 0.02,
-            }
-        },
+        measured_metrics={"RRF": metrics},
         expected_behaviors=(),
         uncomputed_metrics=("answer_correctness",),
         langfuse_trace_ids=(),
@@ -98,6 +112,52 @@ def test_public_user_can_list_and_read_runs(tmp_path: Path) -> None:
     assert [run["run_id"] for run in listing.json()] == ["run-1"]
     assert detail.status_code == 200
     assert detail.json()["measured_metrics"]["RRF"]["evidence_hit_at_3"] == 0.7
+
+
+def test_current_run_exposes_only_aggregate_operational_metrics(
+    tmp_path: Path,
+) -> None:
+    write_run(
+        tmp_path / "run.json",
+        create_run("run-1", include_operational_metrics=True),
+    )
+
+    response = request("/evaluation/runs/run-1", tmp_path)
+
+    assert response.status_code == 200
+    metrics = response.json()["measured_metrics"]["RRF"]
+    assert metrics == {
+        "source_hit_at_1": 0.6,
+        "source_hit_at_3": 0.8,
+        "evidence_hit_at_1": 0.5,
+        "evidence_hit_at_3": 0.7,
+        "mean_latency_seconds": 0.02,
+        "latency_p50_seconds": 0.015,
+        "latency_p95_seconds": 0.04,
+        "error_rate": 0.025,
+        "mean_returned_chunk_count": 2.8,
+        "mean_distinct_document_count_at_3": 2.1,
+        "mean_source_diversity_at_3": 0.75,
+    }
+    assert "questions" not in response.text
+    assert "results_by_case_id" not in response.text
+
+
+def test_historical_run_exposes_missing_operational_metrics_as_null(
+    tmp_path: Path,
+) -> None:
+    write_run(tmp_path / "run.json", create_run("historical"))
+
+    response = request("/evaluation/runs/historical", tmp_path)
+
+    assert response.status_code == 200
+    metrics = response.json()["measured_metrics"]["RRF"]
+    assert metrics["latency_p50_seconds"] is None
+    assert metrics["latency_p95_seconds"] is None
+    assert metrics["error_rate"] is None
+    assert metrics["mean_returned_chunk_count"] is None
+    assert metrics["mean_distinct_document_count_at_3"] is None
+    assert metrics["mean_source_diversity_at_3"] is None
 
 
 @pytest.mark.parametrize("role", [Role.ANALYST, Role.COMPLIANCE_OFFICER, Role.ADMIN])
@@ -170,6 +230,35 @@ def test_public_user_can_compare_configurations_and_each_engine(
         if item["engine"] == "RRF" and item["metric"] == "evidence_hit_at_3"
     )
     assert evidence_delta["delta"] == pytest.approx(0.1)
+
+
+def test_comparison_preserves_missing_historical_operational_value(
+    tmp_path: Path,
+) -> None:
+    write_run(tmp_path / "historical.json", create_run("historical"))
+    write_run(
+        tmp_path / "current.json",
+        create_run("current", include_operational_metrics=True),
+    )
+
+    response = request(
+        "/evaluation/compare?previous_run_id=historical&new_run_id=current",
+        tmp_path,
+    )
+
+    assert response.status_code == 200
+    p50_delta = next(
+        item
+        for item in response.json()["metric_deltas"]
+        if item["engine"] == "RRF" and item["metric"] == "latency_p50_seconds"
+    )
+    assert p50_delta == {
+        "engine": "RRF",
+        "metric": "latency_p50_seconds",
+        "previous_value": None,
+        "new_value": 0.015,
+        "delta": None,
+    }
 
 
 def test_public_response_excludes_internal_and_sensitive_fields(

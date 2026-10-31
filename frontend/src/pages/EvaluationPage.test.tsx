@@ -25,6 +25,12 @@ const run: EvaluationRun = {
       evidence_hit_at_1: 0.45,
       evidence_hit_at_3: 0.7,
       mean_latency_seconds: 0.001,
+      latency_p50_seconds: null,
+      latency_p95_seconds: null,
+      error_rate: null,
+      mean_returned_chunk_count: null,
+      mean_distinct_document_count_at_3: null,
+      mean_source_diversity_at_3: null,
     },
     Qdrant: {
       source_hit_at_1: 0.55,
@@ -32,6 +38,12 @@ const run: EvaluationRun = {
       evidence_hit_at_1: 0.4,
       evidence_hit_at_3: 0.65,
       mean_latency_seconds: 0.012,
+      latency_p50_seconds: null,
+      latency_p95_seconds: null,
+      error_rate: null,
+      mean_returned_chunk_count: null,
+      mean_distinct_document_count_at_3: null,
+      mean_source_diversity_at_3: null,
     },
     RRF: {
       source_hit_at_1: 0.6,
@@ -40,6 +52,12 @@ const run: EvaluationRun = {
       evidence_hit_at_3: 0.675,
       mean_latency_seconds: 0.015,
       precision_at_1: 0.72,
+      latency_p50_seconds: 0.012,
+      latency_p95_seconds: 0.03,
+      error_rate: 0.025,
+      mean_returned_chunk_count: 2.8,
+      mean_distinct_document_count_at_3: 2.1,
+      mean_source_diversity_at_3: 0.75,
     },
     "RRF + FlashRank": {
       source_hit_at_1: 0.625,
@@ -47,6 +65,12 @@ const run: EvaluationRun = {
       evidence_hit_at_1: 0.475,
       evidence_hit_at_3: 0.725,
       mean_latency_seconds: 0.02,
+      latency_p50_seconds: null,
+      latency_p95_seconds: null,
+      error_rate: null,
+      mean_returned_chunk_count: null,
+      mean_distinct_document_count_at_3: null,
+      mean_source_diversity_at_3: null,
     },
   },
 };
@@ -156,6 +180,18 @@ describe("EvaluationPage", () => {
     const latency = screen.getByRole("heading", { name: "Latence moyenne" }).closest("article");
     expect(within(latency as HTMLElement).getByText("15,0")).toBeInTheDocument();
     expect(within(latency as HTMLElement).getByText("ms")).toBeInTheDocument();
+    const p50 = screen.getByRole("heading", { name: "Latence P50" }).closest("article");
+    expect(within(p50 as HTMLElement).getByText("12,0")).toBeInTheDocument();
+    const p95 = screen.getByRole("heading", { name: "Latence P95" }).closest("article");
+    expect(within(p95 as HTMLElement).getByText("30,0")).toBeInTheDocument();
+    const errorRate = screen.getByRole("heading", { name: "Taux d’erreur" }).closest("article");
+    expect(within(errorRate as HTMLElement).getByText("2,5")).toBeInTheDocument();
+    const chunks = screen.getByRole("heading", { name: "Chunks moyens retournés" }).closest("article");
+    expect(within(chunks as HTMLElement).getByText("2,8")).toBeInTheDocument();
+    const documents = screen.getByRole("heading", { name: "Documents distincts@3" }).closest("article");
+    expect(within(documents as HTMLElement).getByText("2,1")).toBeInTheDocument();
+    const diversity = screen.getByRole("heading", { name: "Diversité des sources@3" }).closest("article");
+    expect(within(diversity as HTMLElement).getByText("75,0")).toBeInTheDocument();
   });
 
   it("uses run id as a deterministic tie-breaker", async () => {
@@ -183,6 +219,8 @@ describe("EvaluationPage", () => {
     expect(within(source as HTMLElement).getByText("55,0")).toBeInTheDocument();
     const precision = screen.getByRole("heading", { name: "Precision@1" }).closest("article");
     expect(within(precision as HTMLElement).getByText("N/A")).toBeInTheDocument();
+    const p50 = screen.getByRole("heading", { name: "Latence P50" }).closest("article");
+    expect(within(p50 as HTMLElement).getByText("N/A")).toBeInTheDocument();
   });
 
   it("shows loading and API error states", async () => {

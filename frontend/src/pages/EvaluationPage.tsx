@@ -24,7 +24,7 @@ function displayConfiguration(run: EvaluationRun): string {
 }
 
 function formatValue(
-  value: number | undefined,
+  value: number | null | undefined,
   metric: DashboardMetric,
   language: string,
   unavailable: string,

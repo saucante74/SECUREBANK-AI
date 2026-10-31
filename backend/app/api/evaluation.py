@@ -1,4 +1,5 @@
 import math
+from collections.abc import Mapping
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -8,6 +9,7 @@ from app.core.config import Settings
 from app.schemas.evaluation import (
     PublicConfigurationChange,
     PublicEvaluationComparison,
+    PublicEvaluationMetrics,
     PublicEvaluationRun,
     PublicMetricDelta,
     PublicParameterChange,
@@ -97,7 +99,28 @@ def public_run(run: BaselineRun) -> PublicEvaluationRun:
         created_at=run.created_at,
         rag_configuration=public_configuration(run),
         parameter_change=public_parameter_change,
-        measured_metrics=run.measured_metrics,
+        measured_metrics={
+            engine: public_metrics(metrics)
+            for engine, metrics in run.measured_metrics.items()
+        },
+    )
+
+
+def public_metrics(metrics: Mapping[str, float]) -> PublicEvaluationMetrics:
+    return PublicEvaluationMetrics(
+        source_hit_at_1=metrics["source_hit_at_1"],
+        source_hit_at_3=metrics["source_hit_at_3"],
+        evidence_hit_at_1=metrics["evidence_hit_at_1"],
+        evidence_hit_at_3=metrics["evidence_hit_at_3"],
+        mean_latency_seconds=metrics["mean_latency_seconds"],
+        latency_p50_seconds=metrics.get("latency_p50_seconds"),
+        latency_p95_seconds=metrics.get("latency_p95_seconds"),
+        error_rate=metrics.get("error_rate"),
+        mean_returned_chunk_count=metrics.get("mean_returned_chunk_count"),
+        mean_distinct_document_count_at_3=metrics.get(
+            "mean_distinct_document_count_at_3"
+        ),
+        mean_source_diversity_at_3=metrics.get("mean_source_diversity_at_3"),
     )
 
 

@@ -69,12 +69,12 @@ export interface EvaluationMetrics {
   success_at_3?: number;
   mrr_at_3?: number;
   ndcg_at_3?: number;
-  latency_p50_seconds?: number;
-  latency_p95_seconds?: number;
-  error_rate?: number;
-  mean_returned_chunks?: number;
-  distinct_documents_at_3?: number;
-  source_diversity_at_3?: number;
+  latency_p50_seconds: number | null;
+  latency_p95_seconds: number | null;
+  error_rate: number | null;
+  mean_returned_chunk_count: number | null;
+  mean_distinct_document_count_at_3: number | null;
+  mean_source_diversity_at_3: number | null;
 }
 
 export interface EvaluationRun {
