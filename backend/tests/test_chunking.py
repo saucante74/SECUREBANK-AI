@@ -1,7 +1,7 @@
 import pytest
 
 from app.schemas.documents import Document
-from app.services.chunking import CharacterChunker
+from app.services.chunking import CharacterChunker, StructuredChunker
 
 
 def create_document(content: str = "abcdefghij") -> Document:
@@ -139,3 +139,69 @@ def test_chunking_does_not_modify_document() -> None:
     CharacterChunker(chunk_size=8, overlap=2).chunk(document)
 
     assert document.content == original_content
+
+
+def reconstruct_overlapping_chunks(contents: list[str]) -> str:
+    reconstructed = contents[0]
+    for content in contents[1:]:
+        overlap = min(len(reconstructed), len(content))
+        while overlap and not reconstructed.endswith(content[:overlap]):
+            overlap -= 1
+        separator = "" if overlap else "\n\n"
+        reconstructed += separator + content[overlap:]
+    return reconstructed
+
+
+def test_structured_chunks_preserve_complete_content() -> None:
+    content = (
+        "Première section\nUne première phrase utile. Une deuxième phrase utile.\n\n"
+        "Deuxième section\nUne conclusion bancaire précise."
+    )
+    chunks = StructuredChunker(chunk_size=70, overlap=20).chunk(
+        create_document(content)
+    )
+
+    assert (
+        reconstruct_overlapping_chunks([chunk.content for chunk in chunks]) == content
+    )
+
+
+def test_structured_chunker_keeps_sections_whole_when_they_fit() -> None:
+    content = (
+        "Titre un\nCette section reste entière.\n\n"
+        "Titre deux\nCette autre section reste entière."
+    )
+    chunks = StructuredChunker(chunk_size=48, overlap=10).chunk(
+        create_document(content)
+    )
+
+    assert [chunk.content for chunk in chunks] == content.split("\n\n")
+
+
+def test_structured_chunker_is_deterministic() -> None:
+    document = create_document("Titre\nUne phrase. Une autre phrase. " * 20)
+    chunker = StructuredChunker(chunk_size=120, overlap=25)
+
+    first = chunker.chunk(document)
+    second = chunker.chunk(document)
+
+    assert first == second
+    assert [chunk.id for chunk in first] == [
+        f"synthetic-document:structured-chunk:{position}"
+        for position in range(len(first))
+    ]
+
+
+def test_structured_chunker_splits_long_sections_at_sentence_boundaries() -> None:
+    sentences = [f"Phrase bancaire numéro {number} complète." for number in range(30)]
+    content = "Section longue\n" + " ".join(sentences)
+    chunks = StructuredChunker(chunk_size=120, overlap=30).chunk(
+        create_document(content)
+    )
+
+    assert len(chunks) > 1
+    assert all(len(chunk.content) <= 120 for chunk in chunks)
+    assert all(chunk.content.rstrip().endswith(".") for chunk in chunks)
+    assert (
+        reconstruct_overlapping_chunks([chunk.content for chunk in chunks]) == content
+    )
