@@ -56,7 +56,7 @@ describe("App navigation", () => {
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/evaluation");
     expect(
-      await screen.findByRole("heading", { name: "Évaluation du RAG" }),
+      await screen.findByRole("heading", { name: "Évaluation RAG" }),
     ).toBeInTheDocument();
   });
 

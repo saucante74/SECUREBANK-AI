@@ -198,7 +198,7 @@ describe("internationalization", () => {
   });
 
   it.each([
-    ["fr", "Évaluation", "Évaluation du RAG"],
+    ["fr", "Évaluation", "Évaluation RAG"],
     ["en", "Evaluation", "RAG evaluation"],
     ["it", "Valutazione", "Valutazione del RAG"],
     ["de", "Auswertung", "RAG-Auswertung"],

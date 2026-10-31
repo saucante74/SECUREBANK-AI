@@ -39,6 +39,7 @@ const run: EvaluationRun = {
       evidence_hit_at_1: 0.425,
       evidence_hit_at_3: 0.675,
       mean_latency_seconds: 0.015,
+      precision_at_1: 0.72,
     },
     "RRF + FlashRank": {
       source_hit_at_1: 0.625,
@@ -61,7 +62,7 @@ describe("EvaluationPage", () => {
 
     render(<EvaluationPage />);
 
-    expect(await screen.findByRole("heading", { name: "Évaluation du RAG" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Évaluation RAG" })).toBeInTheDocument();
     const table = screen.getByRole("table");
     expect(within(table).getAllByRole("row")).toHaveLength(2);
     expect(within(table).queryByText("BM25")).not.toBeInTheDocument();
@@ -125,7 +126,92 @@ describe("EvaluationPage", () => {
     render(<EvaluationPage />);
 
     expect(await screen.findByText("Aucun benchmark historique n’est disponible.")).toBeInTheDocument();
-    expect(screen.getAllByText("—")).toHaveLength(2);
+    expect(screen.queryByText("N/A")).not.toBeInTheDocument();
+  });
+
+  it("selects the latest run by date instead of API order and defaults to RRF", async () => {
+    const older = {
+      ...run,
+      run_id: "run-old",
+      created_at: "2026-10-29T12:00:00Z",
+      measured_metrics: {
+        ...run.measured_metrics,
+        RRF: { ...run.measured_metrics.RRF, precision_at_1: 0.11 },
+      },
+    };
+    const latest = { ...run, run_id: "run-latest", created_at: "2026-10-31T12:00:00Z" };
+    getRunsMock.mockResolvedValue([older, latest]);
+
+    render(<EvaluationPage />);
+
+    const summary = (await screen.findByRole("heading", {
+      name: "Dernier benchmark disponible",
+    })).closest("section");
+    expect(summary).not.toBeNull();
+    expect(within(summary as HTMLElement).getByText("run-latest")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Moteur évalué" })).toHaveValue("RRF");
+    const precision = screen.getByRole("heading", { name: "Precision@1" }).closest("article");
+    expect(within(precision as HTMLElement).getByText("72,0")).toBeInTheDocument();
+    expect(within(precision as HTMLElement).getByText("%")).toBeInTheDocument();
+    const latency = screen.getByRole("heading", { name: "Latence moyenne" }).closest("article");
+    expect(within(latency as HTMLElement).getByText("15,0")).toBeInTheDocument();
+    expect(within(latency as HTMLElement).getByText("ms")).toBeInTheDocument();
+  });
+
+  it("uses run id as a deterministic tie-breaker", async () => {
+    const runA = { ...run, run_id: "run-a" };
+    const runZ = { ...run, run_id: "run-z" };
+    getRunsMock.mockResolvedValue([runA, runZ]);
+
+    render(<EvaluationPage />);
+
+    const summary = (await screen.findByRole("heading", {
+      name: "Dernier benchmark disponible",
+    })).closest("section");
+    expect(within(summary as HTMLElement).getByText("run-z")).toBeInTheDocument();
+  });
+
+  it("changes every dashboard card to the selected engine and keeps missing metrics unavailable", async () => {
+    getRunsMock.mockResolvedValue([run]);
+
+    render(<EvaluationPage />);
+
+    const selector = await screen.findByRole("combobox", { name: "Moteur évalué" });
+    fireEvent.change(selector, { target: { value: "Qdrant" } });
+
+    const source = screen.getByRole("heading", { name: "Source Hit@1" }).closest("article");
+    expect(within(source as HTMLElement).getByText("55,0")).toBeInTheDocument();
+    const precision = screen.getByRole("heading", { name: "Precision@1" }).closest("article");
+    expect(within(precision as HTMLElement).getByText("N/A")).toBeInTheDocument();
+  });
+
+  it("shows loading and API error states", async () => {
+    let rejectRequest: (reason: unknown) => void = () => undefined;
+    getRunsMock.mockImplementation(
+      () => new Promise((_, reject) => {
+        rejectRequest = reject;
+      }),
+    );
+
+    render(<EvaluationPage />);
+    expect(screen.getByRole("status")).toHaveTextContent("Chargement des benchmarks…");
+    rejectRequest(new Error("unavailable"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Les benchmarks ne peuvent pas être chargés actuellement.",
+    );
+  });
+
+  it("provides keyboard-accessible metric guide sections", async () => {
+    getRunsMock.mockResolvedValue([run]);
+
+    render(<EvaluationPage />);
+
+    const relevance = await screen.findByText("Pertinence", { selector: "summary" });
+    relevance.focus();
+    expect(relevance).toHaveFocus();
+    fireEvent.click(relevance);
+    expect(relevance.parentElement).toHaveAttribute("open");
   });
 
   it("compares runs through the public API", async () => {

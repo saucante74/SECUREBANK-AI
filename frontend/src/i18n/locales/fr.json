@@ -148,27 +148,30 @@
   },
   "evaluation": {
     "eyebrow": "Qualité du retrieval",
-    "title": "Évaluation du RAG",
+    "title": "Évaluation RAG",
     "description": "Benchmarks historiques du retrieval. Ces métriques mesurent la récupération documentaire, pas encore la fiabilité globale des réponses générées.",
     "loading": "Chargement des benchmarks…",
     "error": "Les benchmarks ne peuvent pas être chargés actuellement.",
     "empty": "Aucun benchmark historique n’est disponible.",
+    "latest": { "eyebrow": "État actuel", "title": "Dernier benchmark disponible", "run": "Run public", "date": "Exécuté le", "engines": "Moteurs évalués", "configuration": "Configuration autorisée" },
+    "dashboard": { "engineTitle": "Performance par moteur", "engineDescription": "Les cards utilisent uniquement le moteur sélectionné dans le dernier benchmark, sans représenter le moteur de production.", "engineLabel": "Moteur évalué", "metricsTitle": "Métriques du dernier benchmark", "unavailable": "N/A" },
+    "directions": { "higher": "Une valeur plus élevée est généralement préférable.", "lower": "Une valeur plus faible est généralement préférable.", "descriptive": "Indicateur descriptif, sans seuil universel." },
+    "groups": { "relevance": { "title": "Pertinence", "description": "Couverture et précision des résultats récupérés." }, "ranking": { "title": "Classement et présence des preuves", "description": "Position des documents et passages attendus." }, "performance": { "title": "Performance", "description": "Temps de traitement, erreurs et volume récupéré." }, "diversity": { "title": "Diversité documentaire", "description": "Variété des documents et sources dans les premiers résultats." } },
+    "metricCards": {
+      "precision1": { "name": "Precision@1", "description": "Part des résultats pertinents au premier rang." }, "precision3": { "name": "Precision@3", "description": "Part des résultats pertinents dans les trois premiers rangs." },
+      "recall1": { "name": "Recall@1", "description": "Part des éléments pertinents retrouvés au premier rang." }, "recall3": { "name": "Recall@3", "description": "Part des éléments pertinents retrouvés dans les trois premiers rangs." },
+      "f1_1": { "name": "F1@1", "description": "Moyenne harmonique de Precision@1 et Recall@1." }, "f1_3": { "name": "F1@3", "description": "Moyenne harmonique de Precision@3 et Recall@3." },
+      "map3": { "name": "MAP@3", "description": "Précision moyenne tenant compte du rang jusqu’à trois résultats." }, "success1": { "name": "Success@1", "description": "Part des questions ayant au moins un résultat pertinent au rang un." }, "success3": { "name": "Success@3", "description": "Part des questions ayant au moins un résultat pertinent dans les trois premiers rangs." },
+      "mrr3": { "name": "MRR@3", "description": "Rang réciproque moyen du premier résultat pertinent, limité à trois." }, "ndcg3": { "name": "nDCG@3", "description": "Qualité du classement pondérée par la pertinence et la position." },
+      "source1": { "name": "Source Hit@1", "description": "Présence du document attendu au premier rang." }, "source3": { "name": "Source Hit@3", "description": "Présence du document attendu dans les trois premiers rangs." }, "evidence1": { "name": "Evidence Hit@1", "description": "Présence du passage attendu au premier rang." }, "evidence3": { "name": "Evidence Hit@3", "description": "Présence du passage attendu dans les trois premiers rangs." },
+      "meanLatency": { "name": "Latence moyenne", "description": "Durée moyenne d’une recherche." }, "p50Latency": { "name": "Latence P50", "description": "Médiane des durées de recherche." }, "p95Latency": { "name": "Latence P95", "description": "Durée sous laquelle se situent 95 % des recherches." }, "errorRate": { "name": "Taux d’erreur", "description": "Part des évaluations terminées en erreur." }, "meanChunks": { "name": "Chunks moyens retournés", "description": "Nombre moyen de passages retournés par question." },
+      "distinctDocuments3": { "name": "Documents distincts@3", "description": "Nombre de documents différents dans les trois premiers résultats." }, "sourceDiversity3": { "name": "Diversité des sources@3", "description": "Variété relative des sources dans les trois premiers résultats." }
+    },
     "summary": { "title": "Synthèse", "runs": "Runs historiques", "configurations": "Configurations", "engines": "Moteurs évalués", "bestEvidence": "Meilleur Evidence Hit@3", "meanLatency": "Latence moyenne" },
-    "history": { "title": "Historique des benchmarks", "details": "Détails", "date": "Date", "run": "Run", "configuration": "Configuration", "engines": "Moteurs", "source1": "Source Hit@1", "source3": "Source Hit@3", "evidence1": "Evidence Hit@1", "evidence3": "Evidence Hit@3", "latency": "Latence", "expand": "Développer les moteurs du run {{runId}}", "collapse": "Réduire les moteurs du run {{runId}}" },
-    "comparison": { "title": "Comparer deux runs", "previous": "Run précédent", "new": "Nouveau run", "action": "Comparer", "configuration": "Configuration", "metrics": "Écarts de métriques", "noConfigurationChange": "Aucun changement de configuration." },
+    "history": { "title": "Historique des benchmarks", "description": "Runs précédents et détails par moteur.", "details": "Détails", "date": "Date", "run": "Run", "configuration": "Configuration", "engines": "Moteurs", "source1": "Source Hit@1", "source3": "Source Hit@3", "evidence1": "Evidence Hit@1", "evidence3": "Evidence Hit@3", "latency": "Latence", "expand": "Développer les moteurs du run {{runId}}", "collapse": "Réduire les moteurs du run {{runId}}" },
+    "comparison": { "title": "Comparer deux runs", "previous": "Run précédent", "new": "Nouveau run", "action": "Comparer", "configuration": "Configuration", "metrics": "Écarts de métriques", "noConfigurationChange": "Aucun changement de configuration.", "error": "La comparaison ne peut pas être chargée actuellement." },
     "metrics": { "source_hit_at_1": "Source Hit@1", "source_hit_at_3": "Source Hit@3", "evidence_hit_at_1": "Evidence Hit@1", "evidence_hit_at_3": "Evidence Hit@3", "mean_latency_seconds": "Latence moyenne" },
-    "guide": {
-      "title": "Comprendre les métriques",
-      "baseline": { "title": "Baseline", "description": "Mesure de référence reproductible utilisée pour comparer les changements." },
-      "bm25": { "title": "BM25", "description": "Recherche lexicale fondée sur les mots présents dans la question et les documents." },
-      "qdrant": { "title": "Qdrant vectoriel", "description": "Recherche sémantique par proximité entre vecteurs d’embedding." },
-      "rrf": { "title": "RRF", "description": "Fusion des classements BM25 et Qdrant sans comparer directement leurs scores." },
-      "flashrank": { "title": "FlashRank", "description": "Reranking contextuel des candidats récupérés par les moteurs précédents." },
-      "source": { "title": "Source Hit@1 / @3", "description": "Vérifie si le bon document apparaît au premier rang ou dans les trois premiers." },
-      "evidence": { "title": "Evidence Hit@1 / @3", "description": "Vérifie si le passage précis attendu apparaît au premier rang ou dans les trois premiers." },
-      "latency": { "title": "Latence moyenne", "description": "Temps local moyen de recherche par question, distinct d’une mesure de production." },
-      "difference": { "title": "Document, passage, réponse", "description": "Trouver le bon document ne garantit pas le bon passage ; trouver le bon passage ne garantit pas une réponse générée correcte." }
-    }
+    "guide": { "title": "Comprendre les métriques", "introduction": "Ces métriques évaluent le retrieval, pas directement la qualité de la réponse générée.", "limitations": { "relevance": "Precision et Recall exigent des annotations fiables. Selon sa définition, Success@K peut être équivalent à Evidence Hit@K.", "ranking": "Un bon classement des preuves ne garantit pas une réponse générée correcte.", "performance": "Une faible latence ne garantit ni la pertinence ni la correction de la réponse.", "diversity": "Une diversité élevée n’est pas nécessairement synonyme de meilleure pertinence." } }
   },
   "errors": {
     "unauthenticated": "Une authentification est requise.",

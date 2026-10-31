@@ -58,6 +58,23 @@ export interface EvaluationMetrics {
   evidence_hit_at_1: number;
   evidence_hit_at_3: number;
   mean_latency_seconds: number;
+  precision_at_1?: number;
+  precision_at_3?: number;
+  recall_at_1?: number;
+  recall_at_3?: number;
+  f1_at_1?: number;
+  f1_at_3?: number;
+  map_at_3?: number;
+  success_at_1?: number;
+  success_at_3?: number;
+  mrr_at_3?: number;
+  ndcg_at_3?: number;
+  latency_p50_seconds?: number;
+  latency_p95_seconds?: number;
+  error_rate?: number;
+  mean_returned_chunks?: number;
+  distinct_documents_at_3?: number;
+  source_diversity_at_3?: number;
 }
 
 export interface EvaluationRun {
