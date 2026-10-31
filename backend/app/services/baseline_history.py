@@ -28,6 +28,12 @@ class EngineComparison(Protocol):
     report_at_1: EvaluationSummary
     report_at_3: EvaluationSummary
     mean_latency_seconds: float
+    latency_p50_seconds: float
+    latency_p95_seconds: float
+    error_rate: float
+    mean_returned_chunk_count: float
+    mean_distinct_document_count_at_3: float
+    mean_source_diversity_at_3: float
 
 
 class ParameterChange(BaseModel):
@@ -58,18 +64,37 @@ class BaselineRun(BaseModel):
         cls,
         value: dict[str, dict[str, float]],
     ) -> dict[str, dict[str, float]]:
-        expected = {
+        historical_metrics = {
             "source_hit_at_1",
             "source_hit_at_3",
             "evidence_hit_at_1",
             "evidence_hit_at_3",
             "mean_latency_seconds",
         }
+        current_metrics = historical_metrics | {
+            "latency_p50_seconds",
+            "latency_p95_seconds",
+            "error_rate",
+            "mean_returned_chunk_count",
+            "mean_distinct_document_count_at_3",
+            "mean_source_diversity_at_3",
+        }
+        unit_interval_metrics = {
+            "source_hit_at_1",
+            "source_hit_at_3",
+            "evidence_hit_at_1",
+            "evidence_hit_at_3",
+            "error_rate",
+            "mean_source_diversity_at_3",
+        }
         for engine, metrics in value.items():
-            if not engine.strip() or set(metrics) != expected:
+            if not engine.strip() or frozenset(metrics) not in {
+                frozenset(historical_metrics),
+                frozenset(current_metrics),
+            }:
                 raise ValueError("invalid benchmark engine metrics")
             for name, metric in metrics.items():
-                maximum = float("inf") if name == "mean_latency_seconds" else 1.0
+                maximum = 1.0 if name in unit_interval_metrics else float("inf")
                 if metric < 0 or metric > maximum:
                     raise ValueError("benchmark metrics are outside their valid range")
         return value
@@ -134,6 +159,14 @@ def build_baseline_run(
             "evidence_hit_at_1": comparison.report_at_1.mean_evidence_hit_at_k,
             "evidence_hit_at_3": comparison.report_at_3.mean_evidence_hit_at_k,
             "mean_latency_seconds": comparison.mean_latency_seconds,
+            "latency_p50_seconds": comparison.latency_p50_seconds,
+            "latency_p95_seconds": comparison.latency_p95_seconds,
+            "error_rate": comparison.error_rate,
+            "mean_returned_chunk_count": comparison.mean_returned_chunk_count,
+            "mean_distinct_document_count_at_3": (
+                comparison.mean_distinct_document_count_at_3
+            ),
+            "mean_source_diversity_at_3": comparison.mean_source_diversity_at_3,
         }
         for name, comparison in comparisons.items()
     }
