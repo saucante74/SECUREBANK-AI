@@ -103,18 +103,56 @@ describe("on-demand authentication", () => {
     expect(screen.getByRole("button", { name: "Envoyer" })).toHaveFocus();
   });
 
-  it("opens the existing login popup from the accessible header icon", async () => {
+  it("exposes a visible login action in the header", async () => {
     renderAssistant();
 
     const loginButton = await screen.findByRole("button", {
       name: "Se connecter",
     });
+    expect(loginButton).toHaveTextContent("Se connecter");
     fireEvent.click(loginButton);
 
     expect(
       screen.getByRole("dialog", { name: "Connexion requise" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Identifiant" })).toHaveFocus();
+  });
+
+  it("shows evaluation immediately after an administrator login", async () => {
+    loginUserMock.mockResolvedValue({ sub: "synthetic-admin-id", role: "admin" });
+    renderAssistant();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Se connecter" }),
+    );
+    fillLogin();
+
+    submitLogin();
+
+    const navigation = screen.getByRole("navigation", {
+      name: "Sections de l’application",
+    });
+    expect(
+      await within(navigation).findByRole("link", { name: "Évaluation" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Connecté · admin")).toBeInTheDocument();
+  });
+
+  it("keeps evaluation hidden after a standard user login", async () => {
+    renderAssistant();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Se connecter" }),
+    );
+    fillLogin();
+
+    submitLogin();
+
+    await screen.findByText("Connecté · analyst");
+    const navigation = screen.getByRole("navigation", {
+      name: "Sections de l’application",
+    });
+    expect(
+      within(navigation).queryByRole("link", { name: "Évaluation" }),
+    ).not.toBeInTheDocument();
   });
 
   it("closes with Escape and restores focus", () => {
