@@ -197,6 +197,28 @@ describe("internationalization", () => {
     expect(screen.getByRole("button", { name: "Invia" })).toBeDisabled();
   });
 
+  it.each([
+    ["fr", "Évaluation", "Évaluation RAG"],
+    ["en", "Evaluation", "RAG evaluation"],
+    ["it", "Valutazione", "Valutazione del RAG"],
+    ["de", "Auswertung", "RAG-Auswertung"],
+  ] as const)(
+    "translates the public Evaluation page in %s",
+    async (language, navigationLabel, heading) => {
+      await changeLanguage(language);
+      window.history.replaceState({}, "", "/evaluation");
+
+      render(<App />);
+
+      expect(
+        screen.getByRole("link", { name: navigationLabel }),
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole("heading", { name: heading }),
+      ).toBeInTheDocument();
+    },
+  );
+
   it("translates abstention, source, citation, and error labels", async () => {
     await changeLanguage("en");
     render(<RagResponsePanel response={{ ...ragFixture, abstained: true }} />);

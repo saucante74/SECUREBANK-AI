@@ -1,10 +1,11 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.documents import Chunk, Document
-from app.schemas.evaluation import EvaluationCase
-from app.services.chunking import CharacterChunker
+from app.schemas.evaluation import EvaluationCase, UnannotatedBenchmarkQuestion
+from app.services.chunking import CharacterChunker, StructuredChunker
 
 BENCHMARK_DATA_PATH = (
     Path(__file__).resolve().parents[2] / "data" / "rag_benchmark.json"
@@ -12,6 +13,41 @@ BENCHMARK_DATA_PATH = (
 BENCHMARK_COLLECTION_NAME = "securebank_benchmark_chunks"
 BENCHMARK_CHUNK_SIZE = 180
 BENCHMARK_CHUNK_OVERLAP = 30
+BENCHMARK_V2_DATA_PATH = (
+    Path(__file__).resolve().parents[2] / "data" / "rag_benchmark_v2.json"
+)
+BENCHMARK_V2_CHUNK_SIZE = 500
+BENCHMARK_V2_CHUNK_OVERLAP = 75
+
+
+class BenchmarkDatasetMetadata(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    corpus_version: Literal["v1", "v2"]
+    chunker: Literal["character", "structured"]
+    chunk_size: int = Field(gt=0)
+    chunk_overlap: int = Field(ge=0)
+    relevance_annotations: bool
+
+
+def create_v1_metadata() -> BenchmarkDatasetMetadata:
+    return BenchmarkDatasetMetadata(
+        corpus_version="v1",
+        chunker="character",
+        chunk_size=BENCHMARK_CHUNK_SIZE,
+        chunk_overlap=BENCHMARK_CHUNK_OVERLAP,
+        relevance_annotations=True,
+    )
+
+
+def create_v2_metadata() -> BenchmarkDatasetMetadata:
+    return BenchmarkDatasetMetadata(
+        corpus_version="v2",
+        chunker="structured",
+        chunk_size=BENCHMARK_V2_CHUNK_SIZE,
+        chunk_overlap=BENCHMARK_V2_CHUNK_OVERLAP,
+        relevance_annotations=False,
+    )
 
 
 class BenchmarkDataset(BaseModel):
@@ -19,6 +55,18 @@ class BenchmarkDataset(BaseModel):
 
     documents: tuple[Document, ...] = Field(min_length=1)
     cases: tuple[EvaluationCase, ...] = Field(min_length=1)
+    metadata: BenchmarkDatasetMetadata = Field(default_factory=create_v1_metadata)
+
+
+class BenchmarkDatasetV2(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    schema_version: Literal[2]
+    source_dataset: str
+    annotation_status: Literal["unannotated"]
+    documents: tuple[Document, ...] = Field(min_length=1)
+    reference_questions: tuple[UnannotatedBenchmarkQuestion, ...] = Field(min_length=1)
+    metadata: BenchmarkDatasetMetadata = Field(default_factory=create_v2_metadata)
 
 
 def create_benchmark_chunks(
@@ -32,6 +80,16 @@ def create_benchmark_chunks(
     return [
         chunk for document in documents for chunk in selected_chunker.chunk(document)
     ]
+
+
+def create_benchmark_v2_chunks(
+    documents: tuple[Document, ...],
+) -> list[Chunk]:
+    chunker = StructuredChunker(
+        chunk_size=BENCHMARK_V2_CHUNK_SIZE,
+        overlap=BENCHMARK_V2_CHUNK_OVERLAP,
+    )
+    return [chunk for document in documents for chunk in chunker.chunk(document)]
 
 
 def validate_benchmark_dataset(dataset: BenchmarkDataset) -> None:
@@ -69,4 +127,28 @@ def load_benchmark_dataset(
 ) -> BenchmarkDataset:
     dataset = BenchmarkDataset.model_validate_json(path.read_text(encoding="utf-8"))
     validate_benchmark_dataset(dataset)
+    return dataset
+
+
+def validate_benchmark_dataset_v2(dataset: BenchmarkDatasetV2) -> None:
+    if len(dataset.documents) != 30:
+        raise ValueError("benchmark v2 must contain exactly 30 documents")
+    if len(dataset.reference_questions) != 40:
+        raise ValueError("benchmark v2 must contain exactly 40 questions")
+    document_ids = [document.id for document in dataset.documents]
+    question_ids = [question.id for question in dataset.reference_questions]
+    if len(document_ids) != len(set(document_ids)):
+        raise ValueError("benchmark v2 document identifiers must be unique")
+    if len(question_ids) != len(set(question_ids)):
+        raise ValueError("benchmark v2 question identifiers must be unique")
+    chunks = create_benchmark_v2_chunks(dataset.documents)
+    if len({chunk.id for chunk in chunks}) != len(chunks):
+        raise ValueError("benchmark v2 chunk identifiers must be unique")
+
+
+def load_benchmark_dataset_v2(
+    path: Path = BENCHMARK_V2_DATA_PATH,
+) -> BenchmarkDatasetV2:
+    dataset = BenchmarkDatasetV2.model_validate_json(path.read_text(encoding="utf-8"))
+    validate_benchmark_dataset_v2(dataset)
     return dataset

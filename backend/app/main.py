@@ -1,12 +1,14 @@
 from fastapi import FastAPI
 
 from app.api.auth import router as auth_router
+from app.api.evaluation import router as evaluation_router
 from app.api.pii import router as pii_router
 from app.api.rag import router as rag_router
 from app.core.config import settings
 
 app = FastAPI(title=settings.app_name, version=settings.app_version)
 app.include_router(auth_router)
+app.include_router(evaluation_router)
 app.include_router(pii_router)
 app.include_router(rag_router)
 

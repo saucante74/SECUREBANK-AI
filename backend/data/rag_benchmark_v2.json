@@ -1,0 +1,429 @@
+{
+  "schema_version": 2,
+  "source_dataset": "rag_benchmark.json",
+  "annotation_status": "unannotated",
+  "documents": [
+    {
+      "id": "benchmark-mortgage-capacity",
+      "title": "Crédit immobilier : capacité d'emprunt",
+      "source": "synthetic://benchmark/credit-immobilier/mortgage-capacity",
+      "content": "Informations essentielles conservées\nLe prêteur étudie les revenus réguliers, les charges récurrentes et les autres crédits du ménage. Le taux d'effort mesure la part du revenu consacrée aux remboursements.\n\nL'apport personnel peut couvrir une partie du prix et les frais d'acquisition. Une épargne résiduelle aide aussi à absorber un imprévu après l'achat.\n\nLa durée, le taux et le montant demandé déterminent la mensualité. Une simulation reste indicative tant que les justificatifs n'ont pas été analysés.\n\nLe bien sert généralement de garantie. La décision finale dépend du dossier complet et des règles de risque de la banque.\n\nAnalyse du budget\nLa capacité de remboursement se construit à partir des revenus réguliers, des charges récurrentes, des crédits en cours et du reste disponible après les dépenses essentielles. Le taux d'effort est un indicateur d'analyse, mais la banque examine aussi la stabilité des ressources et la capacité du ménage à absorber un imprévu.\n\nApport et épargne résiduelle\nL'apport peut financer une partie du prix et des frais d'acquisition. Conserver une épargne après l'achat limite le risque qu'une réparation ou une baisse temporaire de revenus déséquilibre immédiatement le budget. La composition exacte du dossier et la décision de crédit relèvent des règles de risque de la banque.\n\nSimulation et décision\nUne simulation traduit des hypothèses de montant, de durée et de taux en mensualité indicative. Elle ne constitue pas une offre ni une acceptation. La décision intervient après contrôle des justificatifs, du projet et de la garantie envisagée.\n\nExemple fictif\nUn ménage compare deux durées de prêt et conserve une réserve pour les dépenses du logement. Les montants et le niveau d'effort de cet exemple seraient fictifs et ne formeraient aucun seuil universel."
+    },
+    {
+      "id": "benchmark-mortgage-early-repayment",
+      "title": "Crédit immobilier : remboursement anticipé",
+      "source": "synthetic://benchmark/credit-immobilier/mortgage-early-repayment",
+      "content": "Informations essentielles conservées\nUn emprunteur peut rembourser son crédit immobilier avant la date prévue, en totalité ou en partie. Il adresse une demande écrite pour obtenir un décompte.\n\nLe contrat précise le montant minimal d'un remboursement partiel. Il peut également prévoir une indemnité de remboursement anticipé, dans les limites applicables.\n\nLe décompte indique le capital restant dû, les intérêts courus et les frais éventuels à la date choisie. Le paiement clôt le prêt ou réduit sa durée ou ses mensualités.\n\nCertaines situations prévues au contrat peuvent réduire les indemnités. Une comparaison entre économie d'intérêts et coût de l'opération éclaire la décision.\n\nPréparer la demande\nL'emprunteur demande au prêteur un décompte pour une date déterminée et précise si le remboursement sera total ou partiel. Le document permet de distinguer capital restant dû, intérêts courus et frais éventuels avant de prendre une décision.\n\nEffets sur le prêt\nUn remboursement total clôt le financement après paiement des sommes dues. Un remboursement partiel peut réduire la durée ou les mensualités selon les options acceptées. Le montant minimal, les modalités de calcul et une éventuelle indemnité sont des règles contractuelles à vérifier dans l'offre et le décompte, dans les limites applicables.\n\nComparer coût et bénéfice\nL'économie d'intérêts futurs doit être rapprochée des frais éventuels et de la perte de liquidité. Certaines situations prévues au contrat peuvent réduire les indemnités, mais aucune dispense générale n'est supposée ici. Une demande écrite conserve une trace de la date envisagée.\n\nExemple fictif\nUn emprunteur compare une réduction de durée avec une baisse de mensualité à partir d'un décompte indicatif. Aucun montant ni résultat de cet exemple ne constitue une condition réelle de banque."
+    },
+    {
+      "id": "benchmark-mortgage-fixed-variable",
+      "title": "Taux fixe ou révisable pour un prêt immobilier",
+      "source": "synthetic://benchmark/credit-immobilier/mortgage-fixed-variable",
+      "content": "Informations essentielles conservées\nUn taux fixe conserve la même règle de calcul pendant la période convenue. Il facilite la prévision des mensualités et du coût du financement.\n\nUn taux révisable évolue selon un indice et une fréquence définis au contrat. Une hausse de l'indice peut augmenter la mensualité ou prolonger la durée.\n\nUn plafond de variation limite parfois l'évolution du taux. L'offre détaille l'indice, la marge, les dates de révision et les exemples chiffrés.\n\nLe choix dépend de la tolérance au risque, de l'horizon de détention du logement et de la capacité à supporter une variation des échéances.\n\nTaux fixe\nPendant la période convenue, la règle de calcul du taux fixe ne change pas. Cette stabilité facilite la prévision des mensualités et du coût, sans supprimer les autres éléments variables du projet, comme l'assurance ou certaines dépenses liées au logement.\n\nTaux révisable\nLe contrat relie le taux à un indice, une marge et une fréquence de révision. Une variation de l'indice peut modifier la mensualité ou la durée selon le mécanisme retenu. Un plafond peut limiter cette évolution uniquement s'il figure dans l'offre : il s'agit d'une protection contractuelle, non d'une caractéristique automatique.\n\nChoisir selon le risque\nLe client examine sa tolérance à une hausse d'échéance, son horizon de détention et la marge disponible dans son budget. Les exemples chiffrés de l'offre servent à comprendre le mécanisme ; ils ne prédisent pas l'évolution future de l'indice.\n\nExemple fictif\nUn ménage simule une hausse et une baisse de l'indice avant de comparer un taux révisable à un taux fixe. Les valeurs utilisées sont des hypothèses pédagogiques, pas des prévisions de marché."
+    },
+    {
+      "id": "benchmark-mortgage-guarantees",
+      "title": "Garanties d'un financement immobilier",
+      "source": "synthetic://benchmark/credit-immobilier/mortgage-guarantees",
+      "content": "Informations essentielles conservées\nLa banque peut demander une hypothèque, une sûreté équivalente ou la garantie d'un organisme spécialisé. La garantie protège le remboursement du capital en cas de défaillance.\n\nL'hypothèque porte sur le bien financé et nécessite des formalités. Une caution mutualisée repose sur l'engagement d'un organisme après examen du dossier.\n\nLes frais de constitution, de mainlevée et la restitution éventuelle diffèrent selon la garantie. Ils doivent être intégrés au coût total du projet.\n\nLa garantie du prêt ne remplace pas l'assurance emprunteur. Ces mécanismes couvrent des risques distincts et suivent leurs propres conditions.\n\nFonction de la garantie\nLa garantie protège le prêteur si le crédit n'est plus remboursé. Selon le montage, elle peut porter sur le bien immobilier ou faire intervenir un organisme de caution. Elle ne dispense pas l'emprunteur de sa dette et ne remplace pas l'analyse de sa capacité de remboursement.\n\nCoûts et fin de financement\nLes frais de mise en place, les conditions de mainlevée ou de restitution éventuelle dépendent du mécanisme et des documents contractuels. Le client vérifie ces conséquences lors d'une vente, d'un remboursement anticipé ou d'un transfert de financement. Aucune restitution n'est présumée sans clause correspondante.\n\nGarantie et assurance\nUne garantie immobilière couvre le risque du prêteur sur le financement. L'assurance emprunteur peut couvrir certaines conséquences d'un décès, d'une incapacité ou d'une invalidité selon son contrat. L'assurance habitation protège le logement et certains biens selon une autre police. Ces protections ont donc des objets distincts.\n\nExemple fictif\nUn acquéreur compare une sûreté sur le bien et une caution en examinant les frais initiaux et les conséquences d'une revente. Cet exemple n'indique aucune solution systématiquement préférable."
+    },
+    {
+      "id": "benchmark-mortgage-offer",
+      "title": "Lecture d'une offre de crédit immobilier",
+      "source": "synthetic://benchmark/credit-immobilier/mortgage-offer",
+      "content": "Informations essentielles conservées\nL'offre de crédit présente le montant, la durée, le taux débiteur et le coût total. Elle détaille les échéances et les conditions de mise à disposition des fonds.\n\nLe taux annuel effectif global regroupe les coûts obligatoires connus nécessaires à l'obtention du financement. Il facilite la comparaison d'offres comparables.\n\nLe tableau d'amortissement répartit chaque échéance entre capital et intérêts. Les premières échéances d'un prêt amortissable comportent souvent une part d'intérêts plus élevée.\n\nL'emprunteur vérifie aussi les garanties, l'assurance, les frais et les conditions de remboursement anticipé avant d'accepter.\n\nLire le coût du financement\nL'offre rassemble le capital emprunté, la durée, les échéances, le taux et les coûts nécessaires au financement. Le taux annuel effectif global sert à regrouper les éléments de coût inclus selon les règles applicables ; le client vérifie les hypothèses et services retenus dans l'offre plutôt que de comparer le seul taux nominal.\n\nClauses à examiner\nLes conditions de remboursement anticipé, de modulation, de retard, de garantie et d'assurance influencent la souplesse et le risque du contrat. Les modalités exactes sont contractuelles. Une simulation antérieure ne remplace pas le calendrier, les conditions particulières et les annexes de l'offre définitive.\n\nContrôler la cohérence\nLe client rapproche l'identité des emprunteurs, le bien, le montant, l'apport et l'échéancier de son projet. Il demande une correction écrite en cas d'écart et conserve la version acceptée. La capacité future à supporter les mensualités reste distincte de la conformité formelle du document.\n\nExemple fictif\nDeux offres affichent le même taux nominal mais des coûts annexes et des options différents. Leur comparaison pédagogique ne constitue ni une offre réelle ni une recommandation personnalisée."
+    },
+    {
+      "id": "benchmark-consumer-personal-loan",
+      "title": "Prêt personnel non affecté",
+      "source": "synthetic://benchmark/credit-consommation/consumer-personal-loan",
+      "content": "Informations essentielles conservées\nLe prêt personnel finance un projet sans lier les fonds à un achat déterminé. Le client choisit le montant et la durée dans les limites proposées.\n\nLa banque examine les revenus, les charges et les crédits existants avant d'évaluer la capacité de remboursement. Aucun justificatif d'utilisation n'est normalement demandé.\n\nL'offre précise le taux, les mensualités, le coût total et les frais éventuels. Un délai de rétractation permet de revenir sur l'engagement selon les conditions indiquées.\n\nUn remboursement anticipé est possible. Le contrat indique si une indemnité peut s'appliquer selon le montant remboursé et la durée restante.\n\nUsage des fonds\nLe prêt personnel non affecté finance un besoin sans lier contractuellement le crédit à un achat précis. L'emprunteur n'a généralement pas à produire de facture d'utilisation, mais le prêteur analyse ses revenus, ses charges et ses crédits existants avant toute décision.\n\nLecture de l'offre\nLe montant versé, la durée, les échéances, le taux, le coût total et les frais éventuels figurent dans les documents contractuels. Le client distingue la simulation indicative de l'offre définitive et vérifie les conditions de remboursement anticipé ou d'incident. L'acceptation reste soumise à l'étude du dossier.\n\nSouplesse et limite\nL'absence d'affectation donne de la liberté, mais elle signifie aussi que l'annulation du projet financé ne met pas automatiquement fin au crédit. L'emprunteur rapproche donc la durée du prêt de l'utilité du projet et conserve une marge pour ses charges essentielles.\n\nExemple fictif\nUne personne compare deux durées pour financer plusieurs dépenses liées à un déménagement. Les montants et mensualités de cet exemple seraient pédagogiques et ne constitueraient aucune offre réelle."
+    },
+    {
+      "id": "benchmark-consumer-assigned-loan",
+      "title": "Crédit affecté à un achat",
+      "source": "synthetic://benchmark/credit-consommation/consumer-assigned-loan",
+      "content": "Informations essentielles conservées\nLe crédit affecté finance un bien ou un service désigné, comme un véhicule ou des travaux. Le contrat de crédit mentionne précisément l'achat concerné.\n\nLa vente et le financement sont juridiquement liés dans les conditions prévues. Si le crédit est refusé, l'achat financé ne suit normalement pas son cours.\n\nLes fonds sont destinés au vendeur ou au prestataire après réalisation des conditions. Le client conserve les documents décrivant le bien, le prix et la livraison.\n\nLe coût comprend les intérêts et les frais obligatoires. Le remboursement anticipé suit les règles du crédit à la consommation, distinctes d'un prêt immobilier.\n\nLien entre achat et crédit\nLe crédit affecté finance un bien ou un service identifié dans le contrat. Le dossier doit donc permettre de rapprocher le vendeur, l'achat et le financement. Contrairement au prêt personnel, les fonds ne sont pas destinés à un usage libre.\n\nSort de l'opération\nL'achat et le crédit sont juridiquement liés selon les conditions applicables au contrat : si le financement est refusé, l'achat financé ne se poursuit pas dans les conditions prévues. Le client vérifie que le bon de commande mentionne correctement le recours au crédit et ne présente pas le financement comme déjà accepté.\n\nDéblocage et remboursement\nLe versement intervient selon le processus prévu, souvent après confirmation de la livraison ou de la prestation. Montant, durée, échéancier, remboursement anticipé et conséquences d'un incident relèvent de l'offre contractuelle. Une difficulté avec le vendeur doit être documentée et signalée sans supposer que les prélèvements s'arrêtent automatiquement.\n\nExemple fictif\nUn acheteur commande un équipement sous condition d'obtention du crédit indiqué au bon de commande. Cet exemple illustre le lien entre les contrats sans fixer de délai ni de procédure universelle."
+    },
+    {
+      "id": "benchmark-consumer-revolving",
+      "title": "Crédit renouvelable et réserve disponible",
+      "source": "synthetic://benchmark/credit-consommation/consumer-revolving",
+      "content": "Informations essentielles conservées\nLe crédit renouvelable met à disposition une réserve utilisable en plusieurs fois. La partie non utilisée ne produit pas d'intérêts.\n\nChaque utilisation diminue le disponible et déclenche des remboursements. Les mensualités reconstituent progressivement la réserve, sous réserve des intérêts et frais.\n\nLe taux peut être révisable et le coût augmente lorsque le remboursement s'étale. Le relevé indique le capital utilisé, le disponible et une estimation de la durée.\n\nCe produit diffère d'un prêt personnel amortissable au montant versé une seule fois. Une utilisation répétée nécessite un suivi attentif du budget.\n\nRéserve réutilisable\nLe crédit renouvelable met à disposition une réserve dont la partie utilisée se reconstitue au fil des remboursements. Les intérêts sont calculés sur les sommes effectivement utilisées, pas sur la fraction disponible restée inutilisée.\n\nCoût et durée\nChaque utilisation modifie le capital à rembourser et peut allonger la durée si les mensualités restent faibles. Le contrat précise le taux, les échéances, les frais éventuels et les modalités de reconduction ou de résiliation. Le client suit le coût cumulé et distingue réserve disponible et argent déjà acquis.\n\nUtilisation prudente\nLa souplesse du produit convient à un besoin ponctuel mais peut masquer un endettement durable lorsque les utilisations se répètent. Une pratique indicative consiste à vérifier avant chaque tirage le solde dû, la durée estimée et la place de la nouvelle échéance dans le budget.\n\nExemple fictif\nUne personne utilise une partie de sa réserve pour une réparation, puis cesse tout nouveau tirage jusqu'au remboursement. Les chiffres d'un tel scénario seraient fictifs et non une recommandation de financement."
+    },
+    {
+      "id": "benchmark-consumer-early-repayment",
+      "title": "Remboursement anticipé d'un crédit à la consommation",
+      "source": "synthetic://benchmark/credit-consommation/consumer-early-repayment",
+      "content": "Informations essentielles conservées\nLe client peut rembourser avant l'échéance tout ou partie d'un crédit à la consommation. Il demande au prêteur le solde arrêté à une date précise.\n\nLes intérêts et frais correspondant à la période future ne sont plus dus. Une indemnité peut toutefois être prévue lorsque les conditions et seuils du contrat sont réunis.\n\nPour un remboursement partiel, le prêteur précise l'effet sur la durée ou les mensualités. Le client vérifie que le paiement a bien été imputé au capital.\n\nCes modalités concernent le crédit à la consommation. Un financement immobilier obéit à son propre contrat et à des règles d'indemnisation différentes.\n\nDemander le montant à régler\nL'emprunteur indique au prêteur la date souhaitée et demande un décompte pour un remboursement total ou partiel. Le document distingue capital restant, intérêts courus et éventuels frais prévus afin d'éviter de confondre solde affiché et somme nécessaire à la clôture.\n\nIntérêts et effets\nLe remboursement anticipé supprime les intérêts futurs qui auraient porté sur le capital remboursé. Il ne supprime pas les intérêts déjà courus ni les sommes dues à la date de paiement. Un remboursement partiel peut modifier la durée ou les échéances selon les options contractuelles acceptées.\n\nConditions à contrôler\nLe contrat et le décompte précisent le montant minimal, la procédure et une éventuelle indemnité dans les limites applicables. Le client compare l'économie attendue, les coûts et la liquidité qu'il conservera. Aucune exonération générale n'est supposée dans ce document.\n\nExemple fictif\nUn emprunteur compare la clôture du prêt avec un remboursement partiel réduisant sa durée. Les montants et résultats sont des hypothèses pédagogiques, non des conditions bancaires réelles."
+    },
+    {
+      "id": "benchmark-consumer-difficulty",
+      "title": "Difficultés de remboursement d'un crédit",
+      "source": "synthetic://benchmark/credit-consommation/consumer-difficulty",
+      "content": "Informations essentielles conservées\nUn client qui anticipe une difficulté de paiement contacte rapidement le prêteur. Un échange précoce permet d'examiner la situation avant l'accumulation d'impayés.\n\nSelon le dossier, un report limité, un réaménagement des échéances ou une autre solution peut être étudié. Aucune mesure n'est automatique.\n\nLe client prépare un budget recensant revenus, charges essentielles et dettes. Il transmet uniquement les justificatifs nécessaires par un canal sécurisé.\n\nIgnorer les relances peut entraîner des frais et des procédures. Une structure indépendante d'accompagnement budgétaire peut aussi fournir une aide adaptée.\n\nSignaler la difficulté tôt\nDès qu'une baisse de revenus ou une dépense imprévue menace une échéance, l'emprunteur établit un budget actualisé et contacte le prêteur avant l'accumulation d'impayés. Il indique les crédits concernés, la durée probable de la difficulté et la mensualité qu'il pense pouvoir assumer, sans masquer ses autres charges essentielles.\n\nSolutions à examiner\nLe prêteur peut étudier un changement de date, un report, un rééchelonnement ou une autre solution adaptée au dossier. Il ne s'agit pas de droits automatiques : toute modification dépend de l'accord du prêteur et doit préciser par écrit son effet sur la durée, le coût total et les prochaines échéances. Un allègement immédiat peut augmenter le coût futur.\n\nLimites et priorités\nContracter un nouveau crédit pour payer les échéances existantes peut déplacer la difficulté au lieu de la résoudre. L'emprunteur vérifie les conséquences d'un incident prévues par son contrat et sollicite, si nécessaire, un service d'accompagnement budgétaire compétent. Il conserve les propositions reçues et ne considère un accord comme acquis qu'après confirmation écrite.\n\nExemple fictif\nAprès une réduction temporaire d'activité, une personne prépare trois mois de budget et demande une solution limitée dans le temps. Cet exemple n'implique aucune acceptation obligatoire par la banque."
+    },
+    {
+      "id": "benchmark-insurance-home-cover",
+      "title": "Garanties de l'assurance habitation",
+      "source": "synthetic://benchmark/assurance/insurance-home-cover",
+      "content": "Informations essentielles conservées\nL'assurance habitation peut couvrir l'incendie, le dégât des eaux, le vol et certains événements naturels selon la formule souscrite. Les biens et plafonds garantis figurent au contrat.\n\nLa responsabilité civile indemnise certains dommages causés involontairement à des tiers. Elle ne couvre pas automatiquement tous les usages professionnels du logement.\n\nDes mesures de prévention, comme entretenir les canalisations, fermer les accès et installer des détecteurs, réduisent l'exposition aux sinistres sans remplacer l'assurance.\n\nFranchises, plafonds, délais et exclusions déterminent l'indemnisation réelle. Ils doivent être examinés avant la souscription.\n\nGaranties à identifier\nL'assurance habitation peut couvrir l'incendie, le dégât des eaux, le vol et certains événements naturels selon la formule. Le client vérifie les locaux, les biens, les plafonds et les circonstances garantis plutôt que de déduire la couverture du seul nom de la garantie.\n\nResponsabilité et prévention\nLa responsabilité civile peut indemniser certains dommages causés involontairement à des tiers. Les activités professionnelles ou situations particulières ne sont pas automatiquement incluses. Les mesures de prévention réduisent le risque mais ne remplacent ni la garantie ni les obligations prévues au contrat.\n\nIndemnisation et limites\nFranchises, plafonds, exclusions, vétusté éventuelle et justificatifs déterminent l'indemnisation réelle. Ces éléments sont contractuels. L'assurance habitation protège le logement et certains biens ; elle ne remplace pas l'assurance emprunteur, qui couvre le remboursement du crédit selon des garanties liées à la personne.\n\nExemple fictif\nUn locataire compare deux formules en examinant la couverture du vol, la franchise et le plafond des biens. Les valeurs de comparaison seraient fictives et ne décriraient aucun contrat commercial réel."
+    },
+    {
+      "id": "benchmark-insurance-home-claim",
+      "title": "Déclarer un sinistre habitation",
+      "source": "synthetic://benchmark/assurance/insurance-home-claim",
+      "content": "Informations essentielles conservées\nAprès un sinistre, l'assuré protège les personnes et limite l'aggravation des dommages sans se mettre en danger. Il conserve les biens endommagés lorsque cela est possible.\n\nLa déclaration est transmise à l'assureur dans le délai prévu au contrat. Elle décrit la date, les circonstances, les dommages et les coordonnées utiles.\n\nDes photographies, factures, devis ou constats peuvent soutenir le dossier. L'assureur peut demander une expertise avant d'arrêter l'indemnité.\n\nL'assuré ne lance pas de réparation définitive importante avant accord, sauf urgence. Il conserve une trace des échanges et des dépenses de sauvegarde.\n\nPremières mesures\nAprès un sinistre, l'assuré protège les personnes et prend les mesures raisonnables pour éviter l'aggravation sans se mettre en danger. Il photographie les dommages, conserve si possible les biens atteints et garde les justificatifs des dépenses urgentes de sauvegarde.\n\nDéclaration et délai\nLa déclaration décrit la date, les circonstances, les dommages et les coordonnées utiles. Elle doit être transmise dans le délai prévu par le contrat d'assurance concerné. Ce corpus ne fixe volontairement aucune durée légale universelle : l'assuré consulte ses conditions contractuelles et contacte rapidement l'assureur en cas de doute.\n\nInstruction du dossier\nPhotographies, factures, devis, inventaire et constat peuvent étayer la demande. L'assureur peut solliciter des pièces complémentaires ou une expertise avant de déterminer l'indemnité. Sauf urgence de sécurité, une réparation définitive importante est différée jusqu'aux instructions de l'assureur, conformément au contrat.\n\nExemple fictif\nAprès une fuite, une assurée coupe l'arrivée d'eau, photographie les pièces et vérifie dans son contrat le canal et le délai de déclaration. Aucune durée ni indemnité de cet exemple ne représente une règle réelle."
+    },
+    {
+      "id": "benchmark-insurance-home-exclusions",
+      "title": "Exclusions et franchises en assurance habitation",
+      "source": "synthetic://benchmark/assurance/insurance-home-exclusions",
+      "content": "Informations essentielles conservées\nUne exclusion retire certains événements ou comportements du champ de la garantie. Elle peut concerner un défaut d'entretien, un acte intentionnel ou un usage non déclaré.\n\nLa franchise est la part du dommage qui reste à la charge de l'assuré après un sinistre couvert. Son montant peut être fixe ou calculé selon le préjudice.\n\nUn plafond limite la somme versée pour une garantie ou une catégorie de biens. Des objets de valeur nécessitent parfois une déclaration et une protection particulières.\n\nLire ensemble garanties, exclusions, franchises et plafonds évite de confondre événement couvert et indemnisation intégrale.\n\nExclusion, franchise et plafond\nUne exclusion désigne une situation ou un dommage que le contrat ne garantit pas. La franchise est la part de l'indemnité qui reste à la charge de l'assuré. Le plafond limite le montant maximal pris en charge. Ces trois mécanismes ont des effets différents et sont définis dans les documents contractuels.\n\nLire les conditions de garantie\nL'assuré rapproche l'événement déclaré, la cause, les biens concernés et les obligations de prévention des conditions générales et particulières. Une garantie mentionnée au contrat ne signifie pas que tout dommage associé sera indemnisé intégralement : franchise, plafond, vétusté éventuelle et exclusion peuvent réduire ou empêcher le versement.\n\nCas particuliers\nUn défaut d'entretien, un usage professionnel du logement ou un bien de valeur peut relever de conditions spécifiques. La pratique utile consiste à demander une clarification écrite avant le sinistre lorsqu'une clause paraît ambiguë, et à ne pas présenter une exclusion propre à un contrat comme une règle commune à toutes les assurances.\n\nExemple fictif\nPour un dommage évalué fictivement, une franchise contractuelle laisserait une part à payer même si le sinistre est couvert. Aucun montant de cet exemple ne correspond à une offre réelle."
+    },
+    {
+      "id": "benchmark-insurance-borrower",
+      "title": "Assurance emprunteur",
+      "source": "synthetic://benchmark/assurance/insurance-borrower",
+      "content": "Informations essentielles conservées\nL'assurance emprunteur peut prendre en charge tout ou partie des échéances d'un prêt en cas de décès, d'invalidité ou d'incapacité selon les garanties retenues.\n\nLa quotité représente la part du capital assurée pour chaque emprunteur. Pour deux coemprunteurs, la répartition choisie détermine le niveau de protection de chacun.\n\nLes exclusions, délais de carence, franchises et définitions médicales influencent la prise en charge. Le coût dépend notamment du capital, de l'âge et des garanties.\n\nCette assurance protège le remboursement du crédit. Elle ne couvre ni les murs ni les biens du logement comme une assurance habitation.\n\nRôle de la couverture\nL'assurance emprunteur protège le remboursement du prêt lorsque l'événement déclaré correspond à une garantie du contrat. Selon la couverture choisie, l'assureur verse une part des échéances ou du capital restant dû. La banque reste créancière du prêt : une déclaration de sinistre ne suspend donc pas automatiquement les prélèvements.\n\nQuotité et examen du contrat\nLa quotité répartit la couverture entre les coemprunteurs. Elle doit être lue avec les définitions contractuelles de l'incapacité et de l'invalidité, les exclusions, la franchise et le délai de carence. Ce sont des règles contractuelles, variables selon l'offre, et non des paramètres universels. L'assuré vérifie aussi les justificatifs médicaux ou administratifs attendus et la procédure de déclaration.\n\nArticulation avec l'assurance habitation\nL'assurance emprunteur couvre le risque de non-remboursement lié à la personne assurée. L'assurance habitation couvre, selon son propre contrat, le logement, certains biens et la responsabilité civile. Protéger à la fois le logement et le crédit nécessite donc généralement deux couvertures distinctes ; aucune ne remplace l'autre.\n\nExemple fictif\nDeux coemprunteurs choisissent des quotités différentes après avoir comparé leurs revenus et leur capacité à assumer seuls les échéances. Cet exemple illustre un raisonnement et ne prescrit aucune répartition."
+    },
+    {
+      "id": "benchmark-insurance-payment-protection",
+      "title": "Assurance facultative d'un crédit à la consommation",
+      "source": "synthetic://benchmark/assurance/insurance-payment-protection",
+      "content": "Informations essentielles conservées\nUne assurance liée à un crédit à la consommation peut couvrir certaines échéances en cas d'incapacité, d'invalidité, de décès ou parfois de perte d'emploi.\n\nLes garanties sont facultatives sauf exigence particulière clairement annoncée. Leur coût et leurs conditions figurent séparément dans l'offre.\n\nLes délais de carence, franchises, limites d'âge et exclusions peuvent restreindre la prise en charge. Une perte d'emploi volontaire n'est généralement pas couverte.\n\nLe client compare le coût total, les risques couverts et les assurances qu'il détient déjà avant de souscrire une protection supplémentaire.\n\nObjet de l'assurance facultative\nCette assurance est associée à un crédit à la consommation. Elle peut prendre en charge certaines échéances si un événement garanti survient, sans effacer automatiquement la dette. Son caractère facultatif, son prix et ses garanties doivent être distingués des conditions du prêt lui-même.\n\nConditions de prise en charge\nLe contrat définit précisément les événements couverts, les personnes admissibles, la durée maximale de prestation, les exclusions, la franchise et le délai de carence. Une perte d'emploi, une incapacité ou une situation médicale ne déclenche une prestation que si elle répond à ces définitions. Ces paramètres sont contractuels et doivent être vérifiés dans la notice de l'offre concernée.\n\nDémarche en cas d'événement\nL'emprunteur prévient l'assureur selon le canal prévu et transmet les justificatifs demandés. Pendant l'étude, il vérifie avec le prêteur si les échéances continuent d'être prélevées. Il conserve les références des échanges et signale rapidement tout changement de situation.\n\nExemple fictif\nUne personne compare le coût total du crédit avec et sans assurance, puis confronte les exclusions à sa situation professionnelle. Les montants et choix d'un cas réel dépendraient de l'offre et du contrat."
+    },
+    {
+      "id": "benchmark-savings-booklet",
+      "title": "Livret d'épargne disponible",
+      "source": "synthetic://benchmark/epargne/savings-booklet",
+      "content": "Informations essentielles conservées\nUn livret d'épargne permet des versements et retraits dans les conditions du produit. Les fonds restent généralement disponibles sans échéance fixe.\n\nLa rémunération dépend d'un taux qui peut évoluer. Les intérêts sont calculés selon les règles annoncées et crédités périodiquement.\n\nUn plafond de versement peut limiter les nouveaux dépôts sans empêcher la capitalisation des intérêts. La fiscalité dépend du type de livret et de la situation applicable.\n\nCe support convient à une réserve de précaution lorsque la disponibilité prime. Son rendement peut être inférieur à celui de placements bloqués ou exposés au marché.\n\nDisponibilité de l'épargne\nUn livret accueille des dépôts et permet généralement des retraits sans échéance fixe, sous réserve des modalités du produit. Cette liquidité le rend adapté à une réserve de précaution, qui doit rester accessible pour une dépense imprévue.\n\nRémunération et opérations\nLes intérêts sont calculés selon les règles du livret. Taux, dates de valeur, minimum de versement, plafond éventuel et fréquence de capitalisation sont des dispositions propres au produit. Le client consulte la documentation contractuelle à jour plutôt que de supposer un taux ou un plafond universel.\n\nUsage et limites\nLa disponibilité ne garantit pas que le rendement compense l'évolution des prix. Une pratique indicative consiste à séparer la réserve de court terme des sommes destinées à un horizon plus long, puis à vérifier les délais pratiques de transfert vers le compte courant. Le livret n'est pas un compte-titres et n'expose pas directement à la fluctuation d'actions.\n\nExemple fictif\nUne personne conserve plusieurs mois de dépenses imprévues sur un livret et automatise un versement modeste. Les montants et la rémunération de cet exemple seraient fictifs, sans valeur de conseil personnalisé."
+    },
+    {
+      "id": "benchmark-savings-term-deposit",
+      "title": "Compte à terme",
+      "source": "synthetic://benchmark/epargne/savings-term-deposit",
+      "content": "Informations essentielles conservées\nLe compte à terme immobilise une somme pendant une durée convenue en échange d'une rémunération définie. Le taux peut être fixe, progressif ou dépendre de conditions annoncées.\n\nLe contrat précise le dépôt minimal, l'échéance et le mode de versement des intérêts. Aucun nouveau versement n'est généralement prévu après l'ouverture.\n\nUne sortie avant l'échéance peut être interdite ou entraîner une pénalité et une rémunération réduite. Les modalités doivent être vérifiées avant de bloquer les fonds.\n\nCe produit se distingue d'un livret disponible à tout moment. Il convient à une somme dont le client prévoit de ne pas avoir besoin pendant la durée retenue.\n\nPrincipe du placement\nLe compte à terme reçoit une somme pour une durée convenue. Le contrat fixe l'échéance et la rémunération applicable en échange d'une disponibilité plus limitée que sur un livret. Le client rapproche donc la durée du dépôt de la date probable de son projet.\n\nSortie avant l'échéance\nUne sortie anticipée peut être interdite, soumise à une pénalité ou entraîner une rémunération réduite selon le contrat. Délai de préavis, calcul des intérêts, renouvellement et restitution du capital sont également des dispositions contractuelles ; aucune modalité universelle n'est présumée dans ce corpus.\n\nDécision pratique\nAvant de bloquer les fonds, l'épargnant conserve séparément une réserve disponible et compare le rendement annoncé après coûts et conditions de sortie. Une rémunération connue ne supprime pas le risque de devoir récupérer l'argent plus tôt ni l'effet d'une évolution générale des prix.\n\nExemple fictif\nUne personne place une somme dont elle n'anticipe pas l'usage avant une date donnée, tout en gardant son épargne d'urgence sur un livret. Durée, taux et pénalité seraient fictifs et non une offre réelle."
+    },
+    {
+      "id": "benchmark-savings-securities-account",
+      "title": "Compte-titres et investissement",
+      "source": "synthetic://benchmark/epargne/savings-securities-account",
+      "content": "Informations essentielles conservées\nUn compte-titres permet de détenir des actions, obligations, fonds et autres instruments proposés. La valeur des placements peut monter ou baisser.\n\nAvant d'investir, le client définit son horizon, son objectif, sa tolérance aux pertes et son besoin de liquidité. La diversification répartit les risques sans les supprimer.\n\nLes frais de transaction, de garde et de gestion réduisent la performance. La fiscalité varie selon les revenus et plus-values réalisés.\n\nContrairement à un dépôt bancaire, le capital investi sur les marchés n'est pas garanti. Une perte est possible, notamment lors d'une vente dans une période défavorable.\n\nFonction du compte-titres\nLe compte-titres permet de détenir et négocier des instruments financiers. Il constitue une enveloppe de conservation et d'opérations, pas une garantie de rendement. La valeur des titres peut monter ou baisser et une vente peut produire une perte en capital.\n\nOrdres, frais et information\nLe client vérifie le type d'ordre, la quantité, le prix ou la limite et la place de négociation avant validation. Frais de courtage, droits de garde éventuels, change et fiscalité applicable dépendent du service et de la situation. Les documents contractuels et tarifaires font foi ; aucune tarification universelle n'est supposée.\n\nHorizon et diversification\nUne pratique indicative consiste à relier chaque investissement à l'horizon, au besoin de liquidité et à la perte que l'épargnant peut supporter. Diversifier entre plusieurs émetteurs ou catégories réduit certains risques sans empêcher une baisse générale. Un titre complexe ou mal compris appelle une information supplémentaire avant l'ordre.\n\nExemple fictif\nUne épargnante répartit une somme de long terme entre plusieurs titres après avoir isolé sa réserve disponible. Cette allocation est fictive et ne constitue ni une recommandation ni une promesse de performance."
+    },
+    {
+      "id": "benchmark-savings-regular-plan",
+      "title": "Plan d'épargne programmé",
+      "source": "synthetic://benchmark/epargne/savings-regular-plan",
+      "content": "Informations essentielles conservées\nUn plan programmé investit ou épargne un montant défini à intervalles réguliers. L'automatisation aide à maintenir l'effort d'épargne dans le temps.\n\nLe montant doit rester compatible avec le budget et la réserve de précaution. Il peut être ajusté ou suspendu selon les conditions du produit.\n\nDes versements réguliers sur un placement de marché répartissent les points d'entrée, mais n'empêchent ni une baisse de valeur ni une perte en capital.\n\nLe choix du support dépend de l'horizon, du risque accepté, des frais et de la disponibilité souhaitée. La régularité ne garantit aucun rendement.\n\nAutomatiser les versements\nUn plan d'épargne programmé transfère à intervalles réguliers une somme définie vers un support choisi. L'automatisation installe une discipline d'épargne, mais elle ne garantit ni rendement ni disponibilité : ces caractéristiques dépendent du support destinataire.\n\nParamètres à contrôler\nMontant, fréquence, date de prélèvement, durée et règles de modification sont précisés dans le mandat ou le contrat. Le client vérifie que le compte débité sera suffisamment approvisionné. Les frais, risques, conditions de sortie et éventuelle garantie du capital relèvent également des documents contractuels du support.\n\nAdapter l'effort d'épargne\nUne pratique indicative consiste à placer le versement après une entrée régulière de revenus, à conserver une réserve disponible et à réexaminer le montant lors d'un changement de budget. Suspendre ou réduire le programme peut éviter un découvert ; la procédure exacte dépend du service souscrit.\n\nExemple fictif\nUne personne programme un versement mensuel vers un support de long terme et conserve séparément son épargne d'urgence. Le montant, la date et le rendement de cet exemple seraient fictifs et non une recommandation."
+    },
+    {
+      "id": "benchmark-savings-risk-profile",
+      "title": "Profil de risque et horizon d'épargne",
+      "source": "synthetic://benchmark/epargne/savings-risk-profile",
+      "content": "Informations essentielles conservées\nL'horizon indique quand l'argent devra être disponible. Un besoin proche appelle généralement des supports plus stables et liquides qu'un objectif éloigné.\n\nLa capacité de perte mesure l'effet financier qu'aurait une baisse du placement. La tolérance au risque décrit la réaction personnelle face aux fluctuations.\n\nObjectifs, connaissances, expérience et situation financière contribuent au profil. Ces éléments doivent être actualisés lorsqu'un projet ou le budget change.\n\nUn rendement espéré plus élevé s'accompagne généralement d'un risque supérieur. Diversifier et comprendre les frais restent nécessaires, quel que soit le profil.\n\nComposantes du profil\nLe profil de risque rapproche l'objectif, l'horizon, les connaissances, l'expérience, le besoin de liquidité et la capacité financière à supporter une perte. La tolérance déclarée à la volatilité ne remplace pas l'analyse concrète des conséquences d'une baisse sur le projet du client.\n\nHorizon et capacité de perte\nUn horizon long peut laisser davantage de temps pour traverser des fluctuations, sans garantir la récupération du capital. Une somme nécessaire prochainement ne devrait pas être exposée au même risque qu'une épargne sans échéance proche. Cette mise en cohérence est une pratique indicative, pas une allocation universelle.\n\nRéévaluation et décision\nLe profil doit être actualisé lorsque les revenus, les charges, l'objectif ou l'échéance changent. Les caractéristiques, frais et risques de chaque produit restent définis par sa documentation contractuelle. La diversification réduit certains risques spécifiques sans supprimer une perte de marché générale.\n\nExemple fictif\nDeux personnes ayant le même horizon choisissent différemment parce que l'une dépend de cette épargne pour un projet essentiel. Cet exemple illustre la capacité de perte et ne constitue aucun conseil d'investissement."
+    },
+    {
+      "id": "benchmark-payments-card-opposition",
+      "title": "Faire opposition sur une carte",
+      "source": "synthetic://benchmark/comptes-paiements/payments-card-opposition",
+      "content": "Informations essentielles conservées\nEn cas de perte, de vol ou d'utilisation suspecte, le titulaire fait immédiatement opposition sur sa carte par le canal prévu par la banque. L'opposition bloque les nouvelles opérations.\n\nLe client note la référence de l'opposition et vérifie les dernières transactions. Il sécurise aussi l'accès à l'application si le téléphone a disparu.\n\nUne opposition est distincte d'une contestation : bloquer la carte empêche de nouveaux paiements, tandis que contester vise des opérations déjà comptabilisées.\n\nUne nouvelle carte et un nouveau code peuvent être émis. La carte retrouvée après opposition ne doit plus être utilisée.\n\nBloquer les opérations futures\nAprès la perte, le vol ou une compromission probable de la carte, le titulaire fait immédiatement opposition par le canal officiel de la banque. L'opposition vise à empêcher de nouvelles utilisations ; un simple verrouillage temporaire dans une application n'a pas nécessairement le même effet définitif.\n\nInformations à conserver\nLe client note la date, l'heure et la référence de l'opposition, puis suit les instructions concernant le remplacement de la carte. Il ne communique aucun code confidentiel à un appelant. Les modalités exactes, la responsabilité du titulaire et les démarches complémentaires relèvent du contrat et des règles applicables à la situation.\n\nOpposition et contestation\nL'opposition protège contre des opérations futures, mais ne traite pas automatiquement un paiement déjà comptabilisé. Le titulaire examine son relevé et conteste séparément les opérations inconnues avec leurs dates et montants. En cas de vol ou de fraude, il conserve les preuves utiles.\n\nExemple fictif\nUne cliente ne retrouve plus sa carte, fait opposition depuis un canal vérifié puis signale un paiement antérieur inconnu. Cet exemple décrit deux démarches distinctes sans fixer de délai contractuel universel."
+    },
+    {
+      "id": "benchmark-payments-card-dispute",
+      "title": "Contester un paiement par carte",
+      "source": "synthetic://benchmark/comptes-paiements/payments-card-dispute",
+      "content": "Informations essentielles conservées\nLe titulaire qui ne reconnaît pas un paiement consulte d'abord le libellé, la date et le montant. Un nom commercial peut différer de l'enseigne connue.\n\nSi l'opération reste inconnue, il la conteste auprès de la banque dans le délai applicable et fournit les éléments demandés. Il indique si la carte est toujours en sa possession.\n\nLa banque examine l'authentification, le déroulement de l'opération et les circonstances déclarées. Une contestation ne garantit pas automatiquement un remboursement.\n\nSi d'autres utilisations sont possibles, le client fait aussi opposition. La contestation traite l'opération passée ; l'opposition protège les opérations futures.\n\nIdentifier l'opération\nAvant de contester, le titulaire vérifie le libellé, la date, le montant, les abonnements et les achats des cotitulaires. Si le paiement reste inconnu, il le signale rapidement à la banque par le canal prévu et transmet les informations permettant de l'identifier.\n\nDeux démarches complémentaires\nLa contestation demande l'examen d'une opération déjà passée. L'opposition à la carte cherche à empêcher de nouvelles opérations lorsque la carte ou ses données sont compromises. Constater un paiement inconnu et craindre d'autres débits peut donc justifier les deux actions, sans présumer de l'issue de la demande de remboursement.\n\nInstruction du dossier\nLa banque peut demander un formulaire, des échanges avec le commerçant ou d'autres justificatifs. Délais, motifs recevables et conditions de remboursement dépendent des règles applicables et du contrat. Le client conserve les références, surveille le compte et sécurise ses accès.\n\nExemple fictif\nUn titulaire reconnaît un commerçant mais conteste un montant, tandis qu'un autre ne reconnaît pas du tout l'opération. Ces scénarios fictifs peuvent appeler des pièces différentes et ne garantissent aucun remboursement."
+    },
+    {
+      "id": "benchmark-payments-transfer-fraud",
+      "title": "Réagir à une fraude au virement",
+      "source": "synthetic://benchmark/comptes-paiements/payments-transfer-fraud",
+      "content": "Informations essentielles conservées\nLorsqu'un virement frauduleux vient d'être exécuté, le client contacte immédiatement la banque pour demander une tentative de rappel des fonds. Le succès dépend notamment du délai.\n\nIl transmet la référence, le montant et le compte bénéficiaire par un canal sécurisé. Il signale les accès compromis et change ses moyens d'authentification.\n\nLa banque analyse l'ordre, les validations et le parcours des fonds. Un rappel n'annule pas automatiquement un virement déjà crédité au bénéficiaire.\n\nLe client conserve les messages et dépose plainte lorsque la situation le justifie. Il surveille ensuite le compte et refuse toute nouvelle instruction suspecte.\n\nAgir sans attendre\nAprès un virement frauduleux ou obtenu par tromperie, le client contacte immédiatement la banque par un canal officiel et demande une tentative de rappel des fonds. Cette tentative dépend de l'état du transfert et de la coopération des établissements ; elle ne garantit pas la récupération.\n\nSécuriser et documenter\nLe client change les accès compromis, refuse toute nouvelle validation et rassemble l'IBAN, le montant, l'heure, les messages et les références d'appel. Il surveille les autres opérations et suit les instructions de signalement ou de plainte adaptées à sa situation.\n\nComprendre la validation\nUne authentification forte confirme techniquement l'ordre validé, mais ne garantit pas l'honnêteté ni l'identité économique du bénéficiaire. La banque examine les circonstances selon le contrat et les règles applicables. Une promesse de récupération payante reçue ensuite doit être traitée comme un nouveau risque de fraude.\n\nExemple fictif\nAprès avoir suivi un faux message, une personne valide un virement puis demande aussitôt son rappel et sécurise son accès. L'exemple ne préjuge ni du délai de traitement ni du remboursement final."
+    },
+    {
+      "id": "benchmark-payments-standing-order",
+      "title": "Virement permanent et prélèvement",
+      "source": "synthetic://benchmark/comptes-paiements/payments-standing-order",
+      "content": "Informations essentielles conservées\nUn virement permanent est un ordre donné par le client pour envoyer périodiquement un montant vers un bénéficiaire. Le client choisit la fréquence et la date.\n\nUn prélèvement est initié par le créancier sur la base d'une autorisation. Son montant peut varier, par exemple pour une facture d'énergie.\n\nModifier un virement permanent n'annule pas les virements déjà exécutés. Révoquer un mandat de prélèvement n'efface pas une dette due au créancier.\n\nLe client vérifie les délais de modification avant l'échéance et contrôle régulièrement les opérations récurrentes sur ses relevés.\n\nDeux modes de déclenchement\nLe virement permanent est programmé par le client, qui choisit le bénéficiaire, le montant, la fréquence et la date. Le prélèvement est présenté par un créancier sur la base d'une autorisation ; son montant peut varier, notamment pour une facture de consommation.\n\nModifier ou révoquer\nLe client peut modifier ou supprimer un virement permanent selon les délais du service bancaire. La révocation d'un mandat de prélèvement empêche les présentations futures dans les conditions prévues, mais n'efface pas la dette envers le créancier. Une modification ne revient pas sur les opérations déjà exécutées.\n\nContrôles utiles\nLes modalités de date d'effet, de rejet, de révocation et de contestation sont contractuelles. Une pratique indicative consiste à vérifier régulièrement les bénéficiaires, les mandats actifs, le solde avant l'échéance et les opérations comptabilisées. Un paiement déjà passé appelle une démarche distincte d'une simple suppression future.\n\nExemple fictif\nUne personne arrête son virement mensuel vers un proche et révoque séparément le mandat d'un ancien fournisseur. Cet exemple illustre deux instructions différentes sans fixer de délai bancaire universel."
+    },
+    {
+      "id": "benchmark-payments-account-fees",
+      "title": "Frais et relevé de compte",
+      "source": "synthetic://benchmark/comptes-paiements/payments-account-fees",
+      "content": "Informations essentielles conservées\nLe relevé retrace les opérations, les dates de valeur, les frais et le solde du compte. Le client le contrôle régulièrement et signale rapidement une anomalie.\n\nLes frais peuvent concerner la tenue du compte, les cartes, les retraits ou certaines opérations internationales. La brochure tarifaire précise leur montant.\n\nUne autorisation de découvert fixe une limite, une durée et un taux. Dépasser la limite peut entraîner des frais supplémentaires et le refus d'opérations.\n\nComparer les offres suppose d'examiner les services réellement utilisés plutôt qu'un seul tarif. Les notifications aident à suivre le solde sans remplacer le relevé.\n\nLire le relevé et la tarification\nLe relevé permet de rapprocher chaque frais de l'opération ou du service correspondant. La brochure tarifaire décrit les prix standards, tandis que la convention de compte précise les services souscrits et les conditions applicables au client. Une offre groupée doit être comparée aux services réellement utilisés.\n\nDécouvert et incidents\nL'autorisation de découvert est une règle contractuelle qui fixe notamment une limite, une durée et un taux. Le relevé et les documents contractuels permettent d'identifier les intérêts et frais associés. Dépasser la limite convenue peut produire des coûts distincts et conduire au rejet de certaines opérations ; aucun seuil ni tarif universel n'est supposé ici.\n\nContrôle et contestation\nLe client vérifie le libellé, la date, le montant et la période facturée. S'il ne comprend pas un débit, il consulte d'abord la tarification et sa convention, puis demande à la banque la base de calcul. Une alerte de solde aide au suivi quotidien mais ne remplace pas le contrôle du relevé.\n\nExemple fictif\nUn client repère deux frais proches, constate qu'ils concernent des services différents et demande une explication documentée. Aucun montant de cet exemple ne constitue un tarif réel."
+    },
+    {
+      "id": "benchmark-security-phishing",
+      "title": "Reconnaître une tentative de phishing",
+      "source": "synthetic://benchmark/securite-conformite/security-phishing",
+      "content": "Informations essentielles conservées\nUn message de phishing imite une banque et cherche à obtenir un mot de passe, un code ou une validation. Il crée souvent un sentiment d'urgence ou menace de bloquer le compte.\n\nLe client ne clique pas sur le lien et n'appelle pas le numéro fourni. Il ouvre lui-même l'application officielle ou saisit l'adresse habituelle de la banque.\n\nUne banque ne demande pas de communiquer un code confidentiel complet par courriel ou téléphone. Un code reçu sert uniquement à l'action décrite dans le message légitime.\n\nEn cas de saisie ou de validation suspecte, le client contacte immédiatement la banque, change ses accès et surveille les opérations.\n\nSignaux d'alerte\nUn message de phishing imite une banque pour provoquer un clic, la saisie d'un secret ou la validation d'une opération. L'urgence, la menace de blocage, une adresse inhabituelle et une demande de code sont des indices ; un logo correct ou le nom du client ne prouvent pas l'authenticité.\n\nRéaction sûre\nLe destinataire ne suit ni le lien ni le numéro fourni. Il ouvre lui-même l'application officielle ou utilise une coordonnée obtenue indépendamment. Il ne transmet jamais son mot de passe ou son code confidentiel complet et ne valide qu'une action qu'il a lui-même initiée et comprise.\n\nAprès une interaction\nSi des identifiants ont été saisis ou une opération validée, le client contacte immédiatement la banque, sécurise ses accès et surveille le compte. Une validation de virement appelle aussi une demande rapide de rappel des fonds, sans garantie de récupération. Les procédures exactes relèvent du contrat et du canal de sécurité de la banque.\n\nExemple fictif\nUn courriel annonce un blocage imminent ; la cliente ferme le message et vérifie son compte dans l'application ouverte séparément. Cet exemple est fictif et ne reproduit aucune communication bancaire réelle."
+    },
+    {
+      "id": "benchmark-security-transfer-scam",
+      "title": "Prévenir les arnaques au virement",
+      "source": "synthetic://benchmark/securite-conformite/security-transfer-scam",
+      "content": "Informations essentielles conservées\nUne fraude au faux conseiller pousse la victime à effectuer elle-même un virement présenté comme sécurisé. L'appelant peut afficher un numéro falsifié et connaître certaines informations.\n\nAucun compte de sécurité n'exige de transférer l'épargne. Le client raccroche puis rappelle la banque avec un numéro obtenu indépendamment.\n\nPour une facture, une modification soudaine d'IBAN doit être vérifiée auprès du fournisseur par un canal déjà connu. Une validation forte confirme l'ordre mais pas l'identité réelle du bénéficiaire.\n\nLes plafonds, alertes et doubles contrôles réduisent le risque. Après un virement suspect, une demande de rappel doit être faite sans attendre.\n\nScénario du faux conseiller\nUn fraudeur peut afficher un numéro falsifié, citer des informations personnelles et présenter un virement comme une mesure de sécurité. Aucun compte prétendument sécurisé ne justifie de transférer son épargne sur instruction d'un appelant.\n\nVérification indépendante\nLe client interrompt l'échange et rappelle la banque avec une coordonnée trouvée sur l'application, le site saisi manuellement ou un document connu. Pour une facture, toute modification soudaine d'IBAN est vérifiée auprès du fournisseur par un canal déjà établi. L'urgence ne remplace jamais ce contrôle.\n\nRéduire le risque et réagir\nPlafonds, alertes et double validation constituent des pratiques de réduction du risque, sans garantir l'honnêteté du bénéficiaire. Après un virement suspect, le client demande immédiatement un rappel, sécurise ses accès et conserve les preuves. Les suites et remboursements dépendent des circonstances et des règles applicables.\n\nExemple fictif\nUn fournisseur semble annoncer un nouvel IBAN ; l'entreprise appelle son contact habituel avant tout paiement. Ce scénario fictif illustre une vérification et non une procédure contractuelle universelle."
+    },
+    {
+      "id": "benchmark-security-strong-authentication",
+      "title": "Authentification forte et accès bancaire",
+      "source": "synthetic://benchmark/securite-conformite/security-strong-authentication",
+      "content": "Informations essentielles conservées\nL'authentification forte combine au moins deux éléments indépendants, comme un secret, un appareil détenu ou une caractéristique biométrique. Elle protège l'accès et certaines opérations.\n\nLe client garde son code secret, verrouille son téléphone et met à jour l'application. Il ne valide jamais une demande qu'il n'a pas initiée.\n\nUne notification de validation doit indiquer l'action et, pour un paiement, le montant ou le bénéficiaire. En cas d'écart, le client refuse et contacte la banque.\n\nLa biométrie facilite l'usage mais ne dispense pas de sécuriser l'appareil. La banque peut demander une vérification supplémentaire selon le niveau de risque.\n\nPrincipe de protection\nL'authentification forte combine au moins deux éléments indépendants, par exemple un secret, un appareil détenu ou une caractéristique biométrique. Elle renforce l'accès au compte et la validation de certaines opérations, mais ne prouve pas la légitimité économique d'une demande.\n\nLire avant de valider\nLa notification doit être rapprochée de l'action initiée, du montant et du bénéficiaire affichés. En cas d'écart, le client refuse et contacte la banque par un canal officiel. Une validation forte confirme l'ordre technique ; elle ne garantit pas qu'un bénéficiaire est honnête ni qu'un appelant est réellement conseiller.\n\nSécuriser l'appareil\nLe client garde ses codes secrets, verrouille et met à jour son téléphone, puis signale sa perte. La biométrie simplifie l'usage sans supprimer la nécessité de protéger l'appareil. Les méthodes disponibles et les vérifications supplémentaires sont définies par le service contractuel et son niveau de risque.\n\nExemple fictif\nUne personne reçoit une demande de validation qu'elle n'a pas initiée, la refuse et ouvre elle-même l'application pour vérifier son compte. Cet exemple ne décrit aucune interface bancaire réelle."
+    },
+    {
+      "id": "benchmark-compliance-funds-origin",
+      "title": "Justifier l'origine des fonds",
+      "source": "synthetic://benchmark/securite-conformite/compliance-funds-origin",
+      "content": "Informations essentielles conservées\nLa banque peut demander l'origine économique de fonds reçus ou destinés à une opération importante. Cette vérification contribue à comprendre la transaction et à respecter ses obligations.\n\nLes justificatifs dépendent du contexte : acte de vente, attestation successorale, contrat, relevé ou document fiscal pertinent. Seules les pièces nécessaires doivent être transmises.\n\nUne demande d'information ne signifie pas qu'une opération est illégale. Une réponse cohérente et complète facilite l'examen, qui peut nécessiter des vérifications supplémentaires.\n\nLes documents sont envoyés par le canal sécurisé indiqué par la banque. Les données ne doivent pas être adressées à un contact non vérifié.\n\nObjet de la demande\nLa banque peut demander l'origine économique de fonds reçus ou destinés à une opération importante afin de comprendre la transaction et de remplir ses obligations. Cette demande ne signifie pas, à elle seule, que les fonds ou le client sont considérés comme illégaux.\n\nJustificatifs selon le contexte\nUne vente peut être étayée par un acte et un relevé ; une succession par une attestation correspondante ; une rémunération ou une opération commerciale par un contrat, un relevé ou un document fiscal pertinent. La liste exacte dépend du dossier et de la demande de la banque : aucune pièce unique ne convient à toutes les situations.\n\nRépondre de manière proportionnée\nLe client vérifie l'authenticité de la sollicitation, transmet uniquement les documents nécessaires par le canal sécurisé indiqué et explique les liens entre les pièces et le mouvement. La banque peut poser des questions complémentaires si les informations ne suffisent pas. Ces contrôles relèvent de son processus, pas d'un seuil fictif du corpus.\n\nExemple fictif\nAprès la vente d'un bien, une cliente joint l'acte et la trace du versement demandés dans son espace sécurisé. Ce scénario fictif n'établit aucune liste obligatoire ni aucun montant déclencheur."
+    },
+    {
+      "id": "benchmark-compliance-account-review",
+      "title": "Mise à jour du dossier client",
+      "source": "synthetic://benchmark/securite-conformite/compliance-account-review",
+      "content": "Informations essentielles conservées\nLa banque actualise périodiquement les informations permettant de connaître son client, son activité et l'usage prévu du compte. La fréquence dépend notamment du niveau de risque.\n\nElle peut demander une pièce d'identité valide, une adresse, une activité professionnelle ou des informations sur la résidence fiscale. La demande précise les moyens de réponse.\n\nLe client vérifie l'authenticité du message depuis son espace sécurisé avant de transmettre un document. Il évite les pièces par courriel non protégé.\n\nL'absence de réponse peut limiter certains services après les relances prévues. La mise à jour sert la conformité et se distingue d'une sollicitation commerciale.\n\nFinalité de la mise à jour\nLa revue du dossier permet à la banque de vérifier que les informations connues restent cohérentes avec la relation de compte. Elle peut porter sur l'identité, l'adresse, l'activité professionnelle, la résidence fiscale ou l'usage prévu des services. Une demande de mise à jour ne signifie pas, à elle seule, qu'une opération est suspecte.\n\nVérifier puis répondre\nLe client confirme l'authenticité de la demande dans son espace bancaire ou auprès d'un contact officiel. Il transmet uniquement les pièces demandées par le canal sécurisé indiqué et demande une précision si le motif ou la liste des documents n'est pas clair. Les exigences exactes et la fréquence de revue relèvent du processus de la banque et du dossier, pas d'une périodicité universelle décrite ici.\n\nDossier incomplet ou changement de situation\nUne pièce expirée, une adresse ancienne ou des réponses incohérentes peuvent entraîner une demande complémentaire. L'absence de réponse peut limiter certains services après les relances prévues. Le client conserve la preuve de transmission et actualise les informations lorsqu'un changement pertinent intervient.\n\nExemple fictif\nAprès un changement d'emploi et d'adresse, une cliente vérifie la notification dans son application puis fournit les justificatifs demandés. Cet exemple décrit une pratique indicative, non une liste obligatoire."
+    }
+  ],
+  "reference_questions": [
+    {
+      "id": "factual-mortgage-capacity",
+      "question": "Quels éléments la banque examine-t-elle pour calculer la capacité de remboursement d'un crédit immobilier ?",
+      "difficulty": "factual",
+      "rationale": "Le passage énumère les revenus, charges, crédits existants et le taux d'effort."
+    },
+    {
+      "id": "factual-mortgage-early-fee",
+      "question": "Un remboursement anticipé de prêt immobilier peut-il entraîner une indemnité ?",
+      "difficulty": "factual",
+      "rationale": "Le passage précise que le contrat peut prévoir une indemnité dans les limites applicables."
+    },
+    {
+      "id": "factual-variable-rate-index",
+      "question": "Selon quoi le taux révisable d'un prêt immobilier évolue-t-il ?",
+      "difficulty": "factual",
+      "rationale": "Le passage relie la révision du taux à un indice et à une fréquence contractuelle."
+    },
+    {
+      "id": "factual-mortgage-apr",
+      "question": "Que regroupe le taux annuel effectif global d'une offre immobilière ?",
+      "difficulty": "factual",
+      "rationale": "Le passage définit le TAEG par les coûts obligatoires connus du financement."
+    },
+    {
+      "id": "factual-assigned-loan-refusal",
+      "question": "Que devient l'achat financé si un crédit affecté est refusé ?",
+      "difficulty": "factual",
+      "rationale": "Le passage explique le lien entre la vente et le refus du crédit affecté."
+    },
+    {
+      "id": "factual-revolving-unused-interest",
+      "question": "La partie non utilisée d'un crédit renouvelable produit-elle des intérêts ?",
+      "difficulty": "factual",
+      "rationale": "Le passage indique explicitement que seule la réserve utilisée produit des intérêts."
+    },
+    {
+      "id": "factual-consumer-future-interest",
+      "question": "Quels intérêts disparaissent lors du remboursement anticipé d'un crédit à la consommation ?",
+      "difficulty": "factual",
+      "rationale": "Le passage indique que les intérêts et frais de la période future ne sont plus dus."
+    },
+    {
+      "id": "factual-home-claim-deadline",
+      "question": "Dans quel délai faut-il déclarer un sinistre habitation ?",
+      "difficulty": "factual",
+      "rationale": "Le passage renvoie au délai prévu par le contrat d'assurance."
+    },
+    {
+      "id": "factual-home-franchise",
+      "question": "Qu'est-ce qu'une franchise en assurance habitation ?",
+      "difficulty": "factual",
+      "rationale": "Le passage définit la franchise comme la part restant à la charge de l'assuré."
+    },
+    {
+      "id": "factual-borrower-share",
+      "question": "Que représente la quotité d'une assurance emprunteur ?",
+      "difficulty": "factual",
+      "rationale": "Le passage définit la part de capital assurée pour chaque emprunteur."
+    },
+    {
+      "id": "factual-booklet-withdrawal",
+      "question": "Les fonds d'un livret d'épargne sont-ils disponibles sans échéance fixe ?",
+      "difficulty": "factual",
+      "rationale": "Le passage indique que les retraits restent généralement possibles sans échéance fixe."
+    },
+    {
+      "id": "factual-term-early-exit",
+      "question": "Quelle conséquence peut avoir une sortie anticipée d'un compte à terme ?",
+      "difficulty": "factual",
+      "rationale": "Le passage mentionne une interdiction, une pénalité ou une rémunération réduite."
+    },
+    {
+      "id": "factual-card-loss",
+      "question": "Quelle action immédiate faut-il effectuer après la perte d'une carte bancaire ?",
+      "difficulty": "factual",
+      "rationale": "Le passage demande une opposition immédiate pour bloquer les nouvelles opérations."
+    },
+    {
+      "id": "factual-transfer-recall",
+      "question": "Quelle demande adresser rapidement à la banque après un virement frauduleux ?",
+      "difficulty": "factual",
+      "rationale": "Le passage recommande une tentative immédiate de rappel des fonds."
+    },
+    {
+      "id": "factual-funds-origin-documents",
+      "question": "Quels justificatifs peuvent établir l'origine de fonds ?",
+      "difficulty": "factual",
+      "rationale": "Le passage cite acte de vente, succession, contrat, relevé et document fiscal."
+    },
+    {
+      "id": "semantic-home-budget",
+      "question": "Sur quoi mon conseiller se base-t-il pour savoir si mon budget supportera l'achat d'un logement ?",
+      "difficulty": "semantic",
+      "rationale": "Les passages couvrent revenus, charges, taux d'effort et apport personnel."
+    },
+    {
+      "id": "semantic-clear-home-loan",
+      "question": "Puis-je solder mon financement immobilier avant son terme ?",
+      "difficulty": "semantic",
+      "rationale": "Solder avant le terme reformule le remboursement anticipé total."
+    },
+    {
+      "id": "semantic-stable-home-payment",
+      "question": "Quel type de taux facilite la prévision de mes mensualités de logement ?",
+      "difficulty": "semantic",
+      "rationale": "Le taux fixe est présenté comme facilitant la prévision des mensualités."
+    },
+    {
+      "id": "semantic-collateral-insurance",
+      "question": "La garantie prise par la banque remplace-t-elle la couverture de l'emprunteur ?",
+      "difficulty": "semantic",
+      "rationale": "Le passage distingue explicitement garantie du prêt et assurance emprunteur."
+    },
+    {
+      "id": "semantic-free-use-loan",
+      "question": "Quel prêt puis-je utiliser pour un projet sans justifier précisément l'achat ?",
+      "difficulty": "semantic",
+      "rationale": "Les passages décrivent le prêt personnel non lié à un achat et sans justificatif d'utilisation."
+    },
+    {
+      "id": "semantic-reusable-reserve",
+      "question": "Quel financement se reconstitue à mesure que je rembourse mes utilisations ?",
+      "difficulty": "semantic",
+      "rationale": "Le passage explique la reconstitution progressive de la réserve."
+    },
+    {
+      "id": "semantic-payment-trouble",
+      "question": "Que faire avant que mes échéances impayées ne s'accumulent ?",
+      "difficulty": "semantic",
+      "rationale": "Les passages recommandent un contact précoce et présentent les solutions étudiables."
+    },
+    {
+      "id": "semantic-protect-home-disasters",
+      "question": "Comment protéger mon logement contre les sinistres ?",
+      "difficulty": "semantic",
+      "rationale": "Les passages associent garanties habitation et mesures de prévention des sinistres."
+    },
+    {
+      "id": "semantic-claim-proof",
+      "question": "Quelles pièces peuvent appuyer mon dossier après un dommage dans mon logement ?",
+      "difficulty": "semantic",
+      "rationale": "Le passage cite photographies, factures, devis et constats."
+    },
+    {
+      "id": "semantic-loan-disability-cover",
+      "question": "Quelle protection peut payer mes échéances si une invalidité m'empêche de travailler ?",
+      "difficulty": "semantic",
+      "rationale": "Le passage décrit la prise en charge du prêt en cas d'invalidité ou d'incapacité."
+    },
+    {
+      "id": "semantic-emergency-cash",
+      "question": "Où placer une réserve de précaution qui doit rester accessible ?",
+      "difficulty": "semantic",
+      "rationale": "Le passage recommande le livret lorsque la disponibilité prime."
+    },
+    {
+      "id": "semantic-lock-savings",
+      "question": "Quel produit rémunère une somme que je peux laisser bloquée jusqu'à une échéance ?",
+      "difficulty": "semantic",
+      "rationale": "Les passages décrivent l'immobilisation rémunérée et les contraintes de sortie."
+    },
+    {
+      "id": "semantic-monthly-saving",
+      "question": "Comment automatiser un effort d'épargne chaque mois ?",
+      "difficulty": "semantic",
+      "rationale": "Le passage décrit des versements automatiques à intervalles réguliers."
+    },
+    {
+      "id": "semantic-block-card-versus-dispute",
+      "question": "Quelle différence y a-t-il entre bloquer ma carte et contester une opération passée ?",
+      "difficulty": "semantic",
+      "rationale": "Les deux passages distinguent protection des opérations futures et traitement d'un paiement passé."
+    },
+    {
+      "id": "semantic-suspicious-bank-link",
+      "question": "Comment réagir à un message bancaire urgent contenant un lien inhabituel ?",
+      "difficulty": "semantic",
+      "rationale": "Les passages décrivent l'urgence typique du phishing et recommandent de ne pas cliquer."
+    },
+    {
+      "id": "difficult-early-repayment-unspecified",
+      "question": "Quelles conséquences dois-je vérifier avant de rembourser un prêt plus tôt ?",
+      "difficulty": "difficult",
+      "rationale": "Le type de prêt est ambigu ; les deux documents traitent indemnité, solde et effet du remboursement partiel."
+    },
+    {
+      "id": "difficult-insure-home-and-loan",
+      "question": "Quelles assurances protègent à la fois mon logement et le remboursement de mon crédit ?",
+      "difficulty": "difficult",
+      "rationale": "La question exige de distinguer les dommages au logement de la couverture des échéances."
+    },
+    {
+      "id": "difficult-unknown-card-payment",
+      "question": "Je vois un paiement inconnu et crains d'autres débits : quelles démarches sont pertinentes ?",
+      "difficulty": "difficult",
+      "rationale": "La situation appelle la contestation du paiement et l'opposition contre de nouvelles opérations."
+    },
+    {
+      "id": "difficult-phishing-transfer-executed",
+      "question": "J'ai suivi un faux message puis validé un virement : comment limiter les conséquences ?",
+      "difficulty": "difficult",
+      "rationale": "Le phishing explique la compromission et le document fraude décrit le rappel urgent du virement."
+    },
+    {
+      "id": "difficult-liquid-or-term-savings",
+      "question": "Comment arbitrer entre argent disponible et rémunération liée à une durée de blocage ?",
+      "difficulty": "difficult",
+      "rationale": "Les documents opposent disponibilité du livret et immobilisation du compte à terme."
+    },
+    {
+      "id": "difficult-authentication-beneficiary",
+      "question": "Une validation forte garantit-elle que le bénéficiaire d'un virement est honnête ?",
+      "difficulty": "difficult",
+      "rationale": "Les passages distinguent validation technique de l'ordre et identité réelle du bénéficiaire."
+    },
+    {
+      "id": "difficult-overdraft-cost",
+      "question": "Où trouver les règles sur le coût et les limites d'un découvert bancaire ?",
+      "difficulty": "difficult",
+      "rationale": "Les passages renvoient à la brochure tarifaire et aux paramètres de l'autorisation de découvert."
+    },
+    {
+      "id": "difficult-recurring-payment-control",
+      "question": "Qui déclenche une opération récurrente et que change sa révocation ?",
+      "difficulty": "difficult",
+      "rationale": "Les passages différencient ordre permanent du client et prélèvement du créancier, puis leur révocation."
+    },
+    {
+      "id": "difficult-market-risk-profile",
+      "question": "Pourquoi mon horizon et ma capacité de perte comptent-ils avant d'acheter des titres ?",
+      "difficulty": "difficult",
+      "rationale": "Les documents relient horizon, capacité de perte, liquidité et choix d'investissement."
+    },
+    {
+      "id": "difficult-covered-but-not-fully-paid",
+      "question": "Un sinistre couvert est-il nécessairement indemnisé intégralement ?",
+      "difficulty": "difficult",
+      "rationale": "Franchise, plafond et exclusions expliquent pourquoi couverture ne signifie pas indemnisation intégrale."
+    }
+  ]
+}

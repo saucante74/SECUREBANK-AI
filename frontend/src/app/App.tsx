@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { HomePage } from "../pages/HomePage";
 import { AssistantPage } from "../pages/AssistantPage";
 import { AboutPage } from "../pages/AboutPage";
+import { EvaluationPage } from "../pages/EvaluationPage";
 import { AppShell } from "../components/AppShell";
 import { useAuthSession } from "../hooks/useAuthSession";
 import { pageFromPath, pathForPage, type PageId } from "./navigation";
@@ -44,6 +45,8 @@ export function App() {
         onLogin={auth.login}
         onSessionExpired={auth.expireSession}
       />
+    ) : currentPage === "evaluation" ? (
+      <EvaluationPage />
     ) : currentPage === "about" ? (
       <AboutPage />
     ) : (

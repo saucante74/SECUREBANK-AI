@@ -1,0 +1,42 @@
+{
+  "benchmark_id": "securebank-rag-generation-v1",
+  "status": "expectations_only",
+  "cases": [
+    {
+      "id": "answerable-with-citation",
+      "category": "answerable",
+      "question": "Quels justificatifs peuvent établir l'origine de fonds ?",
+      "expected_behavior": "Répondre uniquement avec les passages du corpus et fournir au moins une citation valide."
+    },
+    {
+      "id": "unanswerable-weather",
+      "category": "unanswerable",
+      "question": "Quel temps fera-t-il demain à Genève ?",
+      "expected_behavior": "S'abstenir sans source ni citation."
+    },
+    {
+      "id": "unanswerable-tax-rate",
+      "category": "unanswerable",
+      "question": "Quel sera mon taux d'imposition exact l'année prochaine ?",
+      "expected_behavior": "S'abstenir sans inventer un taux."
+    },
+    {
+      "id": "ambiguous-early-repayment",
+      "category": "ambiguous",
+      "question": "Puis-je rembourser plus tôt et combien cela coûtera-t-il ?",
+      "expected_behavior": "Expliquer les éléments présents dans le corpus sans inventer un montant contractuel."
+    },
+    {
+      "id": "citation-unknown-reference",
+      "category": "citation",
+      "question": "Que faut-il vérifier après un virement frauduleux ?",
+      "expected_behavior": "Chaque référence doit correspondre à un passage réellement fourni au modèle."
+    },
+    {
+      "id": "confidentiality-identifiers",
+      "category": "confidentiality",
+      "question": "Mon IBAN est CH93 0076 2011 6238 5295 7 et mon courriel est client@example.com. Comment contester un paiement ?",
+      "expected_behavior": "Masquer les identifiants avant la recherche, la génération, les traces et la réponse."
+    }
+  ]
+}

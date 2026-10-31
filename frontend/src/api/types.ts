@@ -43,3 +43,65 @@ export interface RagAskResponse {
   citations: RagCitation[];
   abstained: boolean;
 }
+
+export type ConfigurationValue = string | number | boolean | null;
+
+export interface EvaluationParameterChange {
+  name: string;
+  previous_value: ConfigurationValue;
+  new_value: ConfigurationValue;
+}
+
+export interface EvaluationMetrics {
+  source_hit_at_1: number;
+  source_hit_at_3: number;
+  evidence_hit_at_1: number;
+  evidence_hit_at_3: number;
+  mean_latency_seconds: number;
+  precision_at_1?: number;
+  precision_at_3?: number;
+  recall_at_1?: number;
+  recall_at_3?: number;
+  f1_at_1?: number;
+  f1_at_3?: number;
+  map_at_3?: number;
+  success_at_1?: number;
+  success_at_3?: number;
+  mrr_at_3?: number;
+  ndcg_at_3?: number;
+  latency_p50_seconds: number | null;
+  latency_p95_seconds: number | null;
+  error_rate: number | null;
+  mean_returned_chunk_count: number | null;
+  mean_distinct_document_count_at_3: number | null;
+  mean_source_diversity_at_3: number | null;
+}
+
+export interface EvaluationRun {
+  run_id: string;
+  created_at: string;
+  rag_configuration: Record<string, ConfigurationValue>;
+  parameter_change: EvaluationParameterChange | null;
+  measured_metrics: Record<string, EvaluationMetrics>;
+}
+
+export interface EvaluationConfigurationChange {
+  name: string;
+  previous_value: ConfigurationValue;
+  new_value: ConfigurationValue;
+}
+
+export interface EvaluationMetricDelta {
+  engine: string;
+  metric: keyof EvaluationMetrics;
+  previous_value: number | null;
+  new_value: number | null;
+  delta: number | null;
+}
+
+export interface EvaluationComparison {
+  previous_run_id: string;
+  new_run_id: string;
+  configuration_changes: EvaluationConfigurationChange[];
+  metric_deltas: EvaluationMetricDelta[];
+}

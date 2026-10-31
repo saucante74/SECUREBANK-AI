@@ -5,7 +5,9 @@ from app.schemas.retrieval import RetrievalResult
 from app.services.benchmark_dataset import (
     BENCHMARK_COLLECTION_NAME,
     create_benchmark_chunks,
+    create_benchmark_v2_chunks,
     load_benchmark_dataset,
+    load_benchmark_dataset_v2,
 )
 from app.services.retrieval_evaluation import (
     SYNTHETIC_EVALUATION_CASES,
@@ -33,6 +35,11 @@ def test_benchmark_has_expected_size_domains_and_difficulties() -> None:
     }
     assert set(domain_counts.values()) == {5}
     assert difficulties == {"factual": 15, "semantic": 15, "difficult": 10}
+    assert dataset.metadata.corpus_version == "v1"
+    assert dataset.metadata.chunker == "character"
+    assert dataset.metadata.chunk_size == 180
+    assert dataset.metadata.chunk_overlap == 30
+    assert dataset.metadata.relevance_annotations is True
 
 
 def test_benchmark_identifiers_and_references_are_valid() -> None:
@@ -116,3 +123,33 @@ def test_regression_question_has_real_benchmark_evidence() -> None:
 
     assert "assurance habitation" in evidence
     assert "prévention" in evidence
+
+
+def test_benchmark_v2_loads_unannotated_questions_and_metadata() -> None:
+    dataset = load_benchmark_dataset_v2()
+
+    assert len(dataset.documents) == 30
+    assert len(dataset.reference_questions) == 40
+    assert dataset.schema_version == 2
+    assert dataset.annotation_status == "unannotated"
+    assert dataset.metadata.corpus_version == "v2"
+    assert dataset.metadata.chunker == "structured"
+    assert dataset.metadata.chunk_size == 500
+    assert dataset.metadata.chunk_overlap == 75
+    assert dataset.metadata.relevance_annotations is False
+    assert all(
+        not hasattr(question, "expected_document_ids")
+        and not hasattr(question, "expected_chunk_ids")
+        for question in dataset.reference_questions
+    )
+
+
+def test_benchmark_v2_structured_chunks_are_stable() -> None:
+    dataset = load_benchmark_dataset_v2()
+
+    first = create_benchmark_v2_chunks(dataset.documents)
+    second = create_benchmark_v2_chunks(dataset.documents)
+
+    assert len(first) == 172
+    assert first == second
+    assert len({chunk.id for chunk in first}) == len(first)

@@ -1,6 +1,8 @@
 import { createApiClient, type ApiClient } from "./client";
 import type {
   AuthMeResponse,
+  EvaluationComparison,
+  EvaluationRun,
   HealthResponse,
   LoginRequest,
   RagAskRequest,
@@ -56,6 +58,28 @@ export function askRag(
     body: request,
     csrfToken: token ? undefined : readCookie("securebank_csrf"),
     token,
+    signal,
+  });
+}
+
+export function getEvaluationRuns(
+  client: ApiClient = apiClient,
+  signal?: AbortSignal,
+): Promise<EvaluationRun[]> {
+  return client.get<EvaluationRun[]>("/evaluation/runs", { signal });
+}
+
+export function compareEvaluationRuns(
+  previousRunId: string,
+  newRunId: string,
+  client: ApiClient = apiClient,
+  signal?: AbortSignal,
+): Promise<EvaluationComparison> {
+  const parameters = new URLSearchParams({
+    previous_run_id: previousRunId,
+    new_run_id: newRunId,
+  });
+  return client.get<EvaluationComparison>(`/evaluation/compare?${parameters}`, {
     signal,
   });
 }

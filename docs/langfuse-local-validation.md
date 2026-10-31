@@ -41,27 +41,37 @@ git check-ignore -v .env.langfuse
 
 ## B. Start the Langfuse stack explicitly
 
+Create the shared network once. It lets the backend reach Langfuse through the internal service name without publishing credentials or relying on the host loopback address:
+
+```bash
+docker network inspect securebank-observability >/dev/null 2>&1 || \
+  docker network create securebank-observability
+```
+
 Review the resolved configuration without printing it:
 
 ```bash
-docker compose --project-name securebank-langfuse \
+docker compose --project-name securebank \
   --env-file .env.langfuse \
+  -f compose.yml \
   -f compose.langfuse.yml config --quiet
 ```
 
 Start the six services only after that command succeeds:
 
 ```bash
-docker compose --project-name securebank-langfuse \
+docker compose --project-name securebank \
   --env-file .env.langfuse \
+  -f compose.yml \
   -f compose.langfuse.yml up --detach
 ```
 
 Inspect service state without printing environment variables:
 
 ```bash
-docker compose --project-name securebank-langfuse \
+docker compose --project-name securebank \
   --env-file .env.langfuse \
+  -f compose.yml \
   -f compose.langfuse.yml ps
 ```
 
@@ -83,6 +93,8 @@ LANGFUSE_PUBLIC_KEY=<local-project-public-key>
 LANGFUSE_SECRET_KEY=<local-project-secret-key>
 LANGFUSE_HOST=http://127.0.0.1:3000
 ```
+
+The local host value is used when the backend runs directly on Ubuntu. `compose.yml` overrides it with `http://langfuse-web:3000` inside the backend container. `127.0.0.1:3000` inside that container would incorrectly refer to the backend container itself.
 
 Keep `LANGFUSE_ENABLED=false` until the stack and local project are ready. Do not print the file, pass keys as command-line arguments, or copy them into the Langfuse Compose environment file.
 
@@ -224,8 +236,9 @@ Restart the backend process if it was running. A newly constructed RAG pipeline 
 Stop and remove the Langfuse containers and network while preserving all named volumes:
 
 ```bash
-docker compose --project-name securebank-langfuse \
+docker compose --project-name securebank \
   --env-file .env.langfuse \
+  -f compose.yml \
   -f compose.langfuse.yml down
 ```
 
