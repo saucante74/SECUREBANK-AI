@@ -47,14 +47,17 @@ describe("App navigation", () => {
     );
   });
 
-  it("hides evaluation from anonymous users and protects direct access", async () => {
+  it("shows evaluation to anonymous users and supports direct access", async () => {
     window.history.replaceState({}, "", "/evaluation");
     render(<App />);
 
-    await waitFor(() => {
-      expect(window.location.pathname).toBe("/");
-    });
-    expect(within(navigation()).queryByRole("link", { name: "Évaluation" })).not.toBeInTheDocument();
+    expect(
+      within(navigation()).getByRole("link", { name: "Évaluation" }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/evaluation");
+    expect(
+      await screen.findByRole("heading", { name: "Évaluation du RAG" }),
+    ).toBeInTheDocument();
   });
 
   it("shows evaluation navigation to administrators", async () => {

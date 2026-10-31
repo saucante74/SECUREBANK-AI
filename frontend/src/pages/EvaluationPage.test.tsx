@@ -14,10 +14,8 @@ const getRunsMock = vi.mocked(getEvaluationRuns);
 const compareRunsMock = vi.mocked(compareEvaluationRuns);
 
 const run: EvaluationRun = {
-  benchmark_id: "securebank-rag-retrieval-v1",
   run_id: "run-1",
   created_at: "2026-10-30T12:00:00Z",
-  code_version: "a".repeat(40),
   rag_configuration: { top_k: 3 },
   parameter_change: null,
   measured_metrics: {
@@ -36,9 +34,6 @@ const run: EvaluationRun = {
       mean_latency_seconds: 0.015,
     },
   },
-  expected_behaviors: [],
-  uncomputed_metrics: ["answer_correctness"],
-  langfuse_trace_ids: [],
 };
 
 describe("EvaluationPage", () => {
@@ -50,7 +45,7 @@ describe("EvaluationPage", () => {
   it("shows the dashboard and one history row per engine", async () => {
     getRunsMock.mockResolvedValue([run]);
 
-    render(<EvaluationPage onSessionExpired={vi.fn()} />);
+    render(<EvaluationPage />);
 
     expect(await screen.findByRole("heading", { name: "Évaluation du RAG" })).toBeInTheDocument();
     expect(screen.getAllByText("0.700")).toHaveLength(2);
@@ -62,13 +57,13 @@ describe("EvaluationPage", () => {
   it("shows the empty state without inventing metrics", async () => {
     getRunsMock.mockResolvedValue([]);
 
-    render(<EvaluationPage onSessionExpired={vi.fn()} />);
+    render(<EvaluationPage />);
 
     expect(await screen.findByText("Aucun benchmark historique n’est disponible.")).toBeInTheDocument();
     expect(screen.getAllByText("—")).toHaveLength(2);
   });
 
-  it("compares runs through the protected API", async () => {
+  it("compares runs through the public API", async () => {
     const older = { ...run, run_id: "run-0", created_at: "2026-10-29T12:00:00Z" };
     getRunsMock.mockResolvedValue([run, older]);
     compareRunsMock.mockResolvedValue({
@@ -88,7 +83,7 @@ describe("EvaluationPage", () => {
       ],
     });
 
-    render(<EvaluationPage onSessionExpired={vi.fn()} />);
+    render(<EvaluationPage />);
     await screen.findAllByText("run-0");
     fireEvent.click(screen.getByRole("button", { name: "Comparer" }));
 

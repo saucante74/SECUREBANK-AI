@@ -9,10 +9,6 @@ import type {
   EvaluationRun,
 } from "../api/types";
 
-interface EvaluationPageProps {
-  onSessionExpired: () => void;
-}
-
 function displayValue(value: ConfigurationValue | undefined): string {
   return value === null || value === undefined ? "—" : String(value);
 }
@@ -21,7 +17,7 @@ function formatMetric(value: number): string {
   return value.toFixed(3);
 }
 
-export function EvaluationPage({ onSessionExpired }: EvaluationPageProps) {
+export function EvaluationPage() {
   const { t, i18n } = useTranslation();
   const [runs, setRuns] = useState<EvaluationRun[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,9 +35,6 @@ export function EvaluationPage({ onSessionExpired }: EvaluationPageProps) {
         setNewRunId(history.at(0)?.run_id ?? "");
       })
       .catch((reason: unknown) => {
-        if (reason instanceof ApiError && reason.category === "unauthenticated") {
-          onSessionExpired();
-        }
         if (!(reason instanceof ApiError && reason.category === "aborted")) {
           setError(true);
         }
@@ -52,7 +45,7 @@ export function EvaluationPage({ onSessionExpired }: EvaluationPageProps) {
     return () => {
       controller.abort();
     };
-  }, [onSessionExpired]);
+  }, []);
 
   const summary = useMemo(() => {
     const engines = runs.flatMap((run) => Object.values(run.measured_metrics));
@@ -74,10 +67,7 @@ export function EvaluationPage({ onSessionExpired }: EvaluationPageProps) {
     setError(false);
     try {
       setComparison(await compareEvaluationRuns(previousRunId, newRunId));
-    } catch (reason: unknown) {
-      if (reason instanceof ApiError && reason.category === "unauthenticated") {
-        onSessionExpired();
-      }
+    } catch {
       setError(true);
     }
   };
@@ -124,14 +114,13 @@ export function EvaluationPage({ onSessionExpired }: EvaluationPageProps) {
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-border text-xs uppercase tracking-wide text-muted">
-                <tr>{["date", "run", "commit", "engine", "variable", "previous", "new", "source1", "source3", "evidence1", "evidence3", "latency"].map((key) => <th key={key} className="whitespace-nowrap px-3 py-3">{t(`evaluation.history.${key}`)}</th>)}</tr>
+                <tr>{["date", "run", "engine", "variable", "previous", "new", "source1", "source3", "evidence1", "evidence3", "latency"].map((key) => <th key={key} className="whitespace-nowrap px-3 py-3">{t(`evaluation.history.${key}`)}</th>)}</tr>
               </thead>
               <tbody>
                 {runs.flatMap((run) => Object.entries(run.measured_metrics).map(([engine, metrics]) => (
                   <tr key={`${run.run_id}-${engine}`} className="border-b border-border/70">
                     <td className="whitespace-nowrap px-3 py-3">{new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(run.created_at))}</td>
                     <td className="max-w-32 truncate px-3 py-3 font-mono" title={run.run_id}>{run.run_id}</td>
-                    <td className="font-mono px-3 py-3">{run.code_version.slice(0, 8)}</td>
                     <td className="whitespace-nowrap px-3 py-3 font-semibold">{engine}</td>
                     <td className="px-3 py-3">{run.parameter_change?.name ?? "—"}</td>
                     <td className="px-3 py-3">{displayValue(run.parameter_change?.previous_value)}</td>

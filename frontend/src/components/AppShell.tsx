@@ -88,7 +88,6 @@ export function AppShell({
         isOpen={isMenuOpen}
         onClose={closeMenu}
         onNavigate={navigate}
-        user={user}
       />
       <div className="flex min-h-screen min-w-0 flex-col lg:pl-[17rem] xl:pl-72">
         <Header

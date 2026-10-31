@@ -35,33 +35,19 @@ export function App() {
     setCurrentPage(page);
   }, []);
 
-  useEffect(() => {
-    if (
-      currentPage === "evaluation" &&
-      auth.status !== "checking" &&
-      auth.user?.role !== "admin"
-    ) {
-      window.history.replaceState({}, "", "/");
-    }
-  }, [auth.status, auth.user?.role, currentPage]);
-
-  const accessiblePage =
-    currentPage === "evaluation" && auth.user?.role !== "admin"
-      ? "home"
-      : currentPage;
-  const pageTitle = t(`navigation.${accessiblePage}`);
+  const pageTitle = t(`navigation.${currentPage}`);
 
   const pageContent =
-    accessiblePage === "assistant" ? (
+    currentPage === "assistant" ? (
       <AssistantPage
         key={auth.clearVersion}
         authStatus={auth.status}
         onLogin={auth.login}
         onSessionExpired={auth.expireSession}
       />
-    ) : accessiblePage === "evaluation" ? (
-      <EvaluationPage onSessionExpired={auth.expireSession} />
-    ) : accessiblePage === "about" ? (
+    ) : currentPage === "evaluation" ? (
+      <EvaluationPage />
+    ) : currentPage === "about" ? (
       <AboutPage />
     ) : (
       <HomePage />
@@ -70,7 +56,7 @@ export function App() {
   return (
     <AppShell
       authStatus={auth.status}
-      currentPage={accessiblePage}
+      currentPage={currentPage}
       logoutErrorKey={auth.logoutErrorKey}
       onLogin={auth.login}
       onNavigate={navigate}

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -48,3 +49,61 @@ class EvaluationReport(BaseModel):
     cases: tuple[CaseEvaluation, ...] = Field(min_length=1)
     mean_source_hit_at_k: float = Field(ge=0.0, le=1.0)
     mean_evidence_hit_at_k: float = Field(ge=0.0, le=1.0)
+
+
+ConfigurationValue = str | int | float | bool | None
+
+
+class PublicParameterChange(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: str
+    previous_value: ConfigurationValue
+    new_value: ConfigurationValue
+
+
+class PublicEvaluationMetrics(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    source_hit_at_1: float = Field(ge=0.0, le=1.0)
+    source_hit_at_3: float = Field(ge=0.0, le=1.0)
+    evidence_hit_at_1: float = Field(ge=0.0, le=1.0)
+    evidence_hit_at_3: float = Field(ge=0.0, le=1.0)
+    mean_latency_seconds: float = Field(ge=0.0)
+
+
+class PublicEvaluationRun(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    run_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,100}$")
+    created_at: datetime
+    rag_configuration: dict[str, ConfigurationValue]
+    parameter_change: PublicParameterChange | None
+    measured_metrics: dict[str, PublicEvaluationMetrics] = Field(min_length=1)
+
+
+class PublicConfigurationChange(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: str
+    previous_value: ConfigurationValue
+    new_value: ConfigurationValue
+
+
+class PublicMetricDelta(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    engine: str
+    metric: str
+    previous_value: float | None
+    new_value: float | None
+    delta: float | None
+
+
+class PublicEvaluationComparison(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    previous_run_id: str
+    new_run_id: str
+    configuration_changes: tuple[PublicConfigurationChange, ...]
+    metric_deltas: tuple[PublicMetricDelta, ...]

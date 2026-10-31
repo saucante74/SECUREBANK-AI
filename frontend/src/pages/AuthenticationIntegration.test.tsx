@@ -118,7 +118,7 @@ describe("on-demand authentication", () => {
     expect(screen.getByRole("textbox", { name: "Identifiant" })).toHaveFocus();
   });
 
-  it("shows evaluation immediately after an administrator login", async () => {
+  it("keeps evaluation visible after an administrator login", async () => {
     loginUserMock.mockResolvedValue({ sub: "synthetic-admin-id", role: "admin" });
     renderAssistant();
     fireEvent.click(
@@ -137,7 +137,7 @@ describe("on-demand authentication", () => {
     expect(screen.getByText("Connecté · admin")).toBeInTheDocument();
   });
 
-  it("keeps evaluation hidden after a standard user login", async () => {
+  it("keeps evaluation visible after a standard user login", async () => {
     renderAssistant();
     fireEvent.click(
       await screen.findByRole("button", { name: "Se connecter" }),
@@ -151,8 +151,8 @@ describe("on-demand authentication", () => {
       name: "Sections de l’application",
     });
     expect(
-      within(navigation).queryByRole("link", { name: "Évaluation" }),
-    ).not.toBeInTheDocument();
+      within(navigation).getByRole("link", { name: "Évaluation" }),
+    ).toBeInTheDocument();
   });
 
   it("closes with Escape and restores focus", () => {

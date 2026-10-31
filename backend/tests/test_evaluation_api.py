@@ -62,7 +62,8 @@ def create_token(role: Role) -> str:
 def request(
     path: str,
     results_path: Path,
-    role: Role | None,
+    role: Role | None = None,
+    method: str = "GET",
 ) -> object:
     settings = Settings(
         _env_file=None,
@@ -79,7 +80,7 @@ def request(
     async def send_request() -> object:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            return await client.get(path, headers=headers)
+            return await client.request(method, path, headers=headers)
 
     try:
         return asyncio.run(send_request())
@@ -87,11 +88,11 @@ def request(
         app.dependency_overrides.pop(get_settings, None)
 
 
-def test_admin_can_list_and_read_runs(tmp_path: Path) -> None:
+def test_public_user_can_list_and_read_runs(tmp_path: Path) -> None:
     write_run(tmp_path / "run.json", create_run("run-1"))
 
-    listing = request("/evaluation/runs", tmp_path, Role.ADMIN)
-    detail = request("/evaluation/runs/run-1", tmp_path, Role.ADMIN)
+    listing = request("/evaluation/runs", tmp_path)
+    detail = request("/evaluation/runs/run-1", tmp_path)
 
     assert listing.status_code == 200
     assert [run["run_id"] for run in listing.json()] == ["run-1"]
@@ -99,21 +100,26 @@ def test_admin_can_list_and_read_runs(tmp_path: Path) -> None:
     assert detail.json()["measured_metrics"]["RRF"]["evidence_hit_at_3"] == 0.7
 
 
-@pytest.mark.parametrize("role", [Role.ANALYST, Role.COMPLIANCE_OFFICER])
-def test_non_admin_roles_are_forbidden(tmp_path: Path, role: Role) -> None:
+@pytest.mark.parametrize("role", [Role.ANALYST, Role.COMPLIANCE_OFFICER, Role.ADMIN])
+def test_authenticated_roles_have_the_same_read_access(
+    tmp_path: Path,
+    role: Role,
+) -> None:
+    write_run(tmp_path / "run.json", create_run("run-1"))
     response = request("/evaluation/runs", tmp_path, role)
 
-    assert response.status_code == 403
+    assert response.status_code == 200
 
 
-def test_anonymous_user_is_rejected(tmp_path: Path) -> None:
+def test_anonymous_user_has_read_access(tmp_path: Path) -> None:
+    write_run(tmp_path / "run.json", create_run("run-1"))
     response = request("/evaluation/runs", tmp_path, None)
 
-    assert response.status_code == 401
+    assert response.status_code == 200
 
 
 def test_missing_history_returns_an_empty_list(tmp_path: Path) -> None:
-    response = request("/evaluation/runs", tmp_path / "missing", Role.ADMIN)
+    response = request("/evaluation/runs", tmp_path / "missing")
 
     assert response.status_code == 200
     assert response.json() == []
@@ -125,7 +131,7 @@ def test_invalid_history_is_not_exposed(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    response = request("/evaluation/runs", tmp_path, Role.ADMIN)
+    response = request("/evaluation/runs", tmp_path)
 
     assert response.status_code == 503
     assert response.json() == {"detail": "Benchmark history is unavailable"}
@@ -133,12 +139,14 @@ def test_invalid_history_is_not_exposed(tmp_path: Path) -> None:
 
 
 def test_unknown_run_returns_not_found(tmp_path: Path) -> None:
-    response = request("/evaluation/runs/unknown", tmp_path, Role.ADMIN)
+    response = request("/evaluation/runs/unknown", tmp_path)
 
     assert response.status_code == 404
 
 
-def test_admin_can_compare_configurations_and_each_engine(tmp_path: Path) -> None:
+def test_public_user_can_compare_configurations_and_each_engine(
+    tmp_path: Path,
+) -> None:
     previous = create_run("previous")
     new = create_run("new", evidence_hit=0.8).model_copy(
         update={"rag_configuration": {"top_k": 5, "strategy": "rrf"}}
@@ -149,7 +157,6 @@ def test_admin_can_compare_configurations_and_each_engine(tmp_path: Path) -> Non
     response = request(
         "/evaluation/compare?previous_run_id=previous&new_run_id=new",
         tmp_path,
-        Role.ADMIN,
     )
 
     assert response.status_code == 200
@@ -163,3 +170,91 @@ def test_admin_can_compare_configurations_and_each_engine(tmp_path: Path) -> Non
         if item["engine"] == "RRF" and item["metric"] == "evidence_hit_at_3"
     )
     assert evidence_delta["delta"] == pytest.approx(0.1)
+
+
+def test_public_response_excludes_internal_and_sensitive_fields(
+    tmp_path: Path,
+) -> None:
+    run = create_run("run-1").model_copy(
+        update={
+            "rag_configuration": {
+                "top_k": 3,
+                "qdrant_collection": "internal-collection",
+                "local_path": "/private/corpus.json",
+                "api_secret": "must-not-leak",
+                "embedding_model": "/private/model/path",
+            },
+            "langfuse_trace_ids": ("private-trace-id",),
+            "expected_behaviors": ("private user question",),
+        }
+    )
+    write_run(tmp_path / "run.json", run)
+
+    response = request("/evaluation/runs", tmp_path)
+
+    assert response.status_code == 200
+    body = response.json()[0]
+    assert set(body) == {
+        "run_id",
+        "created_at",
+        "rag_configuration",
+        "parameter_change",
+        "measured_metrics",
+    }
+    assert body["rag_configuration"] == {"top_k": 3}
+    serialized = response.text
+    assert "private-trace-id" not in serialized
+    assert "private user question" not in serialized
+    assert "must-not-leak" not in serialized
+    assert "/private/corpus.json" not in serialized
+    assert "internal-collection" not in serialized
+    assert "/private/model/path" not in serialized
+    assert "code_version" not in serialized
+
+    detail = request("/evaluation/runs/run-1", tmp_path)
+    assert detail.status_code == 200
+    assert detail.json() == body
+
+
+def test_public_comparison_excludes_non_allowlisted_configuration(
+    tmp_path: Path,
+) -> None:
+    previous = create_run("previous").model_copy(
+        update={
+            "rag_configuration": {
+                "top_k": 3,
+                "api_secret": "previous-secret",
+            }
+        }
+    )
+    new = create_run("new").model_copy(
+        update={
+            "rag_configuration": {
+                "top_k": 5,
+                "api_secret": "new-secret",
+            }
+        }
+    )
+    write_run(tmp_path / "previous.json", previous)
+    write_run(tmp_path / "new.json", new)
+
+    response = request(
+        "/evaluation/compare?previous_run_id=previous&new_run_id=new",
+        tmp_path,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["configuration_changes"] == [
+        {"name": "top_k", "previous_value": 3, "new_value": 5}
+    ]
+    assert "secret" not in response.text
+
+
+@pytest.mark.parametrize("method", ["POST", "PUT", "PATCH", "DELETE"])
+def test_public_evaluation_endpoints_are_read_only(
+    tmp_path: Path,
+    method: str,
+) -> None:
+    response = request("/evaluation/runs", tmp_path, method=method)
+
+    assert response.status_code == 405

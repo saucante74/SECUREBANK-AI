@@ -61,16 +61,11 @@ export interface EvaluationMetrics {
 }
 
 export interface EvaluationRun {
-  benchmark_id: string;
   run_id: string;
   created_at: string;
-  code_version: string;
   rag_configuration: Record<string, ConfigurationValue>;
   parameter_change: EvaluationParameterChange | null;
   measured_metrics: Record<string, EvaluationMetrics>;
-  expected_behaviors: string[];
-  uncomputed_metrics: string[];
-  langfuse_trace_ids: string[];
 }
 
 export interface EvaluationConfigurationChange {

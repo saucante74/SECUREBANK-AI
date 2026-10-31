@@ -220,7 +220,7 @@ The implemented configuration accepts these variables:
 | `LOGIN_ATTEMPT_WINDOW_SECONDS` | `300` | Persistent login rate-limit window |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint |
 | `QDRANT_COLLECTION_NAME` | `securebank_chunks` | Collection used for chunk vectors |
-| `BENCHMARK_RESULTS_PATH` | `backend/benchmark_results` | Read-only benchmark history exposed to administrators |
+| `BENCHMARK_RESULTS_PATH` | `backend/benchmark_results` | Internal source directory for the public read-only benchmark projection |
 | `RAG_ENABLED` | `false` | Enables lazy construction of the generative RAG pipeline |
 | `RAG_CORPUS_PATH` | None | Path to the local JSON corpus used by BM25 and Qdrant |
 | `LLM_API_KEY` | None | Secret credential for the configured LLM provider |
@@ -324,7 +324,7 @@ Citation validation proves only that a cited chunk was present in the supplied c
 
 ### Evaluation API and dashboard
 
-The administrator-only Evaluation dashboard is available at `/evaluation`. Its sidebar entry and direct route are hidden from non-administrators, while the backend remains the authoritative access control boundary. The read-only API provides `GET /evaluation/runs`, `GET /evaluation/runs/{run_id}`, and `GET /evaluation/compare`. It validates every historical JSON record before returning typed configuration and retrieval metrics and never serves files directly.
+The public Evaluation dashboard is available at `/evaluation` without authentication. The read-only API provides `GET /evaluation/runs`, `GET /evaluation/runs/{run_id}`, and `GET /evaluation/compare`. It validates every historical JSON record and returns an explicit public projection containing only run identifiers, timestamps, allowlisted technical configuration values, and aggregate retrieval metrics. It excludes code revisions, internal collection names, filesystem paths, benchmark questions, document passages, and Langfuse trace identifiers, and it never serves the JSON files directly.
 
 One run may contain several engines. The dashboard therefore displays one history row per run and engine, aggregate retrieval indicators, configuration changes, metric deltas, empty and failure states, and a localized metric guide. Current metrics evaluate retrieval only; they do not establish generated-answer correctness.
 
@@ -541,7 +541,7 @@ npm install
 npm run dev
 ```
 
-The current frontend displays a responsive public dashboard, a public `/about` service overview with an accessible FAQ, and a documentary Assistant in French, English, Italian, and German. Native browser navigation connects `/`, `/assistant`, and `/about` without requiring authentication. Submitting an anonymous question opens an accessible login dialog; successful cookie login preserves and immediately sends the question. The header exposes a compact language selector followed by accessible icon actions for sign-in and confirmed sign-out. Session expiry reopens login, while successful logout clears in-memory Assistant content. The typed client sends cookies, copies the CSRF cookie into protected POST headers, and retains optional Bearer support for API compatibility without exposing manual token entry in React. JWTs, credentials, questions, and RAG content are not persisted in browser storage. See [Frontend README](frontend/README.md) for focused instructions and limitations.
+The current frontend displays a responsive public dashboard, a public `/about` service overview with an accessible FAQ, a public `/evaluation` retrieval benchmark dashboard, and a documentary Assistant in French, English, Italian, and German. Native browser navigation connects all four pages without requiring authentication. Submitting an anonymous question opens an accessible login dialog; successful cookie login preserves and immediately sends the question. The header exposes a compact language selector followed by explicit sign-in and confirmed sign-out actions. Session expiry reopens login, while successful logout clears in-memory Assistant content. The typed client sends cookies, copies the CSRF cookie into protected POST headers, and retains optional Bearer support for API compatibility without exposing manual token entry in React. JWTs, credentials, questions, and RAG content are not persisted in browser storage. See [Frontend README](frontend/README.md) for focused instructions and limitations.
 
 For the Dockerized local stack, build and start the frontend with its backend dependency:
 
@@ -858,6 +858,9 @@ Current endpoints:
 | `GET` | `/auth/me` | Returns the authenticated `sub` and `role` |
 | `GET` | `/auth/analyst` | Allows `analyst`, `compliance_officer`, and `admin` |
 | `GET` | `/auth/admin` | Allows only `admin` |
+| `GET` | `/evaluation/runs` | Returns the public benchmark history projection |
+| `GET` | `/evaluation/runs/{run_id}` | Returns one public benchmark run projection |
+| `GET` | `/evaluation/compare` | Compares two public benchmark runs |
 | `POST` | `/pii/mask` | Masks detected PII for authenticated and authorized users |
 
 Call the protected endpoint with an existing token:
@@ -987,6 +990,7 @@ The backend has a production-oriented Docker image and a local Docker Compose se
 - Deterministic local PII masking with typed markers and overlap resolution.
 - Protected `POST /pii/mask` endpoint with sanitized validation errors.
 - Protected `POST /rag/ask` endpoint with typed input, RBAC, safe upstream errors, and replaceable pipeline injection.
+- Public read-only Evaluation dashboard and typed benchmark API projection without internal revisions, paths, raw questions, document passages, or private trace identifiers.
 - Immutable document and chunk contracts with deterministic character chunking.
 - Deterministic in-memory BM25 retrieval with typed scored results.
 - Local multilingual embeddings for text and chunks with deterministic input validation.

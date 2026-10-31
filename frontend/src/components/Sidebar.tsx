@@ -2,7 +2,6 @@ import type { MouseEvent, RefObject } from "react";
 import { useTranslation } from "react-i18next";
 
 import { pathForPage, type PageId } from "../app/navigation";
-import type { AuthMeResponse } from "../api/types";
 
 interface SidebarProps {
   closeButtonRef: RefObject<HTMLButtonElement | null>;
@@ -10,7 +9,6 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (page: PageId) => void;
-  user?: AuthMeResponse;
 }
 
 const navigationItems: { labelKey: string; page: PageId }[] = [
@@ -60,7 +58,6 @@ export function Sidebar({
   isOpen,
   onClose,
   onNavigate,
-  user,
 }: SidebarProps) {
   const { t } = useTranslation();
   const visibilityClass = isOpen ? "translate-x-0" : "-translate-x-full";
@@ -141,7 +138,6 @@ export function Sidebar({
         </p>
         <ul className="mt-3 space-y-1.5">
           {navigationItems
-            .filter(({ page }) => page !== "evaluation" || user?.role === "admin")
             .map(({ labelKey, page }) => {
             const isCurrent = currentPage === page;
             const stateClass = isCurrent
