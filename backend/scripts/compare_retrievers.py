@@ -1,13 +1,17 @@
+import json
 import os
 from argparse import ArgumentParser
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from hashlib import sha256
 from math import fsum
 from time import perf_counter
 from typing import Literal, Protocol
+from uuid import uuid5
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import FieldCondition, Filter, MatchAny
+from qdrant_client.http.exceptions import ApiException
+from qdrant_client.models import Distance, FieldCondition, Filter, MatchAny
 
 from app.core.config import settings
 from app.schemas.documents import Chunk
@@ -30,15 +34,27 @@ from app.services.benchmark_dataset import (
 )
 from app.services.bm25 import BM25Retriever
 from app.services.chunking import CharacterChunker
-from app.services.embeddings import LocalEmbeddingService
+from app.services.embeddings import DEFAULT_MODEL_NAME, LocalEmbeddingService
 from app.services.hybrid import HybridRetriever
-from app.services.qdrant import QdrantVectorStore, QdrantVectorStoreError
+from app.services.qdrant import (
+    POINT_NAMESPACE,
+    VECTOR_SIZE,
+    QdrantVectorStore,
+    QdrantVectorStoreError,
+)
 from app.services.rag_retrieval import RagRetriever
 from app.services.reranking import FlashRankReranker
 from app.services.retrieval_evaluation import evaluate_cases
 
 TOP_K = 3
 ENGINE_NAMES = ("BM25", "Qdrant", "RRF", "RRF + FlashRank")
+BENCHMARK_V2_COLLECTION_NAME = "securebank_benchmark_chunks_v2"
+V2_MANIFEST_PAYLOAD = {
+    "benchmark_corpus_version": "v2",
+    "benchmark_embedding_model": DEFAULT_MODEL_NAME,
+    "benchmark_embedding_dimension": VECTOR_SIZE,
+    "benchmark_embedding_distance": "cosine",
+}
 
 type Timer = Callable[[], float]
 type CorpusVersion = Literal["v1", "v2"]
@@ -151,6 +167,152 @@ def validate_results(
         key = (result.chunk.document_id, result.chunk.id)
         if chunks_by_id.get(key) != result.chunk:
             raise ValueError("Retriever returned inconsistent chunk metadata")
+
+
+def corpus_fingerprint(
+    chunks: Sequence[Chunk],
+    metadata: BenchmarkDatasetMetadata,
+) -> str:
+    serialized = json.dumps(
+        {
+            "metadata": metadata.model_dump(mode="json"),
+            "chunks": [chunk.model_dump(mode="json") for chunk in chunks],
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def v2_manifest(
+    chunks: Sequence[Chunk],
+    metadata: BenchmarkDatasetMetadata,
+) -> dict[str, str | int]:
+    return {
+        **V2_MANIFEST_PAYLOAD,
+        "benchmark_corpus_fingerprint": corpus_fingerprint(chunks, metadata),
+    }
+
+
+def validate_v2_collection(
+    client: QdrantClient,
+    chunks: Sequence[Chunk],
+    metadata: BenchmarkDatasetMetadata,
+) -> int:
+    expected_manifest = v2_manifest(chunks, metadata)
+    expected_chunks = {(chunk.document_id, chunk.id) for chunk in chunks}
+    try:
+        collection = client.get_collection(BENCHMARK_V2_COLLECTION_NAME)
+        vectors = collection.config.params.vectors
+        if (
+            not hasattr(vectors, "size")
+            or vectors.size != VECTOR_SIZE
+            or vectors.distance != Distance.COSINE
+        ):
+            raise ValueError(
+                "Qdrant benchmark v2 collection has incompatible vector configuration"
+            )
+        point_count = client.count(
+            collection_name=BENCHMARK_V2_COLLECTION_NAME,
+            exact=True,
+        ).count
+        if point_count != len(chunks):
+            raise ValueError(
+                "Qdrant benchmark v2 collection has an incompatible point count: "
+                f"expected {len(chunks)}, found {point_count}"
+            )
+        found_chunks: set[tuple[str, str]] = set()
+        offset: object | None = None
+        while True:
+            points, next_offset = client.scroll(
+                collection_name=BENCHMARK_V2_COLLECTION_NAME,
+                limit=256,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False,
+            )
+            for point in points:
+                payload = point.payload
+                if not isinstance(payload, dict):
+                    raise ValueError(
+                        "Qdrant benchmark v2 collection contains invalid payloads"
+                    )
+                if any(
+                    payload.get(key) != value
+                    for key, value in expected_manifest.items()
+                ):
+                    raise ValueError(
+                        "Qdrant benchmark v2 collection has incompatible corpus or "
+                        "embedding metadata"
+                    )
+                document_id = payload.get("document_id")
+                chunk_id = payload.get("chunk_id")
+                if not isinstance(document_id, str) or not isinstance(chunk_id, str):
+                    raise ValueError(
+                        "Qdrant benchmark v2 collection contains invalid chunk identifiers"
+                    )
+                found_chunks.add((document_id, chunk_id))
+            if next_offset is None:
+                break
+            offset = next_offset
+        if found_chunks != expected_chunks:
+            raise ValueError(
+                "Qdrant benchmark v2 collection has incompatible chunk identifiers"
+            )
+        return point_count
+    except ApiException as error:
+        raise QdrantVectorStoreError(
+            "Unable to validate Qdrant benchmark v2 collection"
+        ) from error
+
+
+def prepare_v2_collection(
+    client: QdrantClient,
+    vector_store: QdrantVectorStore,
+    chunks: Sequence[Chunk],
+    metadata: BenchmarkDatasetMetadata,
+    embedding_service: LocalEmbeddingService,
+    index_chunks: bool,
+) -> int:
+    try:
+        collection_exists = client.collection_exists(BENCHMARK_V2_COLLECTION_NAME)
+    except ApiException as error:
+        raise QdrantVectorStoreError(
+            "Unable to inspect Qdrant benchmark v2 collection"
+        ) from error
+    if collection_exists:
+        return validate_v2_collection(client, chunks, metadata)
+    if not index_chunks:
+        raise ValueError(
+            "Qdrant benchmark v2 collection does not exist; index it before reuse"
+        )
+    embeddings = embedding_service.embed_chunks(chunks)
+    vector_store.store_chunks(chunks, embeddings)
+    point_ids = [
+        str(uuid5(POINT_NAMESPACE, f"{chunk.document_id}\x00{chunk.id}"))
+        for chunk in chunks
+    ]
+    try:
+        client.set_payload(
+            collection_name=BENCHMARK_V2_COLLECTION_NAME,
+            payload=v2_manifest(chunks, metadata),
+            points=point_ids,
+            wait=True,
+        )
+    except ApiException as error:
+        raise QdrantVectorStoreError(
+            "Unable to record Qdrant benchmark v2 collection metadata"
+        ) from error
+    return validate_v2_collection(client, chunks, metadata)
+
+
+def benchmark_collection_name(corpus_version: CorpusVersion) -> str:
+    return (
+        BENCHMARK_V2_COLLECTION_NAME
+        if corpus_version == "v2"
+        else BENCHMARK_COLLECTION_NAME
+    )
 
 
 def prepare_comparison(
@@ -412,16 +574,17 @@ def create_local_comparison(
     corpus_version: CorpusVersion = "v1",
 ) -> ComparisonPipeline:
     client = QdrantClient(url=settings.qdrant_url)
+    collection_name = benchmark_collection_name(corpus_version)
     vector_store = QdrantVectorStore(
         url=settings.qdrant_url,
-        collection_name=BENCHMARK_COLLECTION_NAME,
+        collection_name=collection_name,
         client=client,
     )
 
     def count_points(chunks: Sequence[Chunk]) -> int:
         document_ids = sorted({chunk.document_id for chunk in chunks})
         return client.count(
-            collection_name=BENCHMARK_COLLECTION_NAME,
+            collection_name=collection_name,
             count_filter=Filter(
                 must=[
                     FieldCondition(
@@ -438,6 +601,25 @@ def create_local_comparison(
     if corpus_version == "v2":
         dataset = load_benchmark_dataset_v2()
         chunker = None
+        chunks = create_benchmark_v2_chunks(dataset.documents)
+        embedding_service = LocalEmbeddingService()
+        point_count = prepare_v2_collection(
+            client,
+            vector_store,
+            chunks,
+            dataset.metadata,
+            embedding_service,
+            index_chunks,
+        )
+        return prepare_comparison(
+            dataset,
+            chunker,
+            embedding_service,
+            vector_store,
+            FlashRankReranker(),
+            lambda selected_chunks: point_count,
+            index_chunks=False,
+        )
     else:
         dataset = load_benchmark_dataset()
         chunker = CharacterChunker(chunk_size=180, overlap=30)
