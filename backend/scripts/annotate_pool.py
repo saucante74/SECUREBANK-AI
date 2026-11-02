@@ -17,6 +17,12 @@ DEFAULT_SOURCE_PATH = (
 DEFAULT_OUTPUT_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "rag_annotation_judgments.json"
 )
+V2_SOURCE_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "rag_annotation_pool_v2.json"
+)
+V2_OUTPUT_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "rag_annotation_judgments_v2.json"
+)
 
 type InputReader = Callable[[str], str]
 
@@ -47,22 +53,35 @@ def validate_session_compatibility(
     source: AnnotationPool,
     session: AnnotationPool,
 ) -> None:
-    source_structure = tuple(
-        (
-            question.question_id,
-            tuple(candidate.chunk_id for candidate in question.candidates),
-        )
-        for question in source.questions
-    )
-    session_structure = tuple(
-        (
-            question.question_id,
-            tuple(candidate.chunk_id for candidate in question.candidates),
-        )
-        for question in session.questions
-    )
+    source_structure = pool_structure(source)
+    session_structure = pool_structure(session)
     if source_structure != session_structure:
         raise ValueError("annotation session does not match the source pool")
+
+
+def pool_structure(pool: AnnotationPool) -> tuple[object, ...]:
+    return (
+        pool.schema_version,
+        pool.metadata,
+        tuple(
+            (
+                question.question_id,
+                question.question,
+                tuple(
+                    (
+                        candidate.chunk_id,
+                        candidate.document_id,
+                        candidate.text,
+                        candidate.source,
+                        candidate.retrieved_by,
+                        candidate.included_from_existing_positive,
+                    )
+                    for candidate in question.candidates
+                ),
+            )
+            for question in pool.questions
+        ),
+    )
 
 
 def save_session(
@@ -139,7 +158,14 @@ def annotate(
             judged, total = progress(session, question_count)
             print(f"\nProgress: {judged}/{total}")
             print(f"Question: {question.question}")
-            print(f"Chunk {candidate.chunk_id}:\n{candidate.text}")
+            print(f"Chunk: {candidate.chunk_id}")
+            print(f"Document: {candidate.document_id}")
+            print(f"Source: {candidate.source or 'N/A'}")
+            provenance = ", ".join(
+                f"{item.engine} rank {item.rank}" for item in candidate.retrieved_by
+            )
+            print(f"Retrieved by: {provenance or 'N/A'}")
+            print(f"Text:\n{candidate.text}")
             while True:
                 raw_value = input_reader("Judgment [0/1/2, Enter=null, q=quit]: ")
                 if raw_value.strip().lower() == "q":
@@ -174,10 +200,43 @@ def annotate(
 
 def parse_arguments(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE_PATH)
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
+    parser.add_argument("--corpus-version", choices=("v1", "v2"), default="v1")
+    parser.add_argument("--source", type=Path)
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--first-five", action="store_true")
-    return parser.parse_args(arguments)
+    parsed_arguments = parser.parse_args(arguments)
+    if parsed_arguments.source is None:
+        parsed_arguments.source = (
+            V2_SOURCE_PATH
+            if parsed_arguments.corpus_version == "v2"
+            else DEFAULT_SOURCE_PATH
+        )
+    if parsed_arguments.output is None:
+        parsed_arguments.output = (
+            V2_OUTPUT_PATH
+            if parsed_arguments.corpus_version == "v2"
+            else DEFAULT_OUTPUT_PATH
+        )
+    return parsed_arguments
+
+
+def validate_output_path(corpus_version: str, output_path: Path) -> None:
+    protected_v1_paths = {
+        DEFAULT_SOURCE_PATH.resolve(),
+        DEFAULT_OUTPUT_PATH.resolve(),
+    }
+    if corpus_version == "v2" and output_path.resolve() in protected_v1_paths:
+        raise ValueError("v2 annotations cannot overwrite v1 files")
+
+
+def validate_source_version(corpus_version: str, source: AnnotationPool) -> None:
+    is_v2 = (
+        source.schema_version == 3
+        and source.metadata is not None
+        and source.metadata.corpus_version == "v2"
+    )
+    if (corpus_version == "v2") != is_v2:
+        raise ValueError("annotation pool does not match the selected corpus version")
 
 
 def main(
@@ -189,7 +248,12 @@ def main(
         print("Source and output paths must be different")
         return 1
     try:
+        validate_output_path(
+            parsed_arguments.corpus_version,
+            parsed_arguments.output,
+        )
         source = load_pool(parsed_arguments.source)
+        validate_source_version(parsed_arguments.corpus_version, source)
         if parsed_arguments.output.exists():
             confirmation = input_reader(
                 f"Resume and overwrite {parsed_arguments.output}? [y/N]: "

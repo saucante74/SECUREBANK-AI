@@ -691,6 +691,8 @@ The command defaults to the annotated v1 corpus for backward compatibility. Sele
 
 The annotation-pool builder defaults to v1 and preserves `data/rag_annotation_pool.json`. Selecting `python -m scripts.build_annotation_pool --corpus-version v2` validates the existing v2 Qdrant collection without reindexing, collects the top three candidates from each of the four retrievers, deduplicates them per question and chunk, and writes the new `data/rag_annotation_pool_v2.json` file. V2 candidates retain their text, document identifier, source, engine and rank provenance, while every relevance judgment remains explicitly unjudged as `null`. The pool metadata records the structured 500/75 chunking configuration, collection name, and corpus fingerprint.
 
+Start or resume human annotation of the first five v2 questions with `python -m scripts.annotate_pool --corpus-version v2 --first-five`. The CLI reads the v2 pool without modifying it and writes judgments to the separate `data/rag_annotation_judgments_v2.json` session. It displays the question, chunk text, document, source, and every engine/rank provenance before accepting `0`, `1`, `2`, or an empty unjudged value. V2 mode refuses the v1 pool and judgment paths.
+
 The documents and questions are synthetic and cannot reproduce production language, policy complexity, corpus growth, user behavior, statistically reliable quality, or production latency. Forty questions support regression diagnosis but remain too few for broad statistical conclusions. This benchmark does not represent production retrieval performance.
 
 ### Local PII Detection and Masking

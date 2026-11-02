@@ -4,10 +4,15 @@ import pytest
 from pydantic import ValidationError
 
 from scripts.annotate_pool import (
+    DEFAULT_OUTPUT_PATH,
+    V2_OUTPUT_PATH,
+    V2_SOURCE_PATH,
+    annotate,
     apply_judgment,
     create_annotation_session,
     load_pool,
     main,
+    parse_arguments,
     parse_judgment,
     progress,
     save_session,
@@ -36,6 +41,23 @@ def test_loads_version_two_pool(tmp_path: Path) -> None:
     loaded = load_pool(path)
 
     assert loaded.schema_version == 2
+
+
+def test_loads_version_three_v2_pool() -> None:
+    pool = load_pool(V2_SOURCE_PATH)
+
+    assert pool.schema_version == 3
+    assert pool.metadata is not None
+    assert pool.metadata.corpus_version == "v2"
+    assert len(pool.questions) == 40
+
+
+def test_v2_cli_selects_distinct_source_and_session_paths() -> None:
+    arguments = parse_arguments(["--corpus-version", "v2", "--first-five"])
+
+    assert arguments.source == V2_SOURCE_PATH
+    assert arguments.output == V2_OUTPUT_PATH
+    assert arguments.first_five is True
 
 
 def test_new_session_resets_source_judgments_to_null() -> None:
@@ -76,6 +98,54 @@ def test_resume_preserves_judgments_and_validates_source(tmp_path: Path) -> None
     assert total == sum(len(question.candidates) for question in source.questions[:5])
 
 
+def test_resume_rejects_different_v2_metadata() -> None:
+    source = load_pool(V2_SOURCE_PATH)
+    session = create_annotation_session(source)
+    assert session.metadata is not None
+    incompatible_metadata = session.metadata.model_copy(
+        update={"corpus_fingerprint": "0" * 64}
+    )
+    incompatible_session = session.model_copy(
+        update={"metadata": incompatible_metadata}
+    )
+
+    with pytest.raises(ValueError, match="does not match"):
+        validate_session_compatibility(source, incompatible_session)
+
+
+def test_v2_prompt_displays_document_source_and_provenance(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    source = load_pool(V2_SOURCE_PATH)
+    first_question = source.questions[0]
+    first_candidate = first_question.candidates[0]
+    session = source.model_copy(
+        update={
+            "questions": (
+                first_question.model_copy(update={"candidates": (first_candidate,)}),
+            )
+        }
+    )
+
+    annotate(
+        session,
+        tmp_path / "v2-session.json",
+        first_five=True,
+        allow_overwrite=False,
+        input_reader=lambda _: "q",
+    )
+
+    output = capsys.readouterr().out
+    assert f"Question: {first_question.question}" in output
+    assert f"Document: {first_candidate.document_id}" in output
+    assert f"Source: {first_candidate.source}" in output
+    assert "Retrieved by:" in output
+    for provenance in first_candidate.retrieved_by:
+        assert f"{provenance.engine} rank {provenance.rank}" in output
+    assert f"Text:\n{first_candidate.text}" in output
+
+
 @pytest.mark.parametrize(
     ("raw_value", "expected"),
     [("0", 0), ("1", 1), ("2", 2), ("", None), ("  ", None)],
@@ -110,3 +180,20 @@ def test_existing_session_requires_confirmation_before_overwrite(
 
     assert exit_code == 1
     assert output_path.read_text(encoding="utf-8") == "unchanged"
+
+
+def test_v2_selection_cannot_overwrite_v1_annotations() -> None:
+    original_content = DEFAULT_OUTPUT_PATH.read_bytes()
+
+    exit_code = main(
+        [
+            "--corpus-version",
+            "v2",
+            "--output",
+            str(DEFAULT_OUTPUT_PATH),
+        ],
+        input_reader=lambda _: pytest.fail("input must not be requested"),
+    )
+
+    assert exit_code == 1
+    assert DEFAULT_OUTPUT_PATH.read_bytes() == original_content
