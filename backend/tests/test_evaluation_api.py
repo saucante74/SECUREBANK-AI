@@ -174,6 +174,14 @@ def test_v2_run_exposes_null_relevance_and_numeric_operations(
         "v2-run",
         evidence_hit=None,
         include_operational_metrics=True,
+    ).model_copy(
+        update={
+            "rag_configuration": {
+                "top_k": 3,
+                "corpus_version": "v2",
+                "chunker": "structured",
+            }
+        }
     )
     write_run(tmp_path / "v2.json", run)
 
@@ -182,6 +190,16 @@ def test_v2_run_exposes_null_relevance_and_numeric_operations(
 
     assert listing.status_code == 200
     assert detail.status_code == 200
+    assert listing.json()[0]["rag_configuration"] == {
+        "top_k": 3,
+        "corpus_version": "v2",
+        "chunker": "structured",
+    }
+    assert detail.json()["rag_configuration"] == {
+        "top_k": 3,
+        "corpus_version": "v2",
+        "chunker": "structured",
+    }
     metrics = detail.json()["measured_metrics"]["RRF"]
     assert metrics["source_hit_at_1"] is None
     assert metrics["source_hit_at_3"] is None
@@ -293,8 +311,24 @@ def test_comparison_preserves_missing_historical_operational_value(
 
 
 def test_comparison_preserves_unavailable_v2_relevance(tmp_path: Path) -> None:
-    write_run(tmp_path / "v1.json", create_run("v1"))
-    write_run(tmp_path / "v2.json", create_run("v2", evidence_hit=None))
+    previous = create_run("v1").model_copy(
+        update={
+            "rag_configuration": {
+                "corpus_version": "v1",
+                "chunker": "character",
+            }
+        }
+    )
+    current = create_run("v2", evidence_hit=None).model_copy(
+        update={
+            "rag_configuration": {
+                "corpus_version": "v2",
+                "chunker": "structured",
+            }
+        }
+    )
+    write_run(tmp_path / "v1.json", previous)
+    write_run(tmp_path / "v2.json", current)
 
     response = request(
         "/evaluation/compare?previous_run_id=v1&new_run_id=v2",
@@ -302,6 +336,18 @@ def test_comparison_preserves_unavailable_v2_relevance(tmp_path: Path) -> None:
     )
 
     assert response.status_code == 200
+    assert response.json()["configuration_changes"] == [
+        {
+            "name": "chunker",
+            "previous_value": "character",
+            "new_value": "structured",
+        },
+        {
+            "name": "corpus_version",
+            "previous_value": "v1",
+            "new_value": "v2",
+        },
+    ]
     evidence_delta = next(
         item
         for item in response.json()["metric_deltas"]
@@ -358,6 +404,26 @@ def test_public_response_excludes_internal_and_sensitive_fields(
     detail = request("/evaluation/runs/run-1", tmp_path)
     assert detail.status_code == 200
     assert detail.json() == body
+
+
+def test_public_response_filters_unknown_benchmark_metadata_values(
+    tmp_path: Path,
+) -> None:
+    run = create_run("run-1").model_copy(
+        update={
+            "rag_configuration": {
+                "corpus_version": "v3",
+                "chunker": "semantic",
+                "top_k": 3,
+            }
+        }
+    )
+    write_run(tmp_path / "run.json", run)
+
+    response = request("/evaluation/runs/run-1", tmp_path)
+
+    assert response.status_code == 200
+    assert response.json()["rag_configuration"] == {"top_k": 3}
 
 
 def test_public_comparison_excludes_non_allowlisted_configuration(

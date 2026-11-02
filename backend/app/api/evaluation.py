@@ -35,6 +35,8 @@ PUBLIC_NUMERIC_CONFIGURATION_NAMES = frozenset(
     }
 )
 PUBLIC_STRING_CONFIGURATION_VALUES = {
+    "chunker": frozenset({"character", "structured"}),
+    "corpus_version": frozenset({"v1", "v2"}),
     "embedding_model": frozenset(
         {"sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"}
     ),
