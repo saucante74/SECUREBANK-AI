@@ -74,10 +74,10 @@ class PublicParameterChange(BaseModel):
 class PublicEvaluationMetrics(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    source_hit_at_1: float = Field(ge=0.0, le=1.0)
-    source_hit_at_3: float = Field(ge=0.0, le=1.0)
-    evidence_hit_at_1: float = Field(ge=0.0, le=1.0)
-    evidence_hit_at_3: float = Field(ge=0.0, le=1.0)
+    source_hit_at_1: float | None = Field(ge=0.0, le=1.0)
+    source_hit_at_3: float | None = Field(ge=0.0, le=1.0)
+    evidence_hit_at_1: float | None = Field(ge=0.0, le=1.0)
+    evidence_hit_at_3: float | None = Field(ge=0.0, le=1.0)
     mean_latency_seconds: float = Field(ge=0.0)
     latency_p50_seconds: float | None = Field(default=None, ge=0.0)
     latency_p95_seconds: float | None = Field(default=None, ge=0.0)

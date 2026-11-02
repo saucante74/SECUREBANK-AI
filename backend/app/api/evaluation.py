@@ -106,7 +106,7 @@ def public_run(run: BaselineRun) -> PublicEvaluationRun:
     )
 
 
-def public_metrics(metrics: Mapping[str, float]) -> PublicEvaluationMetrics:
+def public_metrics(metrics: Mapping[str, float | None]) -> PublicEvaluationMetrics:
     return PublicEvaluationMetrics(
         source_hit_at_1=metrics["source_hit_at_1"],
         source_hit_at_3=metrics["source_hit_at_3"],

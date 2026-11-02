@@ -223,6 +223,39 @@ describe("EvaluationPage", () => {
     expect(within(p50 as HTMLElement).getByText("N/A")).toBeInTheDocument();
   });
 
+  it("renders null v2 relevance metrics as unavailable instead of zero", async () => {
+    const v2Run: EvaluationRun = {
+      ...run,
+      run_id: "v2-run",
+      measured_metrics: {
+        BM25: {
+          ...run.measured_metrics.BM25,
+          source_hit_at_1: null,
+          source_hit_at_3: null,
+          evidence_hit_at_1: null,
+          evidence_hit_at_3: null,
+        },
+      },
+    };
+    getRunsMock.mockResolvedValue([v2Run]);
+
+    render(<EvaluationPage />);
+
+    const source = (await screen.findByRole("heading", {
+      name: "Source Hit@1",
+    })).closest("article");
+    expect(within(source as HTMLElement).getByText("N/A")).toBeInTheDocument();
+    expect(within(source as HTMLElement).queryByText("0,0")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", {
+      name: "Développer les moteurs du run v2-run",
+    }));
+    const bm25Row = within(screen.getByRole("table")).getByRole("row", {
+      name: /BM25/,
+    });
+    expect(within(bm25Row).getAllByText("N/A")).toHaveLength(4);
+  });
+
   it("shows loading and API error states", async () => {
     let rejectRequest: (reason: unknown) => void = () => undefined;
     getRunsMock.mockImplementation(

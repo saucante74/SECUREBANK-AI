@@ -20,13 +20,16 @@ JWT_AUDIENCE = "securebank-ai-evaluation-api"
 
 def create_run(
     run_id: str,
-    evidence_hit: float = 0.7,
+    evidence_hit: float | None = 0.7,
     include_operational_metrics: bool = False,
 ) -> BaselineRun:
+    source_hit_at_1 = None if evidence_hit is None else 0.6
+    source_hit_at_3 = None if evidence_hit is None else 0.8
+    evidence_hit_at_1 = None if evidence_hit is None else 0.5
     metrics = {
-        "source_hit_at_1": 0.6,
-        "source_hit_at_3": 0.8,
-        "evidence_hit_at_1": 0.5,
+        "source_hit_at_1": source_hit_at_1,
+        "source_hit_at_3": source_hit_at_3,
+        "evidence_hit_at_1": evidence_hit_at_1,
         "evidence_hit_at_3": evidence_hit,
         "mean_latency_seconds": 0.02,
     }
@@ -42,7 +45,11 @@ def create_run(
             }
         )
     return BaselineRun(
-        benchmark_id="securebank-rag-retrieval-v1",
+        benchmark_id=(
+            "securebank-rag-retrieval-v2"
+            if evidence_hit is None
+            else "securebank-rag-retrieval-v1"
+        ),
         run_id=run_id,
         created_at=datetime(2026, 10, 30, 12, 0, tzinfo=UTC),
         code_version="a" * 40,
@@ -160,6 +167,30 @@ def test_historical_run_exposes_missing_operational_metrics_as_null(
     assert metrics["mean_source_diversity_at_3"] is None
 
 
+def test_v2_run_exposes_null_relevance_and_numeric_operations(
+    tmp_path: Path,
+) -> None:
+    run = create_run(
+        "v2-run",
+        evidence_hit=None,
+        include_operational_metrics=True,
+    )
+    write_run(tmp_path / "v2.json", run)
+
+    listing = request("/evaluation/runs", tmp_path)
+    detail = request("/evaluation/runs/v2-run", tmp_path)
+
+    assert listing.status_code == 200
+    assert detail.status_code == 200
+    metrics = detail.json()["measured_metrics"]["RRF"]
+    assert metrics["source_hit_at_1"] is None
+    assert metrics["source_hit_at_3"] is None
+    assert metrics["evidence_hit_at_1"] is None
+    assert metrics["evidence_hit_at_3"] is None
+    assert metrics["mean_latency_seconds"] == 0.02
+    assert metrics["error_rate"] == 0.025
+
+
 @pytest.mark.parametrize("role", [Role.ANALYST, Role.COMPLIANCE_OFFICER, Role.ADMIN])
 def test_authenticated_roles_have_the_same_read_access(
     tmp_path: Path,
@@ -257,6 +288,30 @@ def test_comparison_preserves_missing_historical_operational_value(
         "metric": "latency_p50_seconds",
         "previous_value": None,
         "new_value": 0.015,
+        "delta": None,
+    }
+
+
+def test_comparison_preserves_unavailable_v2_relevance(tmp_path: Path) -> None:
+    write_run(tmp_path / "v1.json", create_run("v1"))
+    write_run(tmp_path / "v2.json", create_run("v2", evidence_hit=None))
+
+    response = request(
+        "/evaluation/compare?previous_run_id=v1&new_run_id=v2",
+        tmp_path,
+    )
+
+    assert response.status_code == 200
+    evidence_delta = next(
+        item
+        for item in response.json()["metric_deltas"]
+        if item["engine"] == "RRF" and item["metric"] == "evidence_hit_at_3"
+    )
+    assert evidence_delta == {
+        "engine": "RRF",
+        "metric": "evidence_hit_at_3",
+        "previous_value": 0.7,
+        "new_value": None,
         "delta": None,
     }
 

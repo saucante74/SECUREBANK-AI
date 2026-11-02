@@ -53,10 +53,10 @@ export interface EvaluationParameterChange {
 }
 
 export interface EvaluationMetrics {
-  source_hit_at_1: number;
-  source_hit_at_3: number;
-  evidence_hit_at_1: number;
-  evidence_hit_at_3: number;
+  source_hit_at_1: number | null;
+  source_hit_at_3: number | null;
+  evidence_hit_at_1: number | null;
+  evidence_hit_at_3: number | null;
   mean_latency_seconds: number;
   precision_at_1?: number;
   precision_at_3?: number;

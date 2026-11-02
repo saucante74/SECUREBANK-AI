@@ -12,6 +12,10 @@ function displayValue(value: ConfigurationValue | undefined): string {
   return value === null || value === undefined ? "—" : String(value);
 }
 
+function displayMetric(value: number | null): string {
+  return value === null ? "N/A" : value.toFixed(3);
+}
+
 function configuration(run: EvaluationRun): string {
   return Object.entries(run.rag_configuration)
     .map(([name, value]) => `${name}=${displayValue(value)}`)
@@ -113,10 +117,10 @@ export function EvaluationHistory({ runs }: EvaluationHistoryProps) {
                     <tr key={`${run.run_id}-${engine}`} className="border-b border-border/70">
                       <td className="px-3 py-3" aria-hidden="true" />
                       <th scope="row" className="whitespace-nowrap px-3 py-3 pl-6 font-semibold" colSpan={4}>{engine}</th>
-                      <td className="px-3 py-3">{metrics.source_hit_at_1.toFixed(3)}</td>
-                      <td className="px-3 py-3">{metrics.source_hit_at_3.toFixed(3)}</td>
-                      <td className="px-3 py-3">{metrics.evidence_hit_at_1.toFixed(3)}</td>
-                      <td className="px-3 py-3">{metrics.evidence_hit_at_3.toFixed(3)}</td>
+                      <td className="px-3 py-3">{displayMetric(metrics.source_hit_at_1)}</td>
+                      <td className="px-3 py-3">{displayMetric(metrics.source_hit_at_3)}</td>
+                      <td className="px-3 py-3">{displayMetric(metrics.evidence_hit_at_1)}</td>
+                      <td className="px-3 py-3">{displayMetric(metrics.evidence_hit_at_3)}</td>
                       <td className="whitespace-nowrap px-3 py-3">{(metrics.mean_latency_seconds * 1000).toFixed(1)} ms</td>
                     </tr>
                   ))}

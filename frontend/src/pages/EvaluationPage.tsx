@@ -29,7 +29,9 @@ function formatValue(
   language: string,
   unavailable: string,
 ): { unit?: string; value: string } {
-  if (value === undefined || !Number.isFinite(value)) return { value: unavailable };
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return { value: unavailable };
+  }
   if (metric.format === "percentage") {
     return {
       value: new Intl.NumberFormat(language, {
