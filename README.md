@@ -673,7 +673,7 @@ The real HTTP script is excluded from the default pytest suite because it requir
 
 ### Synthetic Retrieval Evaluation
 
-The benchmark corpus contains 30 fictitious French banking documents: five each for mortgage credit, consumer credit, insurance, savings, accounts and payments, and security and compliance. The 180-character chunk size with a 30-character overlap produces 137 deterministic chunks. The separate demonstration corpus remains limited to its original three documents.
+The annotated v1 benchmark corpus contains 30 fictitious French banking documents: five each for mortgage credit, consumer credit, insurance, savings, accounts and payments, and security and compliance. Its character chunker uses a 180-character chunk size with a 30-character overlap and produces 137 deterministic chunks. The unannotated v2 corpus uses a structured chunker with a 500-character chunk size and a 75-character overlap and produces 172 deterministic chunks. The separate demonstration corpus remains limited to its original three documents.
 
 The benchmark contains 40 questions: 15 factual questions, 15 semantic reformulations, and 10 difficult or intentionally ambiguous questions. Every case references validated document and chunk identifiers and records a short evidence rationale. The six historical evaluation cases remain available as a separate regression set.
 
@@ -687,7 +687,7 @@ cd backend
 python -m scripts.compare_retrievers
 ```
 
-The script evaluates BM25, MiniLM/Qdrant, hybrid RRF, and hybrid RRF followed by FlashRank on the same 40 cases, chunks, references, and final `top_k=3`. It uses the dedicated `securebank_benchmark_chunks` Qdrant collection so benchmark points cannot mix with demonstration points. It reports Source Hit@1, Source Hit@3, Evidence Hit@1, Evidence Hit@3, failed questions, FlashRank changes relative to RRF, the first-ranked document per question, and separate local mean latencies. MiniLM and FlashRank must already exist in their documented local caches.
+The command defaults to the annotated v1 corpus for backward compatibility. Select v2 explicitly with `python -m scripts.compare_retrievers --corpus-version v2`. The script evaluates BM25, MiniLM/Qdrant, hybrid RRF, and hybrid RRF followed by FlashRank with a final `top_k=3`. It records the corpus version and chunker parameters in each comparison result. V1 reports Source Hit@1, Source Hit@3, Evidence Hit@1, Evidence Hit@3, failed questions, FlashRank changes relative to RRF, the first-ranked document per question, latency, error rate, returned chunk count, and source diversity. Because v2 has no relevance annotations yet, its Source Hit, Evidence Hit, failed-relevance, and reranking-change values remain absent and are displayed as `N/A`; only latency, error rate, returned chunk count, and source diversity are calculated. The dedicated `securebank_benchmark_chunks` Qdrant collection prevents benchmark points from mixing with demonstration points. MiniLM and FlashRank must already exist in their documented local caches.
 
 The documents and questions are synthetic and cannot reproduce production language, policy complexity, corpus growth, user behavior, statistically reliable quality, or production latency. Forty questions support regression diagnosis but remain too few for broad statistical conclusions. This benchmark does not represent production retrieval performance.
 

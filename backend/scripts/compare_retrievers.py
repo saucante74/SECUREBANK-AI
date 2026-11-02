@@ -1,22 +1,32 @@
 import os
+from argparse import ArgumentParser
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from math import fsum
 from time import perf_counter
-from typing import Protocol
+from typing import Literal, Protocol
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchAny
 
 from app.core.config import settings
 from app.schemas.documents import Chunk
-from app.schemas.evaluation import EvaluationCase, EvaluationReport
+from app.schemas.evaluation import (
+    EvaluationCase,
+    EvaluationReport,
+    UnannotatedBenchmarkQuestion,
+)
 from app.schemas.retrieval import RetrievalResult
 from app.services.benchmark_dataset import (
     BENCHMARK_COLLECTION_NAME,
     BenchmarkDataset,
+    BenchmarkDatasetMetadata,
+    BenchmarkDatasetV2,
     create_benchmark_chunks,
+    create_benchmark_v2_chunks,
+    create_v1_metadata,
     load_benchmark_dataset,
+    load_benchmark_dataset_v2,
 )
 from app.services.bm25 import BM25Retriever
 from app.services.chunking import CharacterChunker
@@ -31,6 +41,8 @@ TOP_K = 3
 ENGINE_NAMES = ("BM25", "Qdrant", "RRF", "RRF + FlashRank")
 
 type Timer = Callable[[], float]
+type CorpusVersion = Literal["v1", "v2"]
+type BenchmarkQuestion = EvaluationCase | UnannotatedBenchmarkQuestion
 
 
 class SearchEngine(Protocol):
@@ -54,9 +66,10 @@ class SemanticRetriever:
 @dataclass(frozen=True)
 class ComparisonPipeline:
     chunks: list[Chunk]
-    cases: tuple[EvaluationCase, ...]
+    cases: tuple[BenchmarkQuestion, ...]
     engines: Mapping[str, SearchEngine]
     qdrant_point_count: int
+    metadata: BenchmarkDatasetMetadata = create_v1_metadata()
 
 
 @dataclass(frozen=True)
@@ -64,8 +77,9 @@ class EngineComparison:
     results_by_case_id: dict[str, list[RetrievalResult]]
     latency_by_case_id: dict[str, float]
     failed_case_ids: frozenset[str]
-    report_at_1: EvaluationReport
-    report_at_3: EvaluationReport
+    report_at_1: EvaluationReport | None
+    report_at_3: EvaluationReport | None
+    metadata: BenchmarkDatasetMetadata = create_v1_metadata()
 
     @property
     def mean_latency_seconds(self) -> float:
@@ -140,15 +154,20 @@ def validate_results(
 
 
 def prepare_comparison(
-    dataset: BenchmarkDataset,
-    chunker: CharacterChunker,
+    dataset: BenchmarkDataset | BenchmarkDatasetV2,
+    chunker: CharacterChunker | None,
     embedding_service: LocalEmbeddingService,
     vector_store: QdrantVectorStore,
     flashrank_reranker: FlashRankReranker,
     point_counter: Callable[[Sequence[Chunk]], int],
     index_chunks: bool = True,
 ) -> ComparisonPipeline:
-    chunks = create_benchmark_chunks(dataset.documents, chunker)
+    if isinstance(dataset, BenchmarkDatasetV2):
+        chunks = create_benchmark_v2_chunks(dataset.documents)
+        cases: tuple[BenchmarkQuestion, ...] = dataset.reference_questions
+    else:
+        chunks = create_benchmark_chunks(dataset.documents, chunker)
+        cases = dataset.cases
     if index_chunks:
         embeddings = embedding_service.embed_chunks(chunks)
         vector_store.ensure_collection()
@@ -172,18 +191,21 @@ def prepare_comparison(
     }
     return ComparisonPipeline(
         chunks=chunks,
-        cases=dataset.cases,
+        cases=cases,
         engines=engines,
         qdrant_point_count=point_count,
+        metadata=dataset.metadata,
     )
 
 
 def evaluate_engine(
     engine: SearchEngine,
     chunks: Sequence[Chunk],
-    cases: Sequence[EvaluationCase],
+    cases: Sequence[BenchmarkQuestion],
     timer: Timer = perf_counter,
+    metadata: BenchmarkDatasetMetadata | None = None,
 ) -> EngineComparison:
+    selected_metadata = metadata or create_v1_metadata()
     results_by_case_id: dict[str, list[RetrievalResult]] = {}
     latency_by_case_id: dict[str, float] = {}
     failed_case_ids: set[str] = set()
@@ -197,25 +219,42 @@ def evaluate_engine(
             failed_case_ids.add(case.id)
         latency_by_case_id[case.id] = timer() - started_at
         results_by_case_id[case.id] = results
+    report_at_1 = None
+    report_at_3 = None
+    if selected_metadata.relevance_annotations:
+        annotated_cases = tuple(
+            case for case in cases if isinstance(case, EvaluationCase)
+        )
+        if len(annotated_cases) != len(cases):
+            raise ValueError("annotated corpus requires annotated evaluation cases")
+        report_at_1 = evaluate_cases(annotated_cases, results_by_case_id, k=1)
+        report_at_3 = evaluate_cases(annotated_cases, results_by_case_id, k=3)
     return EngineComparison(
         results_by_case_id=results_by_case_id,
         latency_by_case_id=latency_by_case_id,
         failed_case_ids=frozenset(failed_case_ids),
-        report_at_1=evaluate_cases(cases, results_by_case_id, k=1),
-        report_at_3=evaluate_cases(cases, results_by_case_id, k=3),
+        report_at_1=report_at_1,
+        report_at_3=report_at_3,
+        metadata=selected_metadata,
     )
 
 
 def compare_retrievers(
     pipeline: ComparisonPipeline,
-    cases: Sequence[EvaluationCase] | None = None,
+    cases: Sequence[BenchmarkQuestion] | None = None,
     timer: Timer = perf_counter,
 ) -> dict[str, EngineComparison]:
     if tuple(pipeline.engines) != ENGINE_NAMES:
         raise ValueError("comparison requires the four configured retrievers")
     selected_cases = pipeline.cases if cases is None else cases
     return {
-        name: evaluate_engine(engine, pipeline.chunks, selected_cases, timer)
+        name: evaluate_engine(
+            engine,
+            pipeline.chunks,
+            selected_cases,
+            timer,
+            pipeline.metadata,
+        )
         for name, engine in pipeline.engines.items()
     }
 
@@ -228,12 +267,32 @@ def print_metric_table(comparisons: Mapping[str, EngineComparison]) -> None:
         "Mean chunks | Mean docs@3 | Diversity@3"
     )
     for name, comparison in comparisons.items():
+        source_hit_at_1 = metric_or_na(
+            comparison.report_at_1.mean_source_hit_at_k
+            if comparison.report_at_1
+            else None
+        )
+        source_hit_at_3 = metric_or_na(
+            comparison.report_at_3.mean_source_hit_at_k
+            if comparison.report_at_3
+            else None
+        )
+        evidence_hit_at_1 = metric_or_na(
+            comparison.report_at_1.mean_evidence_hit_at_k
+            if comparison.report_at_1
+            else None
+        )
+        evidence_hit_at_3 = metric_or_na(
+            comparison.report_at_3.mean_evidence_hit_at_k
+            if comparison.report_at_3
+            else None
+        )
         print(
             f"{name:<16} | "
-            f"{comparison.report_at_1.mean_source_hit_at_k:>12.3f} | "
-            f"{comparison.report_at_3.mean_source_hit_at_k:>12.3f} | "
-            f"{comparison.report_at_1.mean_evidence_hit_at_k:>14.3f} | "
-            f"{comparison.report_at_3.mean_evidence_hit_at_k:>14.3f} | "
+            f"{source_hit_at_1:>12} | "
+            f"{source_hit_at_3:>12} | "
+            f"{evidence_hit_at_1:>14} | "
+            f"{evidence_hit_at_3:>14} | "
             f"{comparison.latency_p50_seconds * 1_000:>8.3f} | "
             f"{comparison.latency_p95_seconds * 1_000:>8.3f} | "
             f"{comparison.error_rate:>10.3f} | "
@@ -243,8 +302,12 @@ def print_metric_table(comparisons: Mapping[str, EngineComparison]) -> None:
         )
 
 
+def metric_or_na(value: float | None) -> str:
+    return "N/A" if value is None else f"{value:.3f}"
+
+
 def print_case_comparisons(
-    cases: Sequence[EvaluationCase],
+    cases: Sequence[BenchmarkQuestion],
     comparisons: Mapping[str, EngineComparison],
 ) -> None:
     print("\nPer-question comparison")
@@ -253,13 +316,19 @@ def print_case_comparisons(
         for name, comparison in comparisons.items():
             results = comparison.results_by_case_id[case.id]
             first_document = results[0].chunk.document_id if results else "No result"
-            evaluation = next(
-                item for item in comparison.report_at_1.cases if item.case_id == case.id
+            evaluation = (
+                next(
+                    item
+                    for item in comparison.report_at_1.cases
+                    if item.case_id == case.id
+                )
+                if comparison.report_at_1
+                else None
             )
             print(
                 f"  {name:<16} | first={first_document} | "
-                f"Source Hit@1={evaluation.source_hit_at_k} | "
-                f"Evidence Hit@1={evaluation.evidence_hit_at_k} | "
+                f"Source Hit@1={evaluation.source_hit_at_k if evaluation else 'N/A'} | "
+                f"Evidence Hit@1={evaluation.evidence_hit_at_k if evaluation else 'N/A'} | "
                 f"latency={comparison.latency_by_case_id[case.id] * 1_000:.3f} ms"
             )
 
@@ -269,6 +338,9 @@ def print_failed_cases(
 ) -> None:
     print("\nFailed questions at rank 3")
     for name, comparison in comparisons.items():
+        if comparison.report_at_3 is None:
+            print(f"  {name}: N/A")
+            continue
         failed_case_ids = [
             evaluation.case_id
             for evaluation in comparison.report_at_3.cases
@@ -279,9 +351,13 @@ def print_failed_cases(
 
 
 def print_flashrank_changes(
-    cases: Sequence[EvaluationCase],
+    cases: Sequence[BenchmarkQuestion],
     comparisons: Mapping[str, EngineComparison],
 ) -> None:
+    if comparisons["RRF"].report_at_1 is None:
+        print("\nFlashRank changes versus RRF at rank 1")
+        print("  N/A")
+        return
     rrf_by_case = {
         evaluation.case_id: evaluation
         for evaluation in comparisons["RRF"].report_at_1.cases
@@ -308,12 +384,16 @@ def print_flashrank_changes(
 
 def run_comparison(
     pipeline: ComparisonPipeline,
-    cases: Sequence[EvaluationCase] | None = None,
+    cases: Sequence[BenchmarkQuestion] | None = None,
     timer: Timer = perf_counter,
 ) -> dict[str, EngineComparison]:
     selected_cases = pipeline.cases if cases is None else cases
     comparisons = compare_retrievers(pipeline, selected_cases, timer)
     document_count = len({chunk.document_id for chunk in pipeline.chunks})
+    print(f"Corpus version: {pipeline.metadata.corpus_version}")
+    print(f"Chunker: {pipeline.metadata.chunker}")
+    print(f"Chunk size: {pipeline.metadata.chunk_size}")
+    print(f"Chunk overlap: {pipeline.metadata.chunk_overlap}")
     print(f"Documents: {document_count}")
     print(f"Evaluation cases: {len(selected_cases)}")
     print(f"Indexed chunks: {len(pipeline.chunks)}")
@@ -327,7 +407,10 @@ def run_comparison(
     return comparisons
 
 
-def create_local_comparison(index_chunks: bool = True) -> ComparisonPipeline:
+def create_local_comparison(
+    index_chunks: bool = True,
+    corpus_version: CorpusVersion = "v1",
+) -> ComparisonPipeline:
     client = QdrantClient(url=settings.qdrant_url)
     vector_store = QdrantVectorStore(
         url=settings.qdrant_url,
@@ -350,9 +433,17 @@ def create_local_comparison(index_chunks: bool = True) -> ComparisonPipeline:
             exact=True,
         ).count
 
+    dataset: BenchmarkDataset | BenchmarkDatasetV2
+    chunker: CharacterChunker | None
+    if corpus_version == "v2":
+        dataset = load_benchmark_dataset_v2()
+        chunker = None
+    else:
+        dataset = load_benchmark_dataset()
+        chunker = CharacterChunker(chunk_size=180, overlap=30)
     return prepare_comparison(
-        load_benchmark_dataset(),
-        CharacterChunker(chunk_size=180, overlap=30),
+        dataset,
+        chunker,
         LocalEmbeddingService(),
         vector_store,
         FlashRankReranker(),
@@ -362,12 +453,16 @@ def create_local_comparison(index_chunks: bool = True) -> ComparisonPipeline:
 
 
 def main(
-    pipeline_factory: Callable[[], ComparisonPipeline] = create_local_comparison,
+    pipeline_factory: Callable[[], ComparisonPipeline] | None = None,
+    corpus_version: CorpusVersion = "v1",
 ) -> int:
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
     try:
-        run_comparison(pipeline_factory())
+        selected_factory = pipeline_factory or (
+            lambda: create_local_comparison(corpus_version=corpus_version)
+        )
+        run_comparison(selected_factory())
     except FileNotFoundError as error:
         print(f"Local model unavailable: {error}")
         return 1
@@ -380,5 +475,16 @@ def main(
     return 0
 
 
+def parse_corpus_version() -> CorpusVersion:
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--corpus-version",
+        choices=("v1", "v2"),
+        default="v1",
+    )
+    arguments = parser.parse_args()
+    return arguments.corpus_version
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(corpus_version=parse_corpus_version()))

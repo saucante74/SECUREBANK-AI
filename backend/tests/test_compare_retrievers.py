@@ -5,7 +5,11 @@ import pytest
 
 from app.schemas.documents import Chunk
 from app.schemas.retrieval import RetrievalResult
-from app.services.benchmark_dataset import load_benchmark_dataset
+from app.services.benchmark_dataset import (
+    create_v2_metadata,
+    load_benchmark_dataset,
+    load_benchmark_dataset_v2,
+)
 from app.services.chunking import CharacterChunker
 from app.services.embeddings import LocalEmbeddingService
 from app.services.qdrant import QdrantVectorStore, QdrantVectorStoreError
@@ -83,6 +87,10 @@ def test_prepare_comparison_builds_the_four_real_configurations() -> None:
     assert len(pipeline.chunks) == 30
     assert len(pipeline.cases) == 40
     assert pipeline.qdrant_point_count == 30
+    assert pipeline.metadata.corpus_version == "v1"
+    assert pipeline.metadata.chunker == "character"
+    assert pipeline.metadata.chunk_size == 180
+    assert pipeline.metadata.chunk_overlap == 30
     embeddings.embed_chunks.assert_called_once_with(pipeline.chunks)
     vector_store.store_chunks.assert_called_once()
 
@@ -106,6 +114,34 @@ def test_prepare_comparison_can_reuse_existing_index_without_ingestion() -> None
     assert len(pipeline.chunks) == 30
     embeddings.embed_chunks.assert_not_called()
     vector_store.ensure_collection.assert_not_called()
+    vector_store.store_chunks.assert_not_called()
+
+
+def test_prepare_comparison_uses_v2_structured_chunks_and_metadata() -> None:
+    dataset = load_benchmark_dataset_v2()
+    embeddings = MagicMock(spec=LocalEmbeddingService)
+    vector_store = MagicMock(spec=QdrantVectorStore)
+    reranker = MagicMock(spec=FlashRankReranker)
+
+    pipeline = prepare_comparison(
+        dataset,
+        None,
+        embeddings,
+        vector_store,
+        reranker,
+        point_counter=lambda chunks: len(chunks),
+        index_chunks=False,
+    )
+
+    assert tuple(pipeline.engines) == ENGINE_NAMES
+    assert len(pipeline.chunks) == 172
+    assert len(pipeline.cases) == 40
+    assert pipeline.metadata.corpus_version == "v2"
+    assert pipeline.metadata.chunker == "structured"
+    assert pipeline.metadata.chunk_size == 500
+    assert pipeline.metadata.chunk_overlap == 75
+    assert pipeline.metadata.relevance_annotations is False
+    embeddings.embed_chunks.assert_not_called()
     vector_store.store_chunks.assert_not_called()
 
 
@@ -161,6 +197,42 @@ def test_evaluate_engine_uses_existing_metric_aggregation() -> None:
     assert [call.kwargs["k"] for call in evaluator.call_args_list] == [1, 3]
     assert comparison.report_at_1.mean_source_hit_at_k == 1.0
     assert comparison.report_at_1.mean_evidence_hit_at_k == 1.0
+
+
+def test_v2_comparison_keeps_relevance_metrics_absent(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    question = load_benchmark_dataset_v2().reference_questions[0]
+    engines: dict[str, MagicMock] = {}
+    for name in ENGINE_NAMES:
+        engine = MagicMock()
+        engine.search.return_value = []
+        engines[name] = engine
+    pipeline = ComparisonPipeline(
+        chunks=[],
+        cases=(question,),
+        engines=engines,
+        qdrant_point_count=0,
+        metadata=create_v2_metadata(),
+    )
+
+    with patch("scripts.compare_retrievers.evaluate_cases") as evaluator:
+        comparisons = run_comparison(pipeline)
+
+    evaluator.assert_not_called()
+    assert all(item.report_at_1 is None for item in comparisons.values())
+    assert all(item.report_at_3 is None for item in comparisons.values())
+    assert all(item.metadata.corpus_version == "v2" for item in comparisons.values())
+    assert all(item.error_rate == 0.0 for item in comparisons.values())
+    assert all(item.mean_returned_chunk_count == 0.0 for item in comparisons.values())
+    assert all(item.mean_source_diversity_at_3 == 0.0 for item in comparisons.values())
+    output = capsys.readouterr().out
+    assert "Corpus version: v2" in output
+    assert "Chunker: structured" in output
+    assert "Source Hit@1=N/A" in output
+    assert "Evidence Hit@1=N/A" in output
+    assert "Source Hit@1=0" not in output
+    assert "Evidence Hit@1=0" not in output
 
 
 def test_evaluate_engine_associates_results_and_measures_latency() -> None:
