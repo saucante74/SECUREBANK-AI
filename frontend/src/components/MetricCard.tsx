@@ -1,5 +1,6 @@
 interface MetricCardProps {
   description: string;
+  details?: string[];
   direction: string;
   name: string;
   unit?: string;
@@ -8,6 +9,7 @@ interface MetricCardProps {
 
 export function MetricCard({
   description,
+  details,
   direction,
   name,
   unit,
@@ -21,6 +23,11 @@ export function MetricCard({
         {unit && <span className="ml-1 text-base font-semibold text-muted">{unit}</span>}
       </p>
       <p className="mt-4 text-sm leading-5 text-muted">{description}</p>
+      {details && (
+        <div className="mt-4 space-y-1 text-xs font-semibold text-muted">
+          {details.map((detail) => <p key={detail}>{detail}</p>)}
+        </div>
+      )}
       <p className="mt-auto pt-4 text-xs font-semibold text-accent-strong">
         {direction}
       </p>

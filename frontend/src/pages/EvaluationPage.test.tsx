@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { compareEvaluationRuns, getEvaluationRuns } from "../api/services";
-import type { EvaluationRun } from "../api/types";
+import type { EvaluationIRMetricAggregate, EvaluationRun } from "../api/types";
 import { EvaluationPage } from "./EvaluationPage";
 
 vi.mock("../api/services", () => ({
@@ -12,6 +12,14 @@ vi.mock("../api/services", () => ({
 
 const getRunsMock = vi.mocked(getEvaluationRuns);
 const compareRunsMock = vi.mocked(compareEvaluationRuns);
+
+function irMetric(value: number | null): EvaluationIRMetricAggregate {
+  return {
+    value,
+    evaluated_question_count: value === null ? 0 : 38,
+    unavailable_question_count: value === null ? 38 : 0,
+  };
+}
 
 const run: EvaluationRun = {
   run_id: "run-1",
@@ -51,7 +59,6 @@ const run: EvaluationRun = {
       evidence_hit_at_1: 0.425,
       evidence_hit_at_3: 0.675,
       mean_latency_seconds: 0.015,
-      precision_at_1: 0.72,
       latency_p50_seconds: 0.012,
       latency_p95_seconds: 0.03,
       error_rate: 0.025,
@@ -71,6 +78,22 @@ const run: EvaluationRun = {
       mean_returned_chunk_count: null,
       mean_distinct_document_count_at_3: null,
       mean_source_diversity_at_3: null,
+    },
+  },
+  ir_metrics: {
+    RRF: {
+      judgment_source: "qwen",
+      precision_at_1: irMetric(0.6578947368421053),
+      precision_at_3: irMetric(0.5),
+      recall_at_1: irMetric(0.312),
+      recall_at_3: irMetric(0.698),
+      f1_at_1: irMetric(0.407),
+      f1_at_3: irMetric(0.554),
+      map_at_3: irMetric(0.611),
+      success_at_1: irMetric(0.658),
+      success_at_3: irMetric(0.895),
+      mrr_at_3: irMetric(0.763),
+      ndcg_at_3: irMetric(0.643),
     },
   },
 };
@@ -160,7 +183,9 @@ describe("EvaluationPage", () => {
       created_at: "2026-10-29T12:00:00Z",
       measured_metrics: {
         ...run.measured_metrics,
-        RRF: { ...run.measured_metrics.RRF, precision_at_1: 0.11 },
+      },
+      ir_metrics: {
+        RRF: { ...run.ir_metrics.RRF, precision_at_1: irMetric(0.11) },
       },
     };
     const latest = { ...run, run_id: "run-latest", created_at: "2026-10-31T12:00:00Z" };
@@ -175,7 +200,7 @@ describe("EvaluationPage", () => {
     expect(within(summary as HTMLElement).getByText("run-latest")).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Moteur évalué" })).toHaveValue("RRF");
     const precision = screen.getByRole("heading", { name: "Precision@1" }).closest("article");
-    expect(within(precision as HTMLElement).getByText("72,0")).toBeInTheDocument();
+    expect(within(precision as HTMLElement).getByText("65,8")).toBeInTheDocument();
     expect(within(precision as HTMLElement).getByText("%")).toBeInTheDocument();
     const latency = screen.getByRole("heading", { name: "Latence moyenne" }).closest("article");
     expect(within(latency as HTMLElement).getByText("15,0")).toBeInTheDocument();
@@ -192,6 +217,70 @@ describe("EvaluationPage", () => {
     expect(within(documents as HTMLElement).getByText("2,1")).toBeInTheDocument();
     const diversity = screen.getByRole("heading", { name: "Diversité des sources@3" }).closest("article");
     expect(within(diversity as HTMLElement).getByText("75,0")).toBeInTheDocument();
+  });
+
+  it("renders all IR metrics with Qwen provenance and question counts", async () => {
+    getRunsMock.mockResolvedValue([run]);
+
+    render(<EvaluationPage />);
+
+    const expectedValues = [
+      ["Precision@1", "65,8"],
+      ["Precision@3", "50,0"],
+      ["Recall@1", "31,2"],
+      ["Recall@3", "69,8"],
+      ["F1@1", "40,7"],
+      ["F1@3", "55,4"],
+      ["MAP@3", "61,1"],
+      ["Success@1", "65,8"],
+      ["Success@3", "89,5"],
+      ["MRR@3", "76,3"],
+      ["nDCG@3", "64,3"],
+    ];
+    await screen.findByRole("heading", { name: "Precision@1" });
+    for (const [name, value] of expectedValues) {
+      const card = screen.getByRole("heading", { name }).closest("article");
+      expect(within(card as HTMLElement).getByText(value)).toBeInTheDocument();
+      expect(within(card as HTMLElement).getByText("Jugements Qwen")).toBeInTheDocument();
+      expect(within(card as HTMLElement).getByText(
+        "38 questions évaluées · 0 indisponibles",
+      )).toBeInTheDocument();
+    }
+  });
+
+  it("keeps historical and null IR metrics unavailable without displaying zero", async () => {
+    const historicalRun: EvaluationRun = {
+      ...run,
+      run_id: "historical-run",
+      ir_metrics: {},
+    };
+    getRunsMock.mockResolvedValue([historicalRun]);
+
+    const { unmount } = render(<EvaluationPage />);
+
+    const historicalPrecision = (await screen.findByRole("heading", {
+      name: "Precision@1",
+    })).closest("article");
+    expect(within(historicalPrecision as HTMLElement).getByText("N/A")).toBeInTheDocument();
+    expect(within(historicalPrecision as HTMLElement).queryByText("Jugements Qwen")).not.toBeInTheDocument();
+
+    unmount();
+    getRunsMock.mockResolvedValue([{
+      ...run,
+      run_id: "null-metric-run",
+      ir_metrics: {
+        RRF: { ...run.ir_metrics.RRF, ndcg_at_3: irMetric(null) },
+      },
+    }]);
+    render(<EvaluationPage />);
+
+    const ndcg = (await screen.findByRole("heading", { name: "nDCG@3" })).closest("article");
+    expect(within(ndcg as HTMLElement).getByText("N/A")).toBeInTheDocument();
+    expect(within(ndcg as HTMLElement).queryByText("0,0")).not.toBeInTheDocument();
+    expect(within(ndcg as HTMLElement).getByText("Jugements Qwen")).toBeInTheDocument();
+    expect(within(ndcg as HTMLElement).getByText(
+      "0 questions évaluées · 38 indisponibles",
+    )).toBeInTheDocument();
   });
 
   it("uses run id as a deterministic tie-breaker", async () => {

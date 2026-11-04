@@ -58,17 +58,6 @@ export interface EvaluationMetrics {
   evidence_hit_at_1: number | null;
   evidence_hit_at_3: number | null;
   mean_latency_seconds: number;
-  precision_at_1?: number;
-  precision_at_3?: number;
-  recall_at_1?: number;
-  recall_at_3?: number;
-  f1_at_1?: number;
-  f1_at_3?: number;
-  map_at_3?: number;
-  success_at_1?: number;
-  success_at_3?: number;
-  mrr_at_3?: number;
-  ndcg_at_3?: number;
   latency_p50_seconds: number | null;
   latency_p95_seconds: number | null;
   error_rate: number | null;
@@ -77,12 +66,36 @@ export interface EvaluationMetrics {
   mean_source_diversity_at_3: number | null;
 }
 
+export interface EvaluationIRMetricAggregate {
+  value: number | null;
+  evaluated_question_count: number;
+  unavailable_question_count: number;
+}
+
+export interface EvaluationIRMetrics {
+  judgment_source: "qwen";
+  precision_at_1: EvaluationIRMetricAggregate;
+  precision_at_3: EvaluationIRMetricAggregate;
+  recall_at_1: EvaluationIRMetricAggregate;
+  recall_at_3: EvaluationIRMetricAggregate;
+  f1_at_1: EvaluationIRMetricAggregate;
+  f1_at_3: EvaluationIRMetricAggregate;
+  map_at_3: EvaluationIRMetricAggregate;
+  success_at_1: EvaluationIRMetricAggregate;
+  success_at_3: EvaluationIRMetricAggregate;
+  mrr_at_3: EvaluationIRMetricAggregate;
+  ndcg_at_3: EvaluationIRMetricAggregate;
+}
+
+export type EvaluationIRMetricName = Exclude<keyof EvaluationIRMetrics, "judgment_source">;
+
 export interface EvaluationRun {
   run_id: string;
   created_at: string;
   rag_configuration: Record<string, ConfigurationValue>;
   parameter_change: EvaluationParameterChange | null;
   measured_metrics: Record<string, EvaluationMetrics>;
+  ir_metrics: Record<string, EvaluationIRMetrics>;
 }
 
 export interface EvaluationConfigurationChange {

@@ -3,7 +3,11 @@ import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
 import { getEvaluationRuns } from "../api/services";
-import type { EvaluationMetrics, EvaluationRun } from "../api/types";
+import type {
+  EvaluationIRMetricName,
+  EvaluationMetrics,
+  EvaluationRun,
+} from "../api/types";
 import { MetricCard } from "../components/MetricCard";
 import {
   dashboardMetrics,
@@ -88,6 +92,7 @@ export function EvaluationPage() {
     ? selectedEngine
     : defaultEngine(engines);
   const metrics: EvaluationMetrics | undefined = latestRun?.measured_metrics[activeEngine];
+  const irMetrics = latestRun?.ir_metrics[activeEngine];
 
   return (
     <div className="space-y-10">
@@ -172,8 +177,14 @@ export function EvaluationPage() {
                 <p className="mt-1 text-sm text-muted">{t(`evaluation.groups.${group}.description`)}</p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {dashboardMetrics.filter((metric) => metric.group === group).map((metric) => {
+                    const irMetric = metric.source === "ir"
+                      ? irMetrics?.[metric.field as EvaluationIRMetricName]
+                      : undefined;
+                    const metricValue = metric.source === "ir"
+                      ? irMetric?.value
+                      : metrics?.[metric.field as keyof EvaluationMetrics];
                     const formatted = formatValue(
-                      metrics?.[metric.field],
+                      metricValue,
                       metric,
                       i18n.language,
                       t("evaluation.dashboard.unavailable"),
@@ -183,6 +194,13 @@ export function EvaluationPage() {
                         key={metric.key}
                         name={t(`evaluation.metricCards.${metric.key}.name`)}
                         description={t(`evaluation.metricCards.${metric.key}.description`)}
+                        details={irMetric && irMetrics ? [
+                          t("evaluation.dashboard.qwenJudgments"),
+                          t("evaluation.dashboard.questionAvailability", {
+                            evaluated: irMetric.evaluated_question_count,
+                            unavailable: irMetric.unavailable_question_count,
+                          }),
+                        ] : undefined}
                         direction={t(`evaluation.directions.${metric.direction}`)}
                         value={formatted.value}
                         unit={formatted.unit}
