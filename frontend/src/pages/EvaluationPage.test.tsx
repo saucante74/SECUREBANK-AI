@@ -109,7 +109,9 @@ describe("EvaluationPage", () => {
 
     render(<EvaluationPage />);
 
-    expect(await screen.findByRole("heading", { name: "Évaluation RAG" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", {
+      name: "Dernier benchmark disponible",
+    })).toBeInTheDocument();
     const table = screen.getByRole("table");
     expect(within(table).getAllByRole("row")).toHaveLength(2);
     expect(within(table).queryByText("BM25")).not.toBeInTheDocument();
@@ -200,8 +202,10 @@ describe("EvaluationPage", () => {
     expect(within(summary as HTMLElement).getByText("run-latest")).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Moteur évalué" })).toHaveValue("RRF");
     const precision = screen.getByRole("heading", { name: "Precision@1" }).closest("article");
-    expect(within(precision as HTMLElement).getByText("65,8")).toBeInTheDocument();
-    expect(within(precision as HTMLElement).getByText("%")).toBeInTheDocument();
+    expect(within(precision as HTMLElement).getByRole("img", {
+      name: "Precision@1: 65,8%",
+    })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Classement & performance" }));
     const latency = screen.getByRole("heading", { name: "Latence moyenne" }).closest("article");
     expect(within(latency as HTMLElement).getByText("15,0")).toBeInTheDocument();
     expect(within(latency as HTMLElement).getByText("ms")).toBeInTheDocument();
@@ -210,13 +214,18 @@ describe("EvaluationPage", () => {
     const p95 = screen.getByRole("heading", { name: "Latence P95" }).closest("article");
     expect(within(p95 as HTMLElement).getByText("30,0")).toBeInTheDocument();
     const errorRate = screen.getByRole("heading", { name: "Taux d’erreur" }).closest("article");
-    expect(within(errorRate as HTMLElement).getByText("2,5")).toBeInTheDocument();
+    expect(within(errorRate as HTMLElement).getByRole("img", {
+      name: "Taux d’erreur: 2,5%",
+    })).toBeInTheDocument();
     const chunks = screen.getByRole("heading", { name: "Chunks moyens retournés" }).closest("article");
     expect(within(chunks as HTMLElement).getByText("2,8")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Diversité documentaire" }));
     const documents = screen.getByRole("heading", { name: "Documents distincts@3" }).closest("article");
     expect(within(documents as HTMLElement).getByText("2,1")).toBeInTheDocument();
     const diversity = screen.getByRole("heading", { name: "Diversité des sources@3" }).closest("article");
-    expect(within(diversity as HTMLElement).getByText("75,0")).toBeInTheDocument();
+    expect(within(diversity as HTMLElement).getByRole("img", {
+      name: "Diversité des sources@3: 75,0%",
+    })).toBeInTheDocument();
   });
 
   it("renders all IR metrics with Qwen provenance and question counts", async () => {
@@ -224,7 +233,7 @@ describe("EvaluationPage", () => {
 
     render(<EvaluationPage />);
 
-    const expectedValues = [
+    const relevanceValues = [
       ["Precision@1", "65,8"],
       ["Precision@3", "50,0"],
       ["Recall@1", "31,2"],
@@ -234,14 +243,28 @@ describe("EvaluationPage", () => {
       ["MAP@3", "61,1"],
       ["Success@1", "65,8"],
       ["Success@3", "89,5"],
+    ];
+    const rankingValues = [
       ["MRR@3", "76,3"],
       ["nDCG@3", "64,3"],
     ];
     await screen.findByRole("heading", { name: "Precision@1" });
-    for (const [name, value] of expectedValues) {
+    expect(screen.getByText("Jugements générés par Qwen sur 38 questions.")).toBeInTheDocument();
+    for (const [name, value] of relevanceValues) {
       const card = screen.getByRole("heading", { name }).closest("article");
-      expect(within(card as HTMLElement).getByText(value)).toBeInTheDocument();
-      expect(within(card as HTMLElement).getByText("Jugements Qwen")).toBeInTheDocument();
+      expect(within(card as HTMLElement).getByRole("img", {
+        name: `${name}: ${value}%`,
+      })).toBeInTheDocument();
+      expect(within(card as HTMLElement).getByText(
+        "38 questions évaluées · 0 indisponibles",
+      )).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole("tab", { name: "Classement & performance" }));
+    for (const [name, value] of rankingValues) {
+      const card = screen.getByRole("heading", { name }).closest("article");
+      expect(within(card as HTMLElement).getByRole("img", {
+        name: `${name}: ${value}%`,
+      })).toBeInTheDocument();
       expect(within(card as HTMLElement).getByText(
         "38 questions évaluées · 0 indisponibles",
       )).toBeInTheDocument();
@@ -262,7 +285,10 @@ describe("EvaluationPage", () => {
       name: "Precision@1",
     })).closest("article");
     expect(within(historicalPrecision as HTMLElement).getByText("N/A")).toBeInTheDocument();
-    expect(within(historicalPrecision as HTMLElement).queryByText("Jugements Qwen")).not.toBeInTheDocument();
+    expect(within(historicalPrecision as HTMLElement).getByRole("img", {
+      name: "Precision@1: N/A",
+    })).toBeInTheDocument();
+    expect(screen.queryByText(/Jugements générés par Qwen/)).not.toBeInTheDocument();
 
     unmount();
     getRunsMock.mockResolvedValue([{
@@ -274,10 +300,11 @@ describe("EvaluationPage", () => {
     }]);
     render(<EvaluationPage />);
 
+    fireEvent.click(await screen.findByRole("tab", { name: "Classement & performance" }));
     const ndcg = (await screen.findByRole("heading", { name: "nDCG@3" })).closest("article");
     expect(within(ndcg as HTMLElement).getByText("N/A")).toBeInTheDocument();
     expect(within(ndcg as HTMLElement).queryByText("0,0")).not.toBeInTheDocument();
-    expect(within(ndcg as HTMLElement).getByText("Jugements Qwen")).toBeInTheDocument();
+    expect(screen.getByText("Jugements générés par Qwen sur 38 questions.")).toBeInTheDocument();
     expect(within(ndcg as HTMLElement).getByText(
       "0 questions évaluées · 38 indisponibles",
     )).toBeInTheDocument();
@@ -304,10 +331,13 @@ describe("EvaluationPage", () => {
     const selector = await screen.findByRole("combobox", { name: "Moteur évalué" });
     fireEvent.change(selector, { target: { value: "Qdrant" } });
 
-    const source = screen.getByRole("heading", { name: "Source Hit@1" }).closest("article");
-    expect(within(source as HTMLElement).getByText("55,0")).toBeInTheDocument();
     const precision = screen.getByRole("heading", { name: "Precision@1" }).closest("article");
     expect(within(precision as HTMLElement).getByText("N/A")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Classement & performance" }));
+    const source = screen.getByRole("heading", { name: "Source Hit@1" }).closest("article");
+    expect(within(source as HTMLElement).getByRole("img", {
+      name: "Source Hit@1: 55,0%",
+    })).toBeInTheDocument();
     const p50 = screen.getByRole("heading", { name: "Latence P50" }).closest("article");
     expect(within(p50 as HTMLElement).getByText("N/A")).toBeInTheDocument();
   });
@@ -330,6 +360,7 @@ describe("EvaluationPage", () => {
 
     render(<EvaluationPage />);
 
+    fireEvent.click(await screen.findByRole("tab", { name: "Classement & performance" }));
     const source = (await screen.findByRole("heading", {
       name: "Source Hit@1",
     })).closest("article");
@@ -372,6 +403,51 @@ describe("EvaluationPage", () => {
     expect(relevance).toHaveFocus();
     fireEvent.click(relevance);
     expect(relevance.parentElement).toHaveAttribute("open");
+  });
+
+  it("navigates the three metric tabs by keyboard and exposes every metric", async () => {
+    getRunsMock.mockResolvedValue([run]);
+
+    render(<EvaluationPage />);
+
+    const relevanceTab = await screen.findByRole("tab", { name: "Pertinence" });
+    expect(relevanceTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("heading", { name: "Precision@1" })).toBeInTheDocument();
+    fireEvent.keyDown(relevanceTab, { key: "ArrowLeft" });
+
+    const rankingTab = screen.getByRole("tab", { name: "Classement & performance" });
+    expect(rankingTab).toHaveFocus();
+    expect(rankingTab).toHaveAttribute("aria-selected", "true");
+    for (const name of [
+      "MRR@3",
+      "nDCG@3",
+      "Source Hit@1",
+      "Source Hit@3",
+      "Evidence Hit@1",
+      "Evidence Hit@3",
+      "Latence moyenne",
+      "Latence P50",
+      "Latence P95",
+      "Taux d’erreur",
+      "Chunks moyens retournés",
+    ]) {
+      expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    }
+    fireEvent.keyDown(rankingTab, { key: "ArrowRight" });
+
+    expect(relevanceTab).toHaveFocus();
+    expect(relevanceTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("heading", { name: "Precision@1" })).toBeInTheDocument();
+    fireEvent.keyDown(relevanceTab, { key: "ArrowRight" });
+
+    const diversityTab = screen.getByRole("tab", { name: "Diversité documentaire" });
+    expect(diversityTab).toHaveFocus();
+    expect(screen.getByRole("heading", {
+      name: "Documents distincts@3",
+    })).toBeInTheDocument();
+    expect(screen.getByRole("heading", {
+      name: "Diversité des sources@3",
+    })).toBeInTheDocument();
   });
 
   it("compares runs through the public API", async () => {
