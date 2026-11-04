@@ -603,13 +603,14 @@ def create_local_comparison(
     chunker: CharacterChunker | None
     if corpus_version == "v2":
         dataset = load_benchmark_dataset_v2()
+        corpus_metadata = dataset.metadata
         chunker = None
         chunks = create_benchmark_v2_chunks(dataset.documents)
         if judgments_path is not None:
             cases = load_qwen_evaluation_cases(
                 dataset,
                 {chunk.id for chunk in chunks},
-                corpus_fingerprint(chunks, dataset.metadata),
+                corpus_fingerprint(chunks, corpus_metadata),
                 judgments_path=judgments_path,
             )
             dataset = dataset.model_copy(
@@ -625,7 +626,7 @@ def create_local_comparison(
             client,
             vector_store,
             chunks,
-            dataset.metadata,
+            corpus_metadata,
             embedding_service,
             index_chunks,
         )
