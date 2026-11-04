@@ -1,4 +1,6 @@
 import os
+from argparse import ArgumentParser
+from collections.abc import Sequence
 from pathlib import Path
 
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
@@ -13,9 +15,20 @@ from app.services.baseline_history import (
 from scripts.compare_retrievers import create_local_comparison, run_comparison
 
 
-def main() -> int:
+def parse_arguments(arguments: Sequence[str] | None = None) -> Path | None:
+    parser = ArgumentParser()
+    parser.add_argument("--judgments-file", type=Path)
+    return parser.parse_args(arguments).judgments_file
+
+
+def main(arguments: Sequence[str] | None = None) -> int:
     repository_root = Path(__file__).resolve().parents[2]
-    pipeline = create_local_comparison(index_chunks=False, corpus_version="v2")
+    judgments_path = parse_arguments(arguments)
+    pipeline = create_local_comparison(
+        index_chunks=False,
+        corpus_version="v2",
+        judgments_path=judgments_path,
+    )
     comparisons = run_comparison(pipeline)
     run = build_baseline_run(
         comparisons,

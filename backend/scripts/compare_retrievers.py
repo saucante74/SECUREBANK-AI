@@ -5,6 +5,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from hashlib import sha256
 from math import fsum
+from pathlib import Path
 from time import perf_counter
 from typing import Literal, Protocol
 from uuid import uuid5
@@ -43,6 +44,7 @@ from app.services.qdrant import (
     QdrantVectorStoreError,
 )
 from app.services.rag_retrieval import RagRetriever
+from app.services.relevance_judgments import load_qwen_evaluation_cases
 from app.services.reranking import FlashRankReranker
 from app.services.retrieval_evaluation import evaluate_cases
 
@@ -572,6 +574,7 @@ def run_comparison(
 def create_local_comparison(
     index_chunks: bool = True,
     corpus_version: CorpusVersion = "v1",
+    judgments_path: Path | None = None,
 ) -> ComparisonPipeline:
     client = QdrantClient(url=settings.qdrant_url)
     collection_name = benchmark_collection_name(corpus_version)
@@ -602,6 +605,21 @@ def create_local_comparison(
         dataset = load_benchmark_dataset_v2()
         chunker = None
         chunks = create_benchmark_v2_chunks(dataset.documents)
+        if judgments_path is not None:
+            cases = load_qwen_evaluation_cases(
+                dataset,
+                {chunk.id for chunk in chunks},
+                corpus_fingerprint(chunks, dataset.metadata),
+                judgments_path=judgments_path,
+            )
+            dataset = dataset.model_copy(
+                update={
+                    "reference_questions": cases,
+                    "metadata": dataset.metadata.model_copy(
+                        update={"relevance_annotations": True}
+                    ),
+                }
+            )
         embedding_service = LocalEmbeddingService()
         point_count = prepare_v2_collection(
             client,
