@@ -233,6 +233,14 @@ def test_qwen_evaluation_preserves_indexed_v2_corpus_fingerprint() -> None:
 
     assert len(pipeline.cases) == 38
     assert pipeline.metadata.relevance_annotations is True
+    assert pipeline.relevance_judgments is not None
+    assert len(pipeline.relevance_judgments) == 40
+    assert sum(len(items) for items in pipeline.relevance_judgments.values()) == 260
+    assert {
+        relevance
+        for items in pipeline.relevance_judgments.values()
+        for relevance in items.values()
+    } == {0, 1, 2}
 
 
 def test_compatible_v2_collection_is_reused_without_writes() -> None:
@@ -378,6 +386,28 @@ def test_evaluate_engine_uses_existing_metric_aggregation() -> None:
     assert comparison.report_at_1.mean_evidence_hit_at_k == 1.0
 
 
+def test_evaluate_engine_calculates_ir_metrics_from_complete_judgments() -> None:
+    case = SYNTHETIC_EVALUATION_CASES[0]
+    chunk_id = next(iter(case.expected_chunk_ids))
+    result = create_result(next(iter(case.expected_document_ids)), chunk_id)
+    engine = MagicMock()
+    engine.search.return_value = [result]
+
+    comparison = evaluate_engine(
+        engine,
+        [result.chunk],
+        [case],
+        relevance_judgments={case.id: {chunk_id: 2}},
+    )
+
+    assert comparison.ir_report_at_1 is not None
+    assert comparison.ir_report_at_3 is not None
+    assert comparison.ir_report_at_1.precision_at_k.value == 1.0
+    assert comparison.ir_report_at_1.precision_at_k.evaluated_question_count == 1
+    assert comparison.ir_report_at_3.precision_at_k.value == pytest.approx(1 / 3)
+    assert comparison.ir_report_at_3.ndcg_at_k.value == 1.0
+
+
 def test_v2_comparison_keeps_relevance_metrics_absent(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -401,6 +431,8 @@ def test_v2_comparison_keeps_relevance_metrics_absent(
     evaluator.assert_not_called()
     assert all(item.report_at_1 is None for item in comparisons.values())
     assert all(item.report_at_3 is None for item in comparisons.values())
+    assert all(item.ir_report_at_1 is None for item in comparisons.values())
+    assert all(item.ir_report_at_3 is None for item in comparisons.values())
     assert all(item.metadata.corpus_version == "v2" for item in comparisons.values())
     assert all(item.error_rate == 0.0 for item in comparisons.values())
     assert all(item.mean_returned_chunk_count == 0.0 for item in comparisons.values())

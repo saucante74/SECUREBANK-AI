@@ -3,7 +3,7 @@ import subprocess
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 from uuid import uuid4
 
 from pydantic import (
@@ -50,6 +50,24 @@ class EngineComparison(Protocol):
     mean_returned_chunk_count: float
     mean_distinct_document_count_at_3: float
     mean_source_diversity_at_3: float
+    ir_report_at_1: "IRReportSummary | None"
+    ir_report_at_3: "IRReportSummary | None"
+
+
+class IRAggregateSummary(Protocol):
+    value: float | None
+    evaluated_question_count: int
+    unavailable_question_count: int
+
+
+class IRReportSummary(Protocol):
+    precision_at_k: IRAggregateSummary
+    recall_at_k: IRAggregateSummary
+    f1_at_k: IRAggregateSummary
+    map_at_k: IRAggregateSummary
+    success_at_k: IRAggregateSummary
+    mrr_at_k: IRAggregateSummary
+    ndcg_at_k: IRAggregateSummary
 
 
 class ParameterChange(BaseModel):
@@ -58,6 +76,37 @@ class ParameterChange(BaseModel):
     name: str
     previous_value: str | int | float | bool | None
     new_value: str | int | float | bool | None
+
+
+class IRMetricAggregate(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    value: float | None = Field(ge=0.0, le=1.0)
+    evaluated_question_count: int = Field(ge=0)
+    unavailable_question_count: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_availability(self) -> "IRMetricAggregate":
+        if (self.value is None) != (self.evaluated_question_count == 0):
+            raise ValueError("IR metric value must match its evaluated question count")
+        return self
+
+
+class EngineIRMetrics(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    judgment_source: Literal["qwen"]
+    precision_at_1: IRMetricAggregate
+    precision_at_3: IRMetricAggregate
+    recall_at_1: IRMetricAggregate
+    recall_at_3: IRMetricAggregate
+    f1_at_1: IRMetricAggregate
+    f1_at_3: IRMetricAggregate
+    map_at_3: IRMetricAggregate
+    success_at_1: IRMetricAggregate
+    success_at_3: IRMetricAggregate
+    mrr_at_3: IRMetricAggregate
+    ndcg_at_3: IRMetricAggregate
 
 
 class BaselineRun(BaseModel):
@@ -70,6 +119,10 @@ class BaselineRun(BaseModel):
     rag_configuration: dict[str, str | int | float | bool | None]
     parameter_change: ParameterChange | None
     measured_metrics: dict[str, dict[str, float | None]] = Field(min_length=1)
+    ir_metrics: dict[str, EngineIRMetrics] = Field(
+        default_factory=dict,
+        exclude_if=lambda value: not value,
+    )
     expected_behaviors: tuple[str, ...]
     uncomputed_metrics: tuple[str, ...]
     langfuse_trace_ids: tuple[str, ...]
@@ -221,6 +274,12 @@ def build_baseline_run(
         }
         for name, comparison in comparisons.items()
     }
+    ir_metrics = {
+        name: build_engine_ir_metrics(comparison)
+        for name, comparison in comparisons.items()
+        if comparison.ir_report_at_1 is not None
+        and comparison.ir_report_at_3 is not None
+    }
     collection_name = (
         BENCHMARK_COLLECTION_NAME
         if selected_metadata.corpus_version == "v1"
@@ -247,6 +306,7 @@ def build_baseline_run(
         },
         parameter_change=None,
         measured_metrics=measured_metrics,
+        ir_metrics=ir_metrics,
         expected_behaviors=(
             "answerable cases retrieve their documented source and evidence",
             "unanswerable cases abstain without citations",
@@ -261,6 +321,35 @@ def build_baseline_run(
             "pii_masking_recall",
         ),
         langfuse_trace_ids=(),
+    )
+
+
+def create_ir_metric(metric: IRAggregateSummary) -> IRMetricAggregate:
+    return IRMetricAggregate(
+        value=metric.value,
+        evaluated_question_count=metric.evaluated_question_count,
+        unavailable_question_count=metric.unavailable_question_count,
+    )
+
+
+def build_engine_ir_metrics(comparison: EngineComparison) -> EngineIRMetrics:
+    report_at_1 = comparison.ir_report_at_1
+    report_at_3 = comparison.ir_report_at_3
+    if report_at_1 is None or report_at_3 is None:
+        raise ValueError("IR metrics require reports at ranks 1 and 3")
+    return EngineIRMetrics(
+        judgment_source="qwen",
+        precision_at_1=create_ir_metric(report_at_1.precision_at_k),
+        precision_at_3=create_ir_metric(report_at_3.precision_at_k),
+        recall_at_1=create_ir_metric(report_at_1.recall_at_k),
+        recall_at_3=create_ir_metric(report_at_3.recall_at_k),
+        f1_at_1=create_ir_metric(report_at_1.f1_at_k),
+        f1_at_3=create_ir_metric(report_at_3.f1_at_k),
+        map_at_3=create_ir_metric(report_at_3.map_at_k),
+        success_at_1=create_ir_metric(report_at_1.success_at_k),
+        success_at_3=create_ir_metric(report_at_3.success_at_k),
+        mrr_at_3=create_ir_metric(report_at_3.mrr_at_k),
+        ndcg_at_3=create_ir_metric(report_at_3.ndcg_at_k),
     )
 
 

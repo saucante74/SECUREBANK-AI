@@ -44,9 +44,14 @@ from app.services.qdrant import (
     QdrantVectorStoreError,
 )
 from app.services.rag_retrieval import RagRetriever
-from app.services.relevance_judgments import load_qwen_evaluation_cases
+from app.services.relevance_judgments import load_qwen_evaluation_data
 from app.services.reranking import FlashRankReranker
-from app.services.retrieval_evaluation import evaluate_cases
+from app.services.retrieval_evaluation import (
+    IRMetricsReport,
+    RelevanceGrade,
+    evaluate_cases,
+    evaluate_ir_metrics,
+)
 
 TOP_K = 3
 ENGINE_NAMES = ("BM25", "Qdrant", "RRF", "RRF + FlashRank")
@@ -88,6 +93,7 @@ class ComparisonPipeline:
     engines: Mapping[str, SearchEngine]
     qdrant_point_count: int
     metadata: BenchmarkDatasetMetadata = create_v1_metadata()
+    relevance_judgments: Mapping[str, Mapping[str, RelevanceGrade]] | None = None
 
 
 @dataclass(frozen=True)
@@ -97,6 +103,8 @@ class EngineComparison:
     failed_case_ids: frozenset[str]
     report_at_1: EvaluationReport | None
     report_at_3: EvaluationReport | None
+    ir_report_at_1: IRMetricsReport | None = None
+    ir_report_at_3: IRMetricsReport | None = None
     metadata: BenchmarkDatasetMetadata = create_v1_metadata()
 
     @property
@@ -325,6 +333,7 @@ def prepare_comparison(
     flashrank_reranker: FlashRankReranker,
     point_counter: Callable[[Sequence[Chunk]], int],
     index_chunks: bool = True,
+    relevance_judgments: Mapping[str, Mapping[str, RelevanceGrade]] | None = None,
 ) -> ComparisonPipeline:
     if isinstance(dataset, BenchmarkDatasetV2):
         chunks = create_benchmark_v2_chunks(dataset.documents)
@@ -359,6 +368,7 @@ def prepare_comparison(
         engines=engines,
         qdrant_point_count=point_count,
         metadata=dataset.metadata,
+        relevance_judgments=relevance_judgments,
     )
 
 
@@ -368,6 +378,7 @@ def evaluate_engine(
     cases: Sequence[BenchmarkQuestion],
     timer: Timer = perf_counter,
     metadata: BenchmarkDatasetMetadata | None = None,
+    relevance_judgments: Mapping[str, Mapping[str, RelevanceGrade]] | None = None,
 ) -> EngineComparison:
     selected_metadata = metadata or create_v1_metadata()
     results_by_case_id: dict[str, list[RetrievalResult]] = {}
@@ -385,6 +396,8 @@ def evaluate_engine(
         results_by_case_id[case.id] = results
     report_at_1 = None
     report_at_3 = None
+    ir_report_at_1 = None
+    ir_report_at_3 = None
     if selected_metadata.relevance_annotations:
         annotated_cases = tuple(
             case for case in cases if isinstance(case, EvaluationCase)
@@ -393,12 +406,25 @@ def evaluate_engine(
             raise ValueError("annotated corpus requires annotated evaluation cases")
         report_at_1 = evaluate_cases(annotated_cases, results_by_case_id, k=1)
         report_at_3 = evaluate_cases(annotated_cases, results_by_case_id, k=3)
+        if relevance_judgments is not None:
+            ir_report_at_1 = evaluate_ir_metrics(
+                results_by_case_id,
+                relevance_judgments,
+                k=1,
+            )
+            ir_report_at_3 = evaluate_ir_metrics(
+                results_by_case_id,
+                relevance_judgments,
+                k=3,
+            )
     return EngineComparison(
         results_by_case_id=results_by_case_id,
         latency_by_case_id=latency_by_case_id,
         failed_case_ids=frozenset(failed_case_ids),
         report_at_1=report_at_1,
         report_at_3=report_at_3,
+        ir_report_at_1=ir_report_at_1,
+        ir_report_at_3=ir_report_at_3,
         metadata=selected_metadata,
     )
 
@@ -411,6 +437,11 @@ def compare_retrievers(
     if tuple(pipeline.engines) != ENGINE_NAMES:
         raise ValueError("comparison requires the four configured retrievers")
     selected_cases = pipeline.cases if cases is None else cases
+    selected_judgments = (
+        {case.id: pipeline.relevance_judgments[case.id] for case in selected_cases}
+        if pipeline.relevance_judgments is not None
+        else None
+    )
     return {
         name: evaluate_engine(
             engine,
@@ -418,6 +449,7 @@ def compare_retrievers(
             selected_cases,
             timer,
             pipeline.metadata,
+            selected_judgments,
         )
         for name, engine in pipeline.engines.items()
     }
@@ -606,13 +638,16 @@ def create_local_comparison(
         corpus_metadata = dataset.metadata
         chunker = None
         chunks = create_benchmark_v2_chunks(dataset.documents)
+        relevance_judgments = None
         if judgments_path is not None:
-            cases = load_qwen_evaluation_cases(
+            evaluation_data = load_qwen_evaluation_data(
                 dataset,
                 {chunk.id for chunk in chunks},
                 corpus_fingerprint(chunks, corpus_metadata),
                 judgments_path=judgments_path,
             )
+            cases = evaluation_data.cases
+            relevance_judgments = evaluation_data.judgments_by_question_id
             dataset = dataset.model_copy(
                 update={
                     "reference_questions": cases,
@@ -638,6 +673,7 @@ def create_local_comparison(
             FlashRankReranker(),
             lambda selected_chunks: point_count,
             index_chunks=False,
+            relevance_judgments=relevance_judgments,
         )
     else:
         dataset = load_benchmark_dataset()

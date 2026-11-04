@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
@@ -71,13 +73,19 @@ class AnnotationPoolStructure(BaseModel):
     questions: tuple[PoolQuestion, ...]
 
 
-def load_qwen_evaluation_cases(
+@dataclass(frozen=True)
+class LoadedQwenJudgments:
+    cases: tuple[EvaluationCase, ...]
+    judgments_by_question_id: Mapping[str, Mapping[str, Literal[0, 1, 2]]]
+
+
+def load_qwen_evaluation_data(
     dataset: BenchmarkDatasetV2,
     corpus_chunk_ids: set[str],
     corpus_fingerprint: str,
     judgments_path: Path = QWEN_V2_JUDGMENTS_PATH,
     pool_path: Path = V2_ANNOTATION_POOL_PATH,
-) -> tuple[EvaluationCase, ...]:
+) -> LoadedQwenJudgments:
     judgment_set = QwenJudgmentSet.model_validate_json(
         judgments_path.read_text(encoding="utf-8")
     )
@@ -132,4 +140,28 @@ def load_qwen_evaluation_cases(
                 },
             )
         )
-    return tuple(cases)
+    return LoadedQwenJudgments(
+        cases=tuple(cases),
+        judgments_by_question_id={
+            question_id: {
+                judgment.chunk_id: judgment.relevance for judgment in judgments
+            }
+            for question_id, judgments in judgments_by_question.items()
+        },
+    )
+
+
+def load_qwen_evaluation_cases(
+    dataset: BenchmarkDatasetV2,
+    corpus_chunk_ids: set[str],
+    corpus_fingerprint: str,
+    judgments_path: Path = QWEN_V2_JUDGMENTS_PATH,
+    pool_path: Path = V2_ANNOTATION_POOL_PATH,
+) -> tuple[EvaluationCase, ...]:
+    return load_qwen_evaluation_data(
+        dataset,
+        corpus_chunk_ids,
+        corpus_fingerprint,
+        judgments_path,
+        pool_path,
+    ).cases
