@@ -11,7 +11,7 @@ from app.api.dependencies import get_settings
 from app.core.config import Settings
 from app.core.rbac import Role
 from app.main import app
-from app.services.baseline_history import BaselineRun
+from app.services.baseline_history import BaselineRun, EngineIRMetrics
 
 JWT_SECRET = "synthetic-evaluation-secret-key-with-at-least-32-characters"
 JWT_ISSUER = "securebank-ai-evaluation-test"
@@ -64,6 +64,35 @@ def create_run(
 
 def write_run(path: Path, run: BaselineRun) -> None:
     path.write_text(run.model_dump_json(), encoding="utf-8")
+
+
+def create_ir_metrics() -> EngineIRMetrics:
+    metric = {
+        "value": 0.75,
+        "evaluated_question_count": 36,
+        "unavailable_question_count": 2,
+    }
+    unavailable_metric = {
+        "value": None,
+        "evaluated_question_count": 0,
+        "unavailable_question_count": 38,
+    }
+    return EngineIRMetrics.model_validate(
+        {
+            "judgment_source": "qwen",
+            "precision_at_1": metric,
+            "precision_at_3": metric,
+            "recall_at_1": metric,
+            "recall_at_3": metric,
+            "f1_at_1": metric,
+            "f1_at_3": metric,
+            "map_at_3": metric,
+            "success_at_1": metric,
+            "success_at_3": metric,
+            "mrr_at_3": metric,
+            "ndcg_at_3": unavailable_metric,
+        }
+    )
 
 
 def create_token(role: Role) -> str:
@@ -207,6 +236,57 @@ def test_v2_run_exposes_null_relevance_and_numeric_operations(
     assert metrics["evidence_hit_at_3"] is None
     assert metrics["mean_latency_seconds"] == 0.02
     assert metrics["error_rate"] == 0.025
+
+
+def test_v2_run_exposes_ir_metrics_with_availability_and_source(
+    tmp_path: Path,
+) -> None:
+    run = create_run(
+        "v2-ir-run",
+        include_operational_metrics=True,
+    ).model_copy(update={"ir_metrics": {"RRF": create_ir_metrics()}})
+    write_run(tmp_path / "v2-ir.json", run)
+
+    response = request("/evaluation/runs/v2-ir-run", tmp_path)
+
+    assert response.status_code == 200
+    ir_metrics = response.json()["ir_metrics"]["RRF"]
+    assert ir_metrics["judgment_source"] == "qwen"
+    assert ir_metrics["precision_at_1"] == {
+        "value": 0.75,
+        "evaluated_question_count": 36,
+        "unavailable_question_count": 2,
+    }
+    assert ir_metrics["ndcg_at_3"] == {
+        "value": None,
+        "evaluated_question_count": 0,
+        "unavailable_question_count": 38,
+    }
+    assert set(ir_metrics) == {
+        "judgment_source",
+        "precision_at_1",
+        "precision_at_3",
+        "recall_at_1",
+        "recall_at_3",
+        "f1_at_1",
+        "f1_at_3",
+        "map_at_3",
+        "success_at_1",
+        "success_at_3",
+        "mrr_at_3",
+        "ndcg_at_3",
+    }
+
+
+def test_historical_run_without_ir_metrics_exposes_empty_mapping(
+    tmp_path: Path,
+) -> None:
+    write_run(tmp_path / "historical.json", create_run("historical"))
+
+    response = request("/evaluation/runs/historical", tmp_path)
+
+    assert response.status_code == 200
+    assert response.json()["ir_metrics"] == {}
 
 
 @pytest.mark.parametrize("role", [Role.ANALYST, Role.COMPLIANCE_OFFICER, Role.ADMIN])
@@ -390,6 +470,7 @@ def test_public_response_excludes_internal_and_sensitive_fields(
         "rag_configuration",
         "parameter_change",
         "measured_metrics",
+        "ir_metrics",
     }
     assert body["rag_configuration"] == {"top_k": 3}
     serialized = response.text

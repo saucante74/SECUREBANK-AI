@@ -8,6 +8,7 @@ from app.api.dependencies import get_settings
 from app.core.config import Settings
 from app.schemas.evaluation import (
     PublicConfigurationChange,
+    PublicEngineIRMetrics,
     PublicEvaluationComparison,
     PublicEvaluationMetrics,
     PublicEvaluationRun,
@@ -104,6 +105,10 @@ def public_run(run: BaselineRun) -> PublicEvaluationRun:
         measured_metrics={
             engine: public_metrics(metrics)
             for engine, metrics in run.measured_metrics.items()
+        },
+        ir_metrics={
+            engine: PublicEngineIRMetrics.model_validate(metrics.model_dump())
+            for engine, metrics in run.ir_metrics.items()
         },
     )
 
