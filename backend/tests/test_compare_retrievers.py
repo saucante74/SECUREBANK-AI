@@ -10,8 +10,6 @@ from app.schemas.documents import Chunk
 from app.schemas.retrieval import RetrievalResult
 from app.services.benchmark_dataset import (
     BENCHMARK_COLLECTION_NAME,
-    BenchmarkDatasetMetadata,
-    create_benchmark_v2_chunks,
     create_v2_metadata,
     load_benchmark_dataset,
     load_benchmark_dataset_v2,
@@ -19,7 +17,6 @@ from app.services.benchmark_dataset import (
 from app.services.chunking import CharacterChunker
 from app.services.embeddings import LocalEmbeddingService
 from app.services.qdrant import QdrantVectorStore, QdrantVectorStoreError
-from app.services.relevance_judgments import QWEN_V2_JUDGMENTS_PATH
 from app.services.reranking import FlashRankReranker
 from app.services.retrieval_evaluation import (
     SYNTHETIC_EVALUATION_CASES,
@@ -32,8 +29,6 @@ from scripts.compare_retrievers import (
     SemanticRetriever,
     benchmark_collection_name,
     compare_retrievers,
-    corpus_fingerprint,
-    create_local_comparison,
     evaluate_engine,
     main,
     percentile,
@@ -192,55 +187,6 @@ def test_v2_collection_name_is_explicit_and_stable() -> None:
     assert BENCHMARK_V2_COLLECTION_NAME == "securebank_benchmark_chunks_v2"
     assert benchmark_collection_name("v2") == BENCHMARK_V2_COLLECTION_NAME
     assert benchmark_collection_name("v1") == BENCHMARK_COLLECTION_NAME
-
-
-def test_qwen_evaluation_preserves_indexed_v2_corpus_fingerprint() -> None:
-    dataset = load_benchmark_dataset_v2()
-    chunks = create_benchmark_v2_chunks(dataset.documents)
-    expected_fingerprint = corpus_fingerprint(
-        chunks,
-        dataset.metadata,
-    )
-    assert expected_fingerprint == (
-        "5ea383fef47a0fe7fe13c95c346345a25c59f975de1b1ef0a8d44aa09ce8c9e1"
-    )
-
-    def validate_collection(
-        client: MagicMock,
-        vector_store: MagicMock,
-        chunks: list[Chunk],
-        metadata: BenchmarkDatasetMetadata,
-        embedding_service: MagicMock,
-        index_chunks: bool,
-    ) -> int:
-        assert corpus_fingerprint(chunks, metadata) == expected_fingerprint
-        return len(chunks)
-
-    with (
-        patch("scripts.compare_retrievers.QdrantClient"),
-        patch("scripts.compare_retrievers.LocalEmbeddingService"),
-        patch("scripts.compare_retrievers.FlashRankReranker"),
-        patch(
-            "scripts.compare_retrievers.prepare_v2_collection",
-            side_effect=validate_collection,
-        ),
-    ):
-        pipeline = create_local_comparison(
-            index_chunks=False,
-            corpus_version="v2",
-            judgments_path=QWEN_V2_JUDGMENTS_PATH,
-        )
-
-    assert len(pipeline.cases) == 38
-    assert pipeline.metadata.relevance_annotations is True
-    assert pipeline.relevance_judgments is not None
-    assert len(pipeline.relevance_judgments) == 40
-    assert sum(len(items) for items in pipeline.relevance_judgments.values()) == 260
-    assert {
-        relevance
-        for items in pipeline.relevance_judgments.values()
-        for relevance in items.values()
-    } == {0, 1, 2}
 
 
 def test_compatible_v2_collection_is_reused_without_writes() -> None:

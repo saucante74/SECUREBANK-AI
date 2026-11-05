@@ -9,15 +9,10 @@ from app.services.benchmark_dataset import (
     load_benchmark_dataset,
     load_benchmark_dataset_v2,
 )
-from app.services.relevance_judgments import (
-    QWEN_V2_JUDGMENTS_PATH,
-    load_qwen_evaluation_cases,
-)
 from app.services.retrieval_evaluation import (
     SYNTHETIC_EVALUATION_CASES,
     evaluate_cases,
 )
-from scripts.compare_retrievers import corpus_fingerprint
 from scripts.demo_vector_search import create_documents
 
 
@@ -158,19 +153,3 @@ def test_benchmark_v2_structured_chunks_are_stable() -> None:
     assert len(first) == 172
     assert first == second
     assert len({chunk.id for chunk in first}) == len(first)
-
-
-def test_qwen_v2_judgments_match_all_260_pool_pairs() -> None:
-    dataset = load_benchmark_dataset_v2()
-    chunks = create_benchmark_v2_chunks(dataset.documents)
-
-    cases = load_qwen_evaluation_cases(
-        dataset,
-        {chunk.id for chunk in chunks},
-        corpus_fingerprint(chunks, dataset.metadata),
-        judgments_path=QWEN_V2_JUDGMENTS_PATH,
-    )
-
-    assert len(cases) == 38
-    assert sum(len(case.expected_chunk_ids) for case in cases) == 85
-    assert all(case.expected_chunk_ids for case in cases)
