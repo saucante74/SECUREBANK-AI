@@ -97,6 +97,10 @@ export function isEvaluationRunList(value: unknown): value is EvaluationRun[] {
   return Array.isArray(value) && value.length > 0 && value.every(isEvaluationRun);
 }
 
+function validEvaluationRuns(value: unknown): EvaluationRun[] {
+  return Array.isArray(value) ? value.filter(isEvaluationRun) : [];
+}
+
 function hasCompleteDashboardMetrics(run: EvaluationRun): boolean {
   return expectedEngines.every((engine) => isIrMetrics(run.ir_metrics[engine]));
 }
@@ -127,4 +131,17 @@ export function synchronizeEvaluationRuns(
     return { runs: referenceRuns, source: "reference" };
   }
   return { runs: apiRuns, source: "synchronized" };
+}
+
+export function mergeEvaluationHistory(
+  currentRuns: EvaluationRun[],
+  apiResponse: unknown,
+): EvaluationRun[] {
+  const apiRuns = validEvaluationRuns(apiResponse);
+  if (!apiRuns.length) return currentRuns;
+  const runsById = new Map<string, EvaluationRun>();
+  for (const run of [...currentRuns, ...apiRuns]) {
+    if (!runsById.has(run.run_id)) runsById.set(run.run_id, run);
+  }
+  return sortEvaluationRuns([...runsById.values()]);
 }

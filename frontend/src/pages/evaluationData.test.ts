@@ -5,6 +5,7 @@ import { dashboardMetrics } from "./evaluationDashboard";
 import {
   expectedEngines,
   isEvaluationRunList,
+  mergeEvaluationHistory,
   referenceEvaluationRuns,
   synchronizeEvaluationRuns,
 } from "./evaluationData";
@@ -48,6 +49,43 @@ describe("evaluation reference data", () => {
       runs: [newer],
       source: "synchronized",
     });
+  });
+
+  it("merges API history independently when the latest benchmark is identical", () => {
+    const historical = cloneReferenceRun({
+      run_id: "historical-run",
+      created_at: "2026-11-03T15:38:15.118685Z",
+      ir_metrics: {},
+    });
+
+    const merged = mergeEvaluationHistory(
+      referenceEvaluationRuns,
+      [referenceRun, historical],
+    );
+
+    expect(merged.map((run) => run.run_id)).toEqual([
+      referenceRun.run_id,
+      historical.run_id,
+    ]);
+  });
+
+  it("keeps valid history, ignores invalid entries, and avoids duplicates", () => {
+    const historical = cloneReferenceRun({
+      run_id: "historical-run",
+      created_at: "2026-11-03T15:38:15.118685Z",
+      ir_metrics: {},
+    });
+    const current = mergeEvaluationHistory(referenceEvaluationRuns, [historical]);
+    const merged = mergeEvaluationHistory(current, [
+      referenceRun,
+      { run_id: "invalid" },
+    ]);
+
+    expect(merged).toHaveLength(2);
+    expect(merged.map((run) => run.run_id)).toEqual([
+      referenceRun.run_id,
+      historical.run_id,
+    ]);
   });
 
   it("preserves null values used for unavailable metrics", () => {
