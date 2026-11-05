@@ -6,6 +6,7 @@ import type {
   ConfigurationValue,
   EvaluationComparison,
   EvaluationIRMetricName,
+  EvaluationIRMetrics,
   EvaluationMetrics,
   EvaluationRun,
 } from "../api/types";
@@ -35,6 +36,13 @@ function displayMetric(
     return `${new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(value * 1000)} ms`;
   }
   return new Intl.NumberFormat(language, { maximumFractionDigits: 2 }).format(value);
+}
+
+function irMetricValue(
+  metrics: EvaluationIRMetrics | undefined,
+  name: EvaluationIRMetricName,
+): number | null | undefined {
+  return metrics === undefined ? undefined : metrics[name].value;
 }
 
 function configuration(run: EvaluationRun): string {
@@ -144,14 +152,19 @@ export function EvaluationHistory({ runs }: EvaluationHistoryProps) {
                     </tr>
                   )}
                   {isExpanded && engines.map(([engine, metrics]) => {
-                    const irMetrics = run.ir_metrics[engine];
+                    const irMetrics: EvaluationIRMetrics | undefined = (
+                      run.ir_metrics[engine]
+                    );
                     return (
                       <tr key={`${run.run_id}-${engine}`} className="border-b border-border/70 bg-surface/45">
                         <td className="px-3 py-3" aria-hidden="true" />
                         <th scope="row" className="whitespace-nowrap px-3 py-3 pl-6 font-semibold" colSpan={4}>{engine}</th>
                         {dashboardMetrics.map((metric) => {
                           const value = metric.source === "ir"
-                            ? irMetrics?.[metric.field as EvaluationIRMetricName].value
+                            ? irMetricValue(
+                              irMetrics,
+                              metric.field as EvaluationIRMetricName,
+                            )
                             : metrics[metric.field as keyof EvaluationMetrics];
                           return (
                             <td key={metric.key} className="whitespace-nowrap px-3 py-3">

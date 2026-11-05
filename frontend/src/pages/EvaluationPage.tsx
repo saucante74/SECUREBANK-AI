@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ApiError } from "../api/client";
 import { getEvaluationRuns } from "../api/services";
 import type {
   EvaluationIRMetricName,
@@ -16,11 +15,15 @@ import {
   metricGroups,
   metricTabs,
   sortEngines,
-  sortEvaluationRuns,
   type DashboardMetric,
   type MetricTab,
 } from "./evaluationDashboard";
 import { EvaluationHistory } from "./EvaluationHistory";
+import {
+  referenceEvaluationRuns,
+  synchronizeEvaluationRuns,
+  type EvaluationDataSource,
+} from "./evaluationData";
 
 function displayConfiguration(run: EvaluationRun): string {
   const entries = Object.entries(run.rag_configuration);
@@ -64,9 +67,8 @@ function formatValue(
 
 export function EvaluationPage() {
   const { t, i18n } = useTranslation();
-  const [runs, setRuns] = useState<EvaluationRun[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [runs, setRuns] = useState<EvaluationRun[]>(referenceEvaluationRuns);
+  const [dataSource, setDataSource] = useState<EvaluationDataSource>("reference");
   const [selectedEngine, setSelectedEngine] = useState("");
   const [activeTab, setActiveTab] = useState<MetricTab>("relevance");
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -75,14 +77,16 @@ export function EvaluationPage() {
     const controller = new AbortController();
     void getEvaluationRuns(undefined, controller.signal)
       .then((history) => {
-        setRuns(sortEvaluationRuns(history));
+        const synchronized = synchronizeEvaluationRuns(
+          referenceEvaluationRuns,
+          history,
+        );
+        if (synchronized.source === "synchronized") {
+          setRuns(synchronized.runs);
+          setDataSource(synchronized.source);
+        }
       })
-      .catch((reason: unknown) => {
-        if (!(reason instanceof ApiError && reason.category === "aborted")) setError(true);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      .catch(() => undefined);
     return () => {
       controller.abort();
     };
@@ -125,9 +129,7 @@ export function EvaluationPage() {
   return (
     <div className="space-y-8">
       <h1 className="sr-only">{t("evaluation.title")}</h1>
-      {loading && <p role="status">{t("evaluation.loading")}</p>}
-      {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-red-800">{t("evaluation.error")}</p>}
-      {!loading && !error && !latestRun && (
+      {!latestRun && (
         <p className="rounded-2xl border border-border bg-white p-6 text-muted shadow-soft">
           {t("evaluation.empty")}
         </p>
@@ -146,6 +148,10 @@ export function EvaluationPage() {
               </h2>
               <p className="mt-4 max-w-xl text-sm leading-6 text-white/60">
                 {t("evaluation.description")}
+              </p>
+              <p className="mt-4 text-sm font-semibold text-white/75">
+                {t(`evaluation.source.${dataSource}`)}
+                {latestRun.created_at && ` · ${new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" }).format(new Date(latestRun.created_at))}`}
               </p>
               <dl className="mt-8 grid gap-x-6 gap-y-5 sm:grid-cols-2">
                 <div>
