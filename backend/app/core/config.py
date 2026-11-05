@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     jwt_issuer: str | None = None
     jwt_audience: str | None = None
     user_database_path: Path = BACKEND_DIR / "data" / "users.sqlite3"
+    demo_user_username: str | None = None
+    demo_user_password: SecretStr | None = None
     session_lifetime_seconds: int = 900
     session_cookie_secure: bool = False
     session_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
@@ -98,6 +100,13 @@ class Settings(BaseSettings):
             return None
         return value
 
+    @field_validator("demo_user_username", "demo_user_password", mode="before")
+    @classmethod
+    def validate_optional_demo_credential(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
     @field_validator("rag_corpus_path", mode="before")
     @classmethod
     def validate_rag_corpus_path(cls, value: object) -> object:
@@ -140,6 +149,14 @@ class Settings(BaseSettings):
         ):
             raise ValueError(
                 "Langfuse public and secret keys are required when observability is enabled"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_demo_user_configuration(self) -> "Settings":
+        if (self.demo_user_username is None) != (self.demo_user_password is None):
+            raise ValueError(
+                "Demo user username and password must be configured together"
             )
         return self
 

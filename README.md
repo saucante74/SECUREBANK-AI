@@ -212,6 +212,8 @@ The implemented configuration accepts these variables:
 | `JWT_ISSUER` | None | Required JWT issuer |
 | `JWT_AUDIENCE` | None | Required JWT audience |
 | `USER_DATABASE_PATH` | `backend/data/users.sqlite3` | Persistent SQLite user database path |
+| `DEMO_USER_USERNAME` | None | Optional demo username created at backend startup |
+| `DEMO_USER_PASSWORD` | None | Password required with `DEMO_USER_USERNAME`, stored only as a hash |
 | `SESSION_LIFETIME_SECONDS` | `900` | Maximum server-side session lifetime |
 | `SESSION_COOKIE_SECURE` | `false` | Sends session cookies only over HTTPS when enabled |
 | `SESSION_COOKIE_SAMESITE` | `lax` | Session and CSRF cookie SameSite policy |
@@ -237,6 +239,8 @@ Environment variables override values loaded from `backend/.env`, which override
 JWT settings remain optional at application startup, so the public health endpoint works without them. Access to protected endpoints is denied until a secret of at least 32 characters, an issuer, and an audience are configured. Replace every example value before using authentication outside local development.
 
 Cookie sessions are stored server-side in the SQLite user database. Set `SESSION_COOKIE_SECURE=true` for HTTPS deployments; production configuration rejects insecure session cookies. `SameSite=None` is accepted only with a secure cookie. Add every frontend origin that may submit credentials to `AUTH_TRUSTED_ORIGINS`. The default `lax` policy is appropriate for the same-origin Vite and Nginx proxy architecture.
+
+An optional demo account can be provisioned at backend startup by setting both `DEMO_USER_USERNAME` and `DEMO_USER_PASSWORD`. The account is created with the least-privileged `analyst` role only when its case-insensitive username does not already exist. Existing accounts are left unchanged across restarts. Omitting both variables disables provisioning; configuring only one prevents startup with a non-sensitive configuration error. Store the password only in the deployment secret store and never commit it.
 
 The LLM API key is also optional at application startup. Creating a real LLM client requires it. To use an OpenAI-compatible provider, set `LLM_API_KEY`, set the provider's model identifier in `LLM_MODEL`, and set `LLM_BASE_URL` to its API base URL. Leave `LLM_BASE_URL` empty for the official OpenAI endpoint. Keep provider credentials only in the untracked `.env` file or a deployment secret store.
 
