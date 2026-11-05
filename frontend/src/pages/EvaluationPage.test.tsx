@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { compareEvaluationRuns, getEvaluationRuns } from "../api/services";
-import type { EvaluationRun } from "../api/types";
+import type { EvaluationIRMetricAggregate, EvaluationRun } from "../api/types";
 import { EvaluationPage } from "./EvaluationPage";
 
 vi.mock("../api/services", () => ({
@@ -12,6 +12,14 @@ vi.mock("../api/services", () => ({
 
 const getRunsMock = vi.mocked(getEvaluationRuns);
 const compareRunsMock = vi.mocked(compareEvaluationRuns);
+
+function irMetric(value: number | null): EvaluationIRMetricAggregate {
+  return {
+    value,
+    evaluated_question_count: value === null ? 0 : 38,
+    unavailable_question_count: value === null ? 38 : 0,
+  };
+}
 
 const run: EvaluationRun = {
   run_id: "run-1",
@@ -51,7 +59,6 @@ const run: EvaluationRun = {
       evidence_hit_at_1: 0.425,
       evidence_hit_at_3: 0.675,
       mean_latency_seconds: 0.015,
-      precision_at_1: 0.72,
       latency_p50_seconds: 0.012,
       latency_p95_seconds: 0.03,
       error_rate: 0.025,
@@ -73,6 +80,22 @@ const run: EvaluationRun = {
       mean_source_diversity_at_3: null,
     },
   },
+  ir_metrics: {
+    RRF: {
+      judgment_source: "qwen",
+      precision_at_1: irMetric(0.6578947368421053),
+      precision_at_3: irMetric(0.5),
+      recall_at_1: irMetric(0.312),
+      recall_at_3: irMetric(0.698),
+      f1_at_1: irMetric(0.407),
+      f1_at_3: irMetric(0.554),
+      map_at_3: irMetric(0.611),
+      success_at_1: irMetric(0.658),
+      success_at_3: irMetric(0.895),
+      mrr_at_3: irMetric(0.763),
+      ndcg_at_3: irMetric(0.643),
+    },
+  },
 };
 
 describe("EvaluationPage", () => {
@@ -86,7 +109,9 @@ describe("EvaluationPage", () => {
 
     render(<EvaluationPage />);
 
-    expect(await screen.findByRole("heading", { name: "Évaluation RAG" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", {
+      name: "Dernier benchmark disponible",
+    })).toBeInTheDocument();
     const table = screen.getByRole("table");
     expect(within(table).getAllByRole("row")).toHaveLength(2);
     expect(within(table).queryByText("BM25")).not.toBeInTheDocument();
@@ -160,7 +185,9 @@ describe("EvaluationPage", () => {
       created_at: "2026-10-29T12:00:00Z",
       measured_metrics: {
         ...run.measured_metrics,
-        RRF: { ...run.measured_metrics.RRF, precision_at_1: 0.11 },
+      },
+      ir_metrics: {
+        RRF: { ...run.ir_metrics.RRF, precision_at_1: irMetric(0.11) },
       },
     };
     const latest = { ...run, run_id: "run-latest", created_at: "2026-10-31T12:00:00Z" };
@@ -175,8 +202,10 @@ describe("EvaluationPage", () => {
     expect(within(summary as HTMLElement).getByText("run-latest")).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Moteur évalué" })).toHaveValue("RRF");
     const precision = screen.getByRole("heading", { name: "Precision@1" }).closest("article");
-    expect(within(precision as HTMLElement).getByText("72,0")).toBeInTheDocument();
-    expect(within(precision as HTMLElement).getByText("%")).toBeInTheDocument();
+    expect(within(precision as HTMLElement).getByRole("img", {
+      name: "Precision@1: 65,8%",
+    })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Classement & performance" }));
     const latency = screen.getByRole("heading", { name: "Latence moyenne" }).closest("article");
     expect(within(latency as HTMLElement).getByText("15,0")).toBeInTheDocument();
     expect(within(latency as HTMLElement).getByText("ms")).toBeInTheDocument();
@@ -185,13 +214,100 @@ describe("EvaluationPage", () => {
     const p95 = screen.getByRole("heading", { name: "Latence P95" }).closest("article");
     expect(within(p95 as HTMLElement).getByText("30,0")).toBeInTheDocument();
     const errorRate = screen.getByRole("heading", { name: "Taux d’erreur" }).closest("article");
-    expect(within(errorRate as HTMLElement).getByText("2,5")).toBeInTheDocument();
+    expect(within(errorRate as HTMLElement).getByRole("img", {
+      name: "Taux d’erreur: 2,5%",
+    })).toBeInTheDocument();
     const chunks = screen.getByRole("heading", { name: "Chunks moyens retournés" }).closest("article");
     expect(within(chunks as HTMLElement).getByText("2,8")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Diversité documentaire" }));
     const documents = screen.getByRole("heading", { name: "Documents distincts@3" }).closest("article");
     expect(within(documents as HTMLElement).getByText("2,1")).toBeInTheDocument();
     const diversity = screen.getByRole("heading", { name: "Diversité des sources@3" }).closest("article");
-    expect(within(diversity as HTMLElement).getByText("75,0")).toBeInTheDocument();
+    expect(within(diversity as HTMLElement).getByRole("img", {
+      name: "Diversité des sources@3: 75,0%",
+    })).toBeInTheDocument();
+  });
+
+  it("renders all IR metrics with Qwen provenance and question counts", async () => {
+    getRunsMock.mockResolvedValue([run]);
+
+    render(<EvaluationPage />);
+
+    const relevanceValues = [
+      ["Precision@1", "65,8"],
+      ["Precision@3", "50,0"],
+      ["Recall@1", "31,2"],
+      ["Recall@3", "69,8"],
+      ["F1@1", "40,7"],
+      ["F1@3", "55,4"],
+      ["MAP@3", "61,1"],
+      ["Success@1", "65,8"],
+      ["Success@3", "89,5"],
+    ];
+    const rankingValues = [
+      ["MRR@3", "76,3"],
+      ["nDCG@3", "64,3"],
+    ];
+    await screen.findByRole("heading", { name: "Precision@1" });
+    expect(screen.getByText("Jugements générés par Qwen sur 38 questions.")).toBeInTheDocument();
+    for (const [name, value] of relevanceValues) {
+      const card = screen.getByRole("heading", { name }).closest("article");
+      expect(within(card as HTMLElement).getByRole("img", {
+        name: `${name}: ${value}%`,
+      })).toBeInTheDocument();
+      expect(within(card as HTMLElement).getByText(
+        "38 questions évaluées · 0 indisponibles",
+      )).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole("tab", { name: "Classement & performance" }));
+    for (const [name, value] of rankingValues) {
+      const card = screen.getByRole("heading", { name }).closest("article");
+      expect(within(card as HTMLElement).getByRole("img", {
+        name: `${name}: ${value}%`,
+      })).toBeInTheDocument();
+      expect(within(card as HTMLElement).getByText(
+        "38 questions évaluées · 0 indisponibles",
+      )).toBeInTheDocument();
+    }
+  });
+
+  it("keeps historical and null IR metrics unavailable without displaying zero", async () => {
+    const historicalRun: EvaluationRun = {
+      ...run,
+      run_id: "historical-run",
+      ir_metrics: {},
+    };
+    getRunsMock.mockResolvedValue([historicalRun]);
+
+    const { unmount } = render(<EvaluationPage />);
+
+    const historicalPrecision = (await screen.findByRole("heading", {
+      name: "Precision@1",
+    })).closest("article");
+    expect(within(historicalPrecision as HTMLElement).getByText("N/A")).toBeInTheDocument();
+    expect(within(historicalPrecision as HTMLElement).getByRole("img", {
+      name: "Precision@1: N/A",
+    })).toBeInTheDocument();
+    expect(screen.queryByText(/Jugements générés par Qwen/)).not.toBeInTheDocument();
+
+    unmount();
+    getRunsMock.mockResolvedValue([{
+      ...run,
+      run_id: "null-metric-run",
+      ir_metrics: {
+        RRF: { ...run.ir_metrics.RRF, ndcg_at_3: irMetric(null) },
+      },
+    }]);
+    render(<EvaluationPage />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: "Classement & performance" }));
+    const ndcg = (await screen.findByRole("heading", { name: "nDCG@3" })).closest("article");
+    expect(within(ndcg as HTMLElement).getByText("N/A")).toBeInTheDocument();
+    expect(within(ndcg as HTMLElement).queryByText("0,0")).not.toBeInTheDocument();
+    expect(screen.getByText("Jugements générés par Qwen sur 38 questions.")).toBeInTheDocument();
+    expect(within(ndcg as HTMLElement).getByText(
+      "0 questions évaluées · 38 indisponibles",
+    )).toBeInTheDocument();
   });
 
   it("uses run id as a deterministic tie-breaker", async () => {
@@ -215,12 +331,49 @@ describe("EvaluationPage", () => {
     const selector = await screen.findByRole("combobox", { name: "Moteur évalué" });
     fireEvent.change(selector, { target: { value: "Qdrant" } });
 
-    const source = screen.getByRole("heading", { name: "Source Hit@1" }).closest("article");
-    expect(within(source as HTMLElement).getByText("55,0")).toBeInTheDocument();
     const precision = screen.getByRole("heading", { name: "Precision@1" }).closest("article");
     expect(within(precision as HTMLElement).getByText("N/A")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Classement & performance" }));
+    const source = screen.getByRole("heading", { name: "Source Hit@1" }).closest("article");
+    expect(within(source as HTMLElement).getByRole("img", {
+      name: "Source Hit@1: 55,0%",
+    })).toBeInTheDocument();
     const p50 = screen.getByRole("heading", { name: "Latence P50" }).closest("article");
     expect(within(p50 as HTMLElement).getByText("N/A")).toBeInTheDocument();
+  });
+
+  it("renders null v2 relevance metrics as unavailable instead of zero", async () => {
+    const v2Run: EvaluationRun = {
+      ...run,
+      run_id: "v2-run",
+      measured_metrics: {
+        BM25: {
+          ...run.measured_metrics.BM25,
+          source_hit_at_1: null,
+          source_hit_at_3: null,
+          evidence_hit_at_1: null,
+          evidence_hit_at_3: null,
+        },
+      },
+    };
+    getRunsMock.mockResolvedValue([v2Run]);
+
+    render(<EvaluationPage />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: "Classement & performance" }));
+    const source = (await screen.findByRole("heading", {
+      name: "Source Hit@1",
+    })).closest("article");
+    expect(within(source as HTMLElement).getByText("N/A")).toBeInTheDocument();
+    expect(within(source as HTMLElement).queryByText("0,0")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", {
+      name: "Développer les moteurs du run v2-run",
+    }));
+    const bm25Row = within(screen.getByRole("table")).getByRole("row", {
+      name: /BM25/,
+    });
+    expect(within(bm25Row).getAllByText("N/A")).toHaveLength(4);
   });
 
   it("shows loading and API error states", async () => {
@@ -250,6 +403,51 @@ describe("EvaluationPage", () => {
     expect(relevance).toHaveFocus();
     fireEvent.click(relevance);
     expect(relevance.parentElement).toHaveAttribute("open");
+  });
+
+  it("navigates the three metric tabs by keyboard and exposes every metric", async () => {
+    getRunsMock.mockResolvedValue([run]);
+
+    render(<EvaluationPage />);
+
+    const relevanceTab = await screen.findByRole("tab", { name: "Pertinence" });
+    expect(relevanceTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("heading", { name: "Precision@1" })).toBeInTheDocument();
+    fireEvent.keyDown(relevanceTab, { key: "ArrowLeft" });
+
+    const rankingTab = screen.getByRole("tab", { name: "Classement & performance" });
+    expect(rankingTab).toHaveFocus();
+    expect(rankingTab).toHaveAttribute("aria-selected", "true");
+    for (const name of [
+      "MRR@3",
+      "nDCG@3",
+      "Source Hit@1",
+      "Source Hit@3",
+      "Evidence Hit@1",
+      "Evidence Hit@3",
+      "Latence moyenne",
+      "Latence P50",
+      "Latence P95",
+      "Taux d’erreur",
+      "Chunks moyens retournés",
+    ]) {
+      expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    }
+    fireEvent.keyDown(rankingTab, { key: "ArrowRight" });
+
+    expect(relevanceTab).toHaveFocus();
+    expect(relevanceTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("heading", { name: "Precision@1" })).toBeInTheDocument();
+    fireEvent.keyDown(relevanceTab, { key: "ArrowRight" });
+
+    const diversityTab = screen.getByRole("tab", { name: "Diversité documentaire" });
+    expect(diversityTab).toHaveFocus();
+    expect(screen.getByRole("heading", {
+      name: "Documents distincts@3",
+    })).toBeInTheDocument();
+    expect(screen.getByRole("heading", {
+      name: "Diversité des sources@3",
+    })).toBeInTheDocument();
   });
 
   it("compares runs through the public API", async () => {

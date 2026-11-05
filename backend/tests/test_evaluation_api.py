@@ -11,7 +11,7 @@ from app.api.dependencies import get_settings
 from app.core.config import Settings
 from app.core.rbac import Role
 from app.main import app
-from app.services.baseline_history import BaselineRun
+from app.services.baseline_history import BaselineRun, EngineIRMetrics
 
 JWT_SECRET = "synthetic-evaluation-secret-key-with-at-least-32-characters"
 JWT_ISSUER = "securebank-ai-evaluation-test"
@@ -20,13 +20,16 @@ JWT_AUDIENCE = "securebank-ai-evaluation-api"
 
 def create_run(
     run_id: str,
-    evidence_hit: float = 0.7,
+    evidence_hit: float | None = 0.7,
     include_operational_metrics: bool = False,
 ) -> BaselineRun:
+    source_hit_at_1 = None if evidence_hit is None else 0.6
+    source_hit_at_3 = None if evidence_hit is None else 0.8
+    evidence_hit_at_1 = None if evidence_hit is None else 0.5
     metrics = {
-        "source_hit_at_1": 0.6,
-        "source_hit_at_3": 0.8,
-        "evidence_hit_at_1": 0.5,
+        "source_hit_at_1": source_hit_at_1,
+        "source_hit_at_3": source_hit_at_3,
+        "evidence_hit_at_1": evidence_hit_at_1,
         "evidence_hit_at_3": evidence_hit,
         "mean_latency_seconds": 0.02,
     }
@@ -42,7 +45,11 @@ def create_run(
             }
         )
     return BaselineRun(
-        benchmark_id="securebank-rag-retrieval-v1",
+        benchmark_id=(
+            "securebank-rag-retrieval-v2"
+            if evidence_hit is None
+            else "securebank-rag-retrieval-v1"
+        ),
         run_id=run_id,
         created_at=datetime(2026, 10, 30, 12, 0, tzinfo=UTC),
         code_version="a" * 40,
@@ -57,6 +64,35 @@ def create_run(
 
 def write_run(path: Path, run: BaselineRun) -> None:
     path.write_text(run.model_dump_json(), encoding="utf-8")
+
+
+def create_ir_metrics() -> EngineIRMetrics:
+    metric = {
+        "value": 0.75,
+        "evaluated_question_count": 36,
+        "unavailable_question_count": 2,
+    }
+    unavailable_metric = {
+        "value": None,
+        "evaluated_question_count": 0,
+        "unavailable_question_count": 38,
+    }
+    return EngineIRMetrics.model_validate(
+        {
+            "judgment_source": "qwen",
+            "precision_at_1": metric,
+            "precision_at_3": metric,
+            "recall_at_1": metric,
+            "recall_at_3": metric,
+            "f1_at_1": metric,
+            "f1_at_3": metric,
+            "map_at_3": metric,
+            "success_at_1": metric,
+            "success_at_3": metric,
+            "mrr_at_3": metric,
+            "ndcg_at_3": unavailable_metric,
+        }
+    )
 
 
 def create_token(role: Role) -> str:
@@ -160,6 +196,99 @@ def test_historical_run_exposes_missing_operational_metrics_as_null(
     assert metrics["mean_source_diversity_at_3"] is None
 
 
+def test_v2_run_exposes_null_relevance_and_numeric_operations(
+    tmp_path: Path,
+) -> None:
+    run = create_run(
+        "v2-run",
+        evidence_hit=None,
+        include_operational_metrics=True,
+    ).model_copy(
+        update={
+            "rag_configuration": {
+                "top_k": 3,
+                "corpus_version": "v2",
+                "chunker": "structured",
+            }
+        }
+    )
+    write_run(tmp_path / "v2.json", run)
+
+    listing = request("/evaluation/runs", tmp_path)
+    detail = request("/evaluation/runs/v2-run", tmp_path)
+
+    assert listing.status_code == 200
+    assert detail.status_code == 200
+    assert listing.json()[0]["rag_configuration"] == {
+        "top_k": 3,
+        "corpus_version": "v2",
+        "chunker": "structured",
+    }
+    assert detail.json()["rag_configuration"] == {
+        "top_k": 3,
+        "corpus_version": "v2",
+        "chunker": "structured",
+    }
+    metrics = detail.json()["measured_metrics"]["RRF"]
+    assert metrics["source_hit_at_1"] is None
+    assert metrics["source_hit_at_3"] is None
+    assert metrics["evidence_hit_at_1"] is None
+    assert metrics["evidence_hit_at_3"] is None
+    assert metrics["mean_latency_seconds"] == 0.02
+    assert metrics["error_rate"] == 0.025
+
+
+def test_v2_run_exposes_ir_metrics_with_availability_and_source(
+    tmp_path: Path,
+) -> None:
+    run = create_run(
+        "v2-ir-run",
+        include_operational_metrics=True,
+    ).model_copy(update={"ir_metrics": {"RRF": create_ir_metrics()}})
+    write_run(tmp_path / "v2-ir.json", run)
+
+    response = request("/evaluation/runs/v2-ir-run", tmp_path)
+
+    assert response.status_code == 200
+    ir_metrics = response.json()["ir_metrics"]["RRF"]
+    assert ir_metrics["judgment_source"] == "qwen"
+    assert ir_metrics["precision_at_1"] == {
+        "value": 0.75,
+        "evaluated_question_count": 36,
+        "unavailable_question_count": 2,
+    }
+    assert ir_metrics["ndcg_at_3"] == {
+        "value": None,
+        "evaluated_question_count": 0,
+        "unavailable_question_count": 38,
+    }
+    assert set(ir_metrics) == {
+        "judgment_source",
+        "precision_at_1",
+        "precision_at_3",
+        "recall_at_1",
+        "recall_at_3",
+        "f1_at_1",
+        "f1_at_3",
+        "map_at_3",
+        "success_at_1",
+        "success_at_3",
+        "mrr_at_3",
+        "ndcg_at_3",
+    }
+
+
+def test_historical_run_without_ir_metrics_exposes_empty_mapping(
+    tmp_path: Path,
+) -> None:
+    write_run(tmp_path / "historical.json", create_run("historical"))
+
+    response = request("/evaluation/runs/historical", tmp_path)
+
+    assert response.status_code == 200
+    assert response.json()["ir_metrics"] == {}
+
+
 @pytest.mark.parametrize("role", [Role.ANALYST, Role.COMPLIANCE_OFFICER, Role.ADMIN])
 def test_authenticated_roles_have_the_same_read_access(
     tmp_path: Path,
@@ -261,6 +390,58 @@ def test_comparison_preserves_missing_historical_operational_value(
     }
 
 
+def test_comparison_preserves_unavailable_v2_relevance(tmp_path: Path) -> None:
+    previous = create_run("v1").model_copy(
+        update={
+            "rag_configuration": {
+                "corpus_version": "v1",
+                "chunker": "character",
+            }
+        }
+    )
+    current = create_run("v2", evidence_hit=None).model_copy(
+        update={
+            "rag_configuration": {
+                "corpus_version": "v2",
+                "chunker": "structured",
+            }
+        }
+    )
+    write_run(tmp_path / "v1.json", previous)
+    write_run(tmp_path / "v2.json", current)
+
+    response = request(
+        "/evaluation/compare?previous_run_id=v1&new_run_id=v2",
+        tmp_path,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["configuration_changes"] == [
+        {
+            "name": "chunker",
+            "previous_value": "character",
+            "new_value": "structured",
+        },
+        {
+            "name": "corpus_version",
+            "previous_value": "v1",
+            "new_value": "v2",
+        },
+    ]
+    evidence_delta = next(
+        item
+        for item in response.json()["metric_deltas"]
+        if item["engine"] == "RRF" and item["metric"] == "evidence_hit_at_3"
+    )
+    assert evidence_delta == {
+        "engine": "RRF",
+        "metric": "evidence_hit_at_3",
+        "previous_value": 0.7,
+        "new_value": None,
+        "delta": None,
+    }
+
+
 def test_public_response_excludes_internal_and_sensitive_fields(
     tmp_path: Path,
 ) -> None:
@@ -289,6 +470,7 @@ def test_public_response_excludes_internal_and_sensitive_fields(
         "rag_configuration",
         "parameter_change",
         "measured_metrics",
+        "ir_metrics",
     }
     assert body["rag_configuration"] == {"top_k": 3}
     serialized = response.text
@@ -303,6 +485,26 @@ def test_public_response_excludes_internal_and_sensitive_fields(
     detail = request("/evaluation/runs/run-1", tmp_path)
     assert detail.status_code == 200
     assert detail.json() == body
+
+
+def test_public_response_filters_unknown_benchmark_metadata_values(
+    tmp_path: Path,
+) -> None:
+    run = create_run("run-1").model_copy(
+        update={
+            "rag_configuration": {
+                "corpus_version": "v3",
+                "chunker": "semantic",
+                "top_k": 3,
+            }
+        }
+    )
+    write_run(tmp_path / "run.json", run)
+
+    response = request("/evaluation/runs/run-1", tmp_path)
+
+    assert response.status_code == 200
+    assert response.json()["rag_configuration"] == {"top_k": 3}
 
 
 def test_public_comparison_excludes_non_allowlisted_configuration(

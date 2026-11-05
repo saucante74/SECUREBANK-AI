@@ -8,20 +8,26 @@ from typing import Literal, Protocol
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.documents import Chunk
-from app.schemas.evaluation import EvaluationCase
+from app.schemas.evaluation import EvaluationCase, UnannotatedBenchmarkQuestion
 from app.schemas.retrieval import RetrievalResult
 from scripts.compare_retrievers import (
+    BENCHMARK_V2_COLLECTION_NAME,
     ENGINE_NAMES,
     TOP_K,
     compare_retrievers,
+    corpus_fingerprint,
     create_local_comparison,
 )
 
 DEFAULT_OUTPUT_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "rag_annotation_pool.json"
 )
+V2_OUTPUT_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "rag_annotation_pool_v2.json"
+)
 
 type RelevanceJudgment = Literal[0, 1, 2] | None
+type AnnotationQuestion = EvaluationCase | UnannotatedBenchmarkQuestion
 
 
 class ComparisonResults(Protocol):
@@ -41,6 +47,7 @@ class CandidateAnnotation(BaseModel):
     chunk_id: str = Field(min_length=1)
     document_id: str = Field(min_length=1)
     text: str = Field(min_length=1)
+    source: str | None = Field(default=None, exclude_if=lambda value: value is None)
     relevance: RelevanceJudgment = None
     retrieved_by: tuple[RetrievalProvenance, ...] = ()
     included_from_existing_positive: bool = False
@@ -54,10 +61,21 @@ class QuestionAnnotation(BaseModel):
     candidates: tuple[CandidateAnnotation, ...]
 
 
+class AnnotationPoolMetadata(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    corpus_version: Literal["v2"]
+    chunker: Literal["structured"]
+    chunk_size: Literal[500]
+    chunk_overlap: Literal[75]
+    qdrant_collection: Literal["securebank_benchmark_chunks_v2"]
+    corpus_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
 class AnnotationPool(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    schema_version: Literal[1, 2] = 2
+    schema_version: Literal[1, 2, 3] = 2
     unjudged_policy: Literal["null_is_unjudged"] = "null_is_unjudged"
     judgment_scale: dict[str, str] = Field(
         default_factory=lambda: {
@@ -66,13 +84,19 @@ class AnnotationPool(BaseModel):
             "2": "highly_relevant",
         }
     )
+    metadata: AnnotationPoolMetadata | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
     questions: tuple[QuestionAnnotation, ...]
 
 
 def build_question_candidates(
-    case: EvaluationCase,
+    case: AnnotationQuestion,
     comparisons: Mapping[str, ComparisonResults],
     benchmark_chunks_by_id: Mapping[str, Chunk],
+    include_existing_positives: bool,
+    include_source: bool,
 ) -> tuple[CandidateAnnotation, ...]:
     chunks_by_id: dict[str, Chunk] = {}
     provenance_by_chunk_id: dict[str, list[RetrievalProvenance]] = {}
@@ -87,32 +111,42 @@ def build_question_candidates(
                 RetrievalProvenance(engine=engine_name, rank=rank)
             )
     retrieved_chunk_ids = frozenset(chunks_by_id)
-    for chunk_id in sorted(case.expected_chunk_ids - retrieved_chunk_ids):
-        try:
-            chunks_by_id[chunk_id] = benchmark_chunks_by_id[chunk_id]
-        except KeyError:
-            raise ValueError(f"unknown positive chunk {chunk_id!r}") from None
+    if include_existing_positives:
+        if not isinstance(case, EvaluationCase):
+            raise ValueError("existing positives require annotated evaluation cases")
+        for chunk_id in sorted(case.expected_chunk_ids - retrieved_chunk_ids):
+            try:
+                chunks_by_id[chunk_id] = benchmark_chunks_by_id[chunk_id]
+            except KeyError:
+                raise ValueError(f"unknown positive chunk {chunk_id!r}") from None
     return tuple(
         CandidateAnnotation(
             chunk_id=chunk.id,
             document_id=chunk.document_id,
             text=chunk.content,
+            source=chunk.source if include_source else None,
             retrieved_by=tuple(provenance_by_chunk_id.get(chunk.id, ())),
-            included_from_existing_positive=chunk.id not in retrieved_chunk_ids,
+            included_from_existing_positive=(
+                include_existing_positives and chunk.id not in retrieved_chunk_ids
+            ),
         )
         for chunk in chunks_by_id.values()
     )
 
 
 def build_annotation_pool(
-    cases: Sequence[EvaluationCase],
+    cases: Sequence[AnnotationQuestion],
     comparisons: Mapping[str, ComparisonResults],
     benchmark_chunks: Sequence[Chunk],
+    metadata: AnnotationPoolMetadata | None = None,
 ) -> AnnotationPool:
     if tuple(comparisons) != ENGINE_NAMES:
         raise ValueError("annotation pooling requires the four configured retrievers")
     benchmark_chunks_by_id = {chunk.id: chunk for chunk in benchmark_chunks}
+    is_v2 = metadata is not None
     return AnnotationPool(
+        schema_version=3 if is_v2 else 2,
+        metadata=metadata,
         questions=tuple(
             QuestionAnnotation(
                 question_id=case.id,
@@ -121,10 +155,12 @@ def build_annotation_pool(
                     case,
                     comparisons,
                     benchmark_chunks_by_id,
+                    include_existing_positives=not is_v2,
+                    include_source=is_v2,
                 ),
             )
             for case in cases
-        )
+        ),
     )
 
 
@@ -135,8 +171,16 @@ def save_annotation_pool(pool: AnnotationPool, output_path: Path) -> None:
 
 def parse_arguments(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
-    return parser.parse_args(arguments)
+    parser.add_argument("--corpus-version", choices=("v1", "v2"), default="v1")
+    parser.add_argument("--output", type=Path)
+    parsed_arguments = parser.parse_args(arguments)
+    if parsed_arguments.output is None:
+        parsed_arguments.output = (
+            V2_OUTPUT_PATH
+            if parsed_arguments.corpus_version == "v2"
+            else DEFAULT_OUTPUT_PATH
+        )
+    return parsed_arguments
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
@@ -149,9 +193,32 @@ def main(arguments: Sequence[str] | None = None) -> int:
         return 1
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
-    pipeline = create_local_comparison(index_chunks=False)
+    pipeline = create_local_comparison(
+        index_chunks=False,
+        corpus_version=parsed_arguments.corpus_version,
+    )
     comparisons = compare_retrievers(pipeline)
-    pool = build_annotation_pool(pipeline.cases, comparisons, pipeline.chunks)
+    metadata = (
+        AnnotationPoolMetadata(
+            corpus_version="v2",
+            chunker="structured",
+            chunk_size=500,
+            chunk_overlap=75,
+            qdrant_collection=BENCHMARK_V2_COLLECTION_NAME,
+            corpus_fingerprint=corpus_fingerprint(
+                pipeline.chunks,
+                pipeline.metadata,
+            ),
+        )
+        if parsed_arguments.corpus_version == "v2"
+        else None
+    )
+    pool = build_annotation_pool(
+        pipeline.cases,
+        comparisons,
+        pipeline.chunks,
+        metadata=metadata,
+    )
     save_annotation_pool(pool, parsed_arguments.output)
     print(f"Annotation pool saved: {parsed_arguments.output}")
     return 0
