@@ -365,6 +365,7 @@ describe("EvaluationPage", () => {
       ...run,
       run_id: "v2-run",
       measured_metrics: {
+        ...run.measured_metrics,
         BM25: {
           ...run.measured_metrics.BM25,
           source_hit_at_1: null,
@@ -378,6 +379,9 @@ describe("EvaluationPage", () => {
 
     render(<EvaluationPage />);
 
+    fireEvent.change(await screen.findByRole("combobox", {
+      name: "Moteur évalué",
+    }), { target: { value: "BM25" } });
     fireEvent.click(await screen.findByRole("tab", { name: "Classement & performance" }));
     const source = (await screen.findByRole("heading", {
       name: "Source Hit@1",

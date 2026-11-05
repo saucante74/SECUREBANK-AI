@@ -20,6 +20,7 @@ import {
 } from "./evaluationDashboard";
 import { EvaluationHistory } from "./EvaluationHistory";
 import {
+  mergeEvaluationHistory,
   referenceEvaluationRuns,
   synchronizeEvaluationRuns,
   type EvaluationDataSource,
@@ -68,6 +69,9 @@ function formatValue(
 export function EvaluationPage() {
   const { t, i18n } = useTranslation();
   const [runs, setRuns] = useState<EvaluationRun[]>(referenceEvaluationRuns);
+  const [historyRuns, setHistoryRuns] = useState<EvaluationRun[]>(
+    referenceEvaluationRuns,
+  );
   const [dataSource, setDataSource] = useState<EvaluationDataSource>("reference");
   const [selectedEngine, setSelectedEngine] = useState("");
   const [activeTab, setActiveTab] = useState<MetricTab>("relevance");
@@ -77,6 +81,7 @@ export function EvaluationPage() {
     const controller = new AbortController();
     void getEvaluationRuns(undefined, controller.signal)
       .then((history) => {
+        setHistoryRuns((current) => mergeEvaluationHistory(current, history));
         const synchronized = synchronizeEvaluationRuns(
           referenceEvaluationRuns,
           history,
@@ -309,7 +314,7 @@ export function EvaluationPage() {
             </div>
           </section>
 
-          <EvaluationHistory runs={runs} />
+          <EvaluationHistory runs={historyRuns} />
         </>
       )}
     </div>
