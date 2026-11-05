@@ -8,15 +8,22 @@ from pydantic import ValidationError
 
 from app.schemas.documents import Chunk
 from app.schemas.retrieval import RetrievalResult
+from app.services.benchmark_dataset import (
+    create_benchmark_v2_chunks,
+    load_benchmark_dataset_v2,
+)
 from app.services.retrieval_evaluation import SYNTHETIC_EVALUATION_CASES
 from scripts.build_annotation_pool import (
+    V2_OUTPUT_PATH,
     AnnotationPool,
+    AnnotationPoolMetadata,
     CandidateAnnotation,
     build_annotation_pool,
     main,
+    parse_arguments,
     save_annotation_pool,
 )
-from scripts.compare_retrievers import ENGINE_NAMES
+from scripts.compare_retrievers import BENCHMARK_V2_COLLECTION_NAME, ENGINE_NAMES
 
 
 def create_result(
@@ -39,14 +46,28 @@ def create_result(
 
 def create_comparisons(
     results_by_engine: dict[str, list[RetrievalResult]],
+    case_id: str | None = None,
 ) -> dict[str, SimpleNamespace]:
-    case_id = SYNTHETIC_EVALUATION_CASES[0].id
+    selected_case_id = case_id or SYNTHETIC_EVALUATION_CASES[0].id
     return {
         engine_name: SimpleNamespace(
-            results_by_case_id={case_id: results_by_engine.get(engine_name, [])}
+            results_by_case_id={
+                selected_case_id: results_by_engine.get(engine_name, [])
+            }
         )
         for engine_name in ENGINE_NAMES
     }
+
+
+def create_v2_pool_metadata() -> AnnotationPoolMetadata:
+    return AnnotationPoolMetadata(
+        corpus_version="v2",
+        chunker="structured",
+        chunk_size=500,
+        chunk_overlap=75,
+        qdrant_collection=BENCHMARK_V2_COLLECTION_NAME,
+        corpus_fingerprint="a" * 64,
+    )
 
 
 def benchmark_chunks(*results: RetrievalResult) -> list[Chunk]:
@@ -129,6 +150,69 @@ def test_pool_json_marks_unjudged_candidates_as_null() -> None:
         "retrieved_by": [{"engine": "BM25", "rank": 1}],
         "included_from_existing_positive": False,
     }
+
+
+def test_v2_pool_deduplicates_candidates_and_records_source_and_metadata() -> None:
+    question = load_benchmark_dataset_v2().reference_questions[0]
+    shared = create_result("document-v2:chunk:0", "document-v2", "Shared text")
+    comparisons = create_comparisons(
+        {
+            "BM25": [shared],
+            "Qdrant": [shared],
+        },
+        case_id=question.id,
+    )
+
+    pool = build_annotation_pool(
+        [question],
+        comparisons,
+        [shared.chunk],
+        metadata=create_v2_pool_metadata(),
+    )
+
+    assert pool.metadata == create_v2_pool_metadata()
+    assert pool.schema_version == 3
+    assert len(pool.questions[0].candidates) == 1
+    candidate = pool.questions[0].candidates[0]
+    assert candidate.source == "synthetic://document-v2"
+    assert candidate.relevance is None
+    assert candidate.included_from_existing_positive is False
+    assert tuple(item.model_dump() for item in candidate.retrieved_by) == (
+        {"engine": "BM25", "rank": 1},
+        {"engine": "Qdrant", "rank": 1},
+    )
+
+
+def test_v2_pool_supports_all_forty_unannotated_questions() -> None:
+    dataset = load_benchmark_dataset_v2()
+    comparisons = {
+        engine_name: SimpleNamespace(
+            results_by_case_id={
+                question.id: [] for question in dataset.reference_questions
+            }
+        )
+        for engine_name in ENGINE_NAMES
+    }
+
+    pool = build_annotation_pool(
+        dataset.reference_questions,
+        comparisons,
+        create_benchmark_v2_chunks(dataset.documents),
+        metadata=create_v2_pool_metadata(),
+    )
+
+    assert len(pool.questions) == 40
+    assert all(question.candidates == () for question in pool.questions)
+
+
+def test_corpus_version_selects_distinct_default_output_paths() -> None:
+    v1_arguments = parse_arguments([])
+    v2_arguments = parse_arguments(["--corpus-version", "v2"])
+
+    assert v1_arguments.corpus_version == "v1"
+    assert v1_arguments.output.name == "rag_annotation_pool.json"
+    assert v2_arguments.corpus_version == "v2"
+    assert v2_arguments.output == V2_OUTPUT_PATH
 
 
 @pytest.mark.parametrize("judgment", [None, 0, 1, 2])
@@ -218,6 +302,53 @@ def test_existing_output_stops_before_pipeline_initialization(
     assert exit_code == 1
     factory.assert_not_called()
     assert f"Annotation pool already exists: {output_path}" in capsys.readouterr().err
+
+
+def test_v2_main_uses_validated_existing_index_without_reindexing(
+    tmp_path: Path,
+) -> None:
+    dataset = load_benchmark_dataset_v2()
+    chunks = create_benchmark_v2_chunks(dataset.documents)
+    pipeline = SimpleNamespace(
+        cases=dataset.reference_questions,
+        chunks=chunks,
+        metadata=dataset.metadata,
+    )
+    comparisons = {
+        engine_name: SimpleNamespace(
+            results_by_case_id={
+                question.id: [] for question in dataset.reference_questions
+            }
+        )
+        for engine_name in ENGINE_NAMES
+    }
+    output_path = tmp_path / "pool-v2.json"
+
+    with (
+        patch(
+            "scripts.build_annotation_pool.create_local_comparison",
+            return_value=pipeline,
+        ) as factory,
+        patch(
+            "scripts.build_annotation_pool.compare_retrievers",
+            return_value=comparisons,
+        ) as comparator,
+    ):
+        exit_code = main(
+            [
+                "--corpus-version",
+                "v2",
+                "--output",
+                str(output_path),
+            ]
+        )
+
+    assert exit_code == 0
+    factory.assert_called_once_with(index_chunks=False, corpus_version="v2")
+    comparator.assert_called_once_with(pipeline)
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload["metadata"]["qdrant_collection"] == (BENCHMARK_V2_COLLECTION_NAME)
+    assert len(payload["questions"]) == 40
 
 
 def test_existing_version_one_pool_remains_readable() -> None:

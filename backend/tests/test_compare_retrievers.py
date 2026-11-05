@@ -1,11 +1,19 @@
 from collections.abc import Iterator
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance
 
 from app.schemas.documents import Chunk
 from app.schemas.retrieval import RetrievalResult
-from app.services.benchmark_dataset import load_benchmark_dataset
+from app.services.benchmark_dataset import (
+    BENCHMARK_COLLECTION_NAME,
+    create_v2_metadata,
+    load_benchmark_dataset,
+    load_benchmark_dataset_v2,
+)
 from app.services.chunking import CharacterChunker
 from app.services.embeddings import LocalEmbeddingService
 from app.services.qdrant import QdrantVectorStore, QdrantVectorStoreError
@@ -15,15 +23,20 @@ from app.services.retrieval_evaluation import (
     evaluate_cases,
 )
 from scripts.compare_retrievers import (
+    BENCHMARK_V2_COLLECTION_NAME,
     ENGINE_NAMES,
     ComparisonPipeline,
     SemanticRetriever,
+    benchmark_collection_name,
     compare_retrievers,
     evaluate_engine,
     main,
     percentile,
     prepare_comparison,
+    prepare_v2_collection,
     run_comparison,
+    v2_manifest,
+    validate_v2_collection,
 )
 
 
@@ -46,6 +59,35 @@ def create_result(
 
 def create_timer(values: list[float]) -> Iterator[float]:
     return iter(values)
+
+
+def create_v2_collection_client(
+    chunk: Chunk,
+    payload: dict[str, object],
+) -> MagicMock:
+    client = MagicMock(spec=QdrantClient)
+    client.collection_exists.return_value = True
+    client.get_collection.return_value = SimpleNamespace(
+        config=SimpleNamespace(
+            params=SimpleNamespace(
+                vectors=SimpleNamespace(size=384, distance=Distance.COSINE)
+            )
+        )
+    )
+    client.count.return_value = SimpleNamespace(count=1)
+    client.scroll.return_value = (
+        [
+            SimpleNamespace(
+                payload={
+                    **payload,
+                    "document_id": chunk.document_id,
+                    "chunk_id": chunk.id,
+                }
+            )
+        ],
+        None,
+    )
+    return client
 
 
 def create_pipeline(result: RetrievalResult | None = None) -> ComparisonPipeline:
@@ -83,6 +125,10 @@ def test_prepare_comparison_builds_the_four_real_configurations() -> None:
     assert len(pipeline.chunks) == 30
     assert len(pipeline.cases) == 40
     assert pipeline.qdrant_point_count == 30
+    assert pipeline.metadata.corpus_version == "v1"
+    assert pipeline.metadata.chunker == "character"
+    assert pipeline.metadata.chunk_size == 180
+    assert pipeline.metadata.chunk_overlap == 30
     embeddings.embed_chunks.assert_called_once_with(pipeline.chunks)
     vector_store.store_chunks.assert_called_once()
 
@@ -107,6 +153,129 @@ def test_prepare_comparison_can_reuse_existing_index_without_ingestion() -> None
     embeddings.embed_chunks.assert_not_called()
     vector_store.ensure_collection.assert_not_called()
     vector_store.store_chunks.assert_not_called()
+
+
+def test_prepare_comparison_uses_v2_structured_chunks_and_metadata() -> None:
+    dataset = load_benchmark_dataset_v2()
+    embeddings = MagicMock(spec=LocalEmbeddingService)
+    vector_store = MagicMock(spec=QdrantVectorStore)
+    reranker = MagicMock(spec=FlashRankReranker)
+
+    pipeline = prepare_comparison(
+        dataset,
+        None,
+        embeddings,
+        vector_store,
+        reranker,
+        point_counter=lambda chunks: len(chunks),
+        index_chunks=False,
+    )
+
+    assert tuple(pipeline.engines) == ENGINE_NAMES
+    assert len(pipeline.chunks) == 172
+    assert len(pipeline.cases) == 40
+    assert pipeline.metadata.corpus_version == "v2"
+    assert pipeline.metadata.chunker == "structured"
+    assert pipeline.metadata.chunk_size == 500
+    assert pipeline.metadata.chunk_overlap == 75
+    assert pipeline.metadata.relevance_annotations is False
+    embeddings.embed_chunks.assert_not_called()
+    vector_store.store_chunks.assert_not_called()
+
+
+def test_v2_collection_name_is_explicit_and_stable() -> None:
+    assert BENCHMARK_V2_COLLECTION_NAME == "securebank_benchmark_chunks_v2"
+    assert benchmark_collection_name("v2") == BENCHMARK_V2_COLLECTION_NAME
+    assert benchmark_collection_name("v1") == BENCHMARK_COLLECTION_NAME
+
+
+def test_compatible_v2_collection_is_reused_without_writes() -> None:
+    chunk = create_result("document-v2", "document-v2:chunk:0").chunk
+    metadata = create_v2_metadata()
+    client = create_v2_collection_client(
+        chunk,
+        v2_manifest([chunk], metadata),
+    )
+    vector_store = MagicMock(spec=QdrantVectorStore)
+    embeddings = MagicMock(spec=LocalEmbeddingService)
+
+    point_count = prepare_v2_collection(
+        client,
+        vector_store,
+        [chunk],
+        metadata,
+        embeddings,
+        index_chunks=True,
+    )
+
+    assert point_count == 1
+    embeddings.embed_chunks.assert_not_called()
+    vector_store.store_chunks.assert_not_called()
+    client.set_payload.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("incompatibility", "message"),
+    [
+        ("point_count", "point count"),
+        ("chunk_ids", "chunk identifiers"),
+        ("corpus", "corpus or embedding metadata"),
+        ("embedding", "vector configuration"),
+    ],
+)
+def test_incompatible_v2_collection_fails_without_writes(
+    incompatibility: str,
+    message: str,
+) -> None:
+    chunk = create_result("document-v2", "document-v2:chunk:0").chunk
+    metadata = create_v2_metadata()
+    manifest = v2_manifest([chunk], metadata)
+    client = create_v2_collection_client(chunk, manifest)
+    if incompatibility == "point_count":
+        client.count.return_value = SimpleNamespace(count=2)
+    elif incompatibility == "chunk_ids":
+        client.scroll.return_value[0][0].payload["chunk_id"] = "unexpected-chunk"
+    elif incompatibility == "corpus":
+        client.scroll.return_value[0][0].payload["benchmark_corpus_fingerprint"] = (
+            "unexpected-corpus"
+        )
+    else:
+        client.get_collection.return_value.config.params.vectors.size = 768
+    vector_store = MagicMock(spec=QdrantVectorStore)
+    embeddings = MagicMock(spec=LocalEmbeddingService)
+
+    with pytest.raises(ValueError, match=message):
+        prepare_v2_collection(
+            client,
+            vector_store,
+            [chunk],
+            metadata,
+            embeddings,
+            index_chunks=True,
+        )
+
+    embeddings.embed_chunks.assert_not_called()
+    vector_store.store_chunks.assert_not_called()
+    client.set_payload.assert_not_called()
+
+
+def test_v2_collection_validation_uses_dedicated_collection_only() -> None:
+    chunk = create_result("document-v2", "document-v2:chunk:0").chunk
+    metadata = create_v2_metadata()
+    client = create_v2_collection_client(
+        chunk,
+        v2_manifest([chunk], metadata),
+    )
+
+    validate_v2_collection(client, [chunk], metadata)
+
+    assert client.get_collection.call_args.args == (BENCHMARK_V2_COLLECTION_NAME,)
+    assert client.count.call_args.kwargs["collection_name"] == (
+        BENCHMARK_V2_COLLECTION_NAME
+    )
+    assert client.scroll.call_args.kwargs["collection_name"] == (
+        BENCHMARK_V2_COLLECTION_NAME
+    )
 
 
 def test_semantic_retriever_embeds_question_before_qdrant_search() -> None:
@@ -161,6 +330,66 @@ def test_evaluate_engine_uses_existing_metric_aggregation() -> None:
     assert [call.kwargs["k"] for call in evaluator.call_args_list] == [1, 3]
     assert comparison.report_at_1.mean_source_hit_at_k == 1.0
     assert comparison.report_at_1.mean_evidence_hit_at_k == 1.0
+
+
+def test_evaluate_engine_calculates_ir_metrics_from_complete_judgments() -> None:
+    case = SYNTHETIC_EVALUATION_CASES[0]
+    chunk_id = next(iter(case.expected_chunk_ids))
+    result = create_result(next(iter(case.expected_document_ids)), chunk_id)
+    engine = MagicMock()
+    engine.search.return_value = [result]
+
+    comparison = evaluate_engine(
+        engine,
+        [result.chunk],
+        [case],
+        relevance_judgments={case.id: {chunk_id: 2}},
+    )
+
+    assert comparison.ir_report_at_1 is not None
+    assert comparison.ir_report_at_3 is not None
+    assert comparison.ir_report_at_1.precision_at_k.value == 1.0
+    assert comparison.ir_report_at_1.precision_at_k.evaluated_question_count == 1
+    assert comparison.ir_report_at_3.precision_at_k.value == pytest.approx(1 / 3)
+    assert comparison.ir_report_at_3.ndcg_at_k.value == 1.0
+
+
+def test_v2_comparison_keeps_relevance_metrics_absent(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    question = load_benchmark_dataset_v2().reference_questions[0]
+    engines: dict[str, MagicMock] = {}
+    for name in ENGINE_NAMES:
+        engine = MagicMock()
+        engine.search.return_value = []
+        engines[name] = engine
+    pipeline = ComparisonPipeline(
+        chunks=[],
+        cases=(question,),
+        engines=engines,
+        qdrant_point_count=0,
+        metadata=create_v2_metadata(),
+    )
+
+    with patch("scripts.compare_retrievers.evaluate_cases") as evaluator:
+        comparisons = run_comparison(pipeline)
+
+    evaluator.assert_not_called()
+    assert all(item.report_at_1 is None for item in comparisons.values())
+    assert all(item.report_at_3 is None for item in comparisons.values())
+    assert all(item.ir_report_at_1 is None for item in comparisons.values())
+    assert all(item.ir_report_at_3 is None for item in comparisons.values())
+    assert all(item.metadata.corpus_version == "v2" for item in comparisons.values())
+    assert all(item.error_rate == 0.0 for item in comparisons.values())
+    assert all(item.mean_returned_chunk_count == 0.0 for item in comparisons.values())
+    assert all(item.mean_source_diversity_at_3 == 0.0 for item in comparisons.values())
+    output = capsys.readouterr().out
+    assert "Corpus version: v2" in output
+    assert "Chunker: structured" in output
+    assert "Source Hit@1=N/A" in output
+    assert "Evidence Hit@1=N/A" in output
+    assert "Source Hit@1=0" not in output
+    assert "Evidence Hit@1=0" not in output
 
 
 def test_evaluate_engine_associates_results_and_measures_latency() -> None:

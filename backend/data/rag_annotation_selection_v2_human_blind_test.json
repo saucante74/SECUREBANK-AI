@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "corpus_version": "v2",
+  "selections": [
+    {
+      "question_id": "factual-mortgage-early-fee",
+      "chunk_id": "benchmark-mortgage-early-repayment:structured-chunk:0"
+    },
+    {
+      "question_id": "factual-variable-rate-index",
+      "chunk_id": "benchmark-consumer-revolving:structured-chunk:1"
+    },
+    {
+      "question_id": "factual-home-claim-deadline",
+      "chunk_id": "benchmark-insurance-home-claim:structured-chunk:3"
+    },
+    {
+      "question_id": "factual-borrower-share",
+      "chunk_id": "benchmark-insurance-borrower:structured-chunk:2"
+    },
+    {
+      "question_id": "factual-card-loss",
+      "chunk_id": "benchmark-payments-card-opposition:structured-chunk:1"
+    },
+    {
+      "question_id": "factual-funds-origin-documents",
+      "chunk_id": "benchmark-compliance-funds-origin:structured-chunk:2"
+    },
+    {
+      "question_id": "semantic-emergency-cash",
+      "chunk_id": "benchmark-savings-regular-plan:structured-chunk:0"
+    },
+    {
+      "question_id": "semantic-suspicious-bank-link",
+      "chunk_id": "benchmark-security-phishing:structured-chunk:0"
+    },
+    {
+      "question_id": "difficult-overdraft-cost",
+      "chunk_id": "benchmark-payments-account-fees:structured-chunk:3"
+    },
+    {
+      "question_id": "difficult-market-risk-profile",
+      "chunk_id": "benchmark-savings-risk-profile:structured-chunk:3"
+    }
+  ]
+}

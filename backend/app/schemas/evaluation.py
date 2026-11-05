@@ -74,10 +74,10 @@ class PublicParameterChange(BaseModel):
 class PublicEvaluationMetrics(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    source_hit_at_1: float = Field(ge=0.0, le=1.0)
-    source_hit_at_3: float = Field(ge=0.0, le=1.0)
-    evidence_hit_at_1: float = Field(ge=0.0, le=1.0)
-    evidence_hit_at_3: float = Field(ge=0.0, le=1.0)
+    source_hit_at_1: float | None = Field(ge=0.0, le=1.0)
+    source_hit_at_3: float | None = Field(ge=0.0, le=1.0)
+    evidence_hit_at_1: float | None = Field(ge=0.0, le=1.0)
+    evidence_hit_at_3: float | None = Field(ge=0.0, le=1.0)
     mean_latency_seconds: float = Field(ge=0.0)
     latency_p50_seconds: float | None = Field(default=None, ge=0.0)
     latency_p95_seconds: float | None = Field(default=None, ge=0.0)
@@ -95,6 +95,31 @@ class PublicEvaluationMetrics(BaseModel):
     )
 
 
+class PublicIRMetricAggregate(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    value: float | None = Field(ge=0.0, le=1.0)
+    evaluated_question_count: int = Field(ge=0)
+    unavailable_question_count: int = Field(ge=0)
+
+
+class PublicEngineIRMetrics(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    judgment_source: Literal["qwen"]
+    precision_at_1: PublicIRMetricAggregate
+    precision_at_3: PublicIRMetricAggregate
+    recall_at_1: PublicIRMetricAggregate
+    recall_at_3: PublicIRMetricAggregate
+    f1_at_1: PublicIRMetricAggregate
+    f1_at_3: PublicIRMetricAggregate
+    map_at_3: PublicIRMetricAggregate
+    success_at_1: PublicIRMetricAggregate
+    success_at_3: PublicIRMetricAggregate
+    mrr_at_3: PublicIRMetricAggregate
+    ndcg_at_3: PublicIRMetricAggregate
+
+
 class PublicEvaluationRun(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -103,6 +128,7 @@ class PublicEvaluationRun(BaseModel):
     rag_configuration: dict[str, ConfigurationValue]
     parameter_change: PublicParameterChange | None
     measured_metrics: dict[str, PublicEvaluationMetrics] = Field(min_length=1)
+    ir_metrics: dict[str, PublicEngineIRMetrics] = Field(default_factory=dict)
 
 
 class PublicConfigurationChange(BaseModel):

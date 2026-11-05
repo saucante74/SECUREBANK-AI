@@ -1,17 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
 import { getEvaluationRuns } from "../api/services";
-import type { EvaluationMetrics, EvaluationRun } from "../api/types";
+import type {
+  EvaluationIRMetricName,
+  EvaluationMetrics,
+  EvaluationRun,
+} from "../api/types";
 import { MetricCard } from "../components/MetricCard";
 import {
   dashboardMetrics,
   defaultEngine,
+  metricBelongsToTab,
   metricGroups,
+  metricTabs,
   sortEngines,
   sortEvaluationRuns,
   type DashboardMetric,
+  type MetricTab,
 } from "./evaluationDashboard";
 import { EvaluationHistory } from "./EvaluationHistory";
 
@@ -29,7 +36,9 @@ function formatValue(
   language: string,
   unavailable: string,
 ): { unit?: string; value: string } {
-  if (value === undefined || !Number.isFinite(value)) return { value: unavailable };
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return { value: unavailable };
+  }
   if (metric.format === "percentage") {
     return {
       value: new Intl.NumberFormat(language, {
@@ -59,6 +68,8 @@ export function EvaluationPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selectedEngine, setSelectedEngine] = useState("");
+  const [activeTab, setActiveTab] = useState<MetricTab>("relevance");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -86,21 +97,34 @@ export function EvaluationPage() {
     ? selectedEngine
     : defaultEngine(engines);
   const metrics: EvaluationMetrics | undefined = latestRun?.measured_metrics[activeEngine];
+  const irMetrics = latestRun?.ir_metrics[activeEngine];
+  const qwenQuestionCount = irMetrics
+    ? irMetrics.precision_at_1.evaluated_question_count
+      + irMetrics.precision_at_1.unavailable_question_count
+    : undefined;
+  const visibleMetrics = dashboardMetrics.filter((metric) => (
+    metricBelongsToTab(metric, activeTab)
+  ));
+
+  const selectTabFromKeyboard = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    let nextIndex: number | undefined;
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % metricTabs.length;
+    if (event.key === "ArrowLeft") nextIndex = (index - 1 + metricTabs.length) % metricTabs.length;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = metricTabs.length - 1;
+    if (nextIndex === undefined) return;
+    event.preventDefault();
+    const nextTab = metricTabs[nextIndex];
+    setActiveTab(nextTab);
+    tabRefs.current[nextIndex]?.focus();
+  };
 
   return (
-    <div className="space-y-10">
-      <section>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent-strong">
-          {t("evaluation.eyebrow")}
-        </p>
-        <h1 className="mt-2 text-3xl font-extrabold text-brand-navy">
-          {t("evaluation.title")}
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
-          {t("evaluation.description")}
-        </p>
-      </section>
-
+    <div className="space-y-8">
+      <h1 className="sr-only">{t("evaluation.title")}</h1>
       {loading && <p role="status">{t("evaluation.loading")}</p>}
       {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-red-800">{t("evaluation.error")}</p>}
       {!loading && !error && !latestRun && (
@@ -111,47 +135,48 @@ export function EvaluationPage() {
 
       {latestRun && (
         <>
-          <section aria-labelledby="latest-title" className="rounded-3xl bg-brand-navy p-6 text-white shadow-soft sm:p-8">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">
-              {t("evaluation.latest.eyebrow")}
-            </p>
-            <h2 id="latest-title" className="mt-2 text-2xl font-extrabold">
-              {t("evaluation.latest.title")}
-            </h2>
-            <dl className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <dt className="text-xs font-semibold uppercase text-white/60">{t("evaluation.latest.run")}</dt>
-                <dd className="mt-2 break-all font-mono text-sm font-bold">{latestRun.run_id}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase text-white/60">{t("evaluation.latest.date")}</dt>
-                <dd className="mt-2 font-bold">
-                  {new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(latestRun.created_at))}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase text-white/60">{t("evaluation.latest.engines")}</dt>
-                <dd className="mt-2 text-2xl font-extrabold">{engines.length}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase text-white/60">{t("evaluation.latest.configuration")}</dt>
-                <dd className="mt-2 text-sm font-bold">{displayConfiguration(latestRun)}</dd>
-              </div>
-            </dl>
-          </section>
+          <section className="grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(17rem,2fr)]">
+            <div aria-labelledby="latest-title" className="rounded-3xl bg-brand-navy p-6 text-white shadow-soft sm:p-8">
+              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-accent">
+                <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
+                {t("evaluation.latest.eyebrow")}
+              </p>
+              <h2 id="latest-title" className="mt-4 font-display text-3xl font-extrabold leading-tight">
+                {t("evaluation.latest.title")}
+              </h2>
+              <p className="mt-4 max-w-xl text-sm leading-6 text-white/60">
+                {t("evaluation.description")}
+              </p>
+              <dl className="mt-8 grid gap-x-6 gap-y-5 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-white/45">{t("evaluation.latest.run")}</dt>
+                  <dd className="mt-2 break-all font-mono text-sm font-semibold text-white/75">{latestRun.run_id}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-white/45">{t("evaluation.latest.date")}</dt>
+                  <dd className="mt-2 font-bold">
+                    {new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(latestRun.created_at))}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-white/45">{t("evaluation.latest.engines")}</dt>
+                  <dd className="mt-2 font-display text-2xl font-extrabold">{engines.length}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-white/45">{t("evaluation.latest.configuration")}</dt>
+                  <dd className="mt-2 text-sm font-semibold text-white/70">{displayConfiguration(latestRun)}</dd>
+                </div>
+              </dl>
+            </div>
 
-          <section aria-labelledby="engine-title">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h2 id="engine-title" className="text-xl font-bold text-brand-navy">
-                  {t("evaluation.dashboard.engineTitle")}
-                </h2>
-                <p className="mt-1 text-sm text-muted">{t("evaluation.dashboard.engineDescription")}</p>
-              </div>
-              <label className="grid gap-2 text-sm font-semibold text-brand-navy">
+            <div className="flex flex-col rounded-3xl border border-border bg-white p-6 shadow-soft" aria-labelledby="engine-title">
+              <h2 id="engine-title" className="text-xs font-bold uppercase tracking-[0.14em] text-muted">
                 {t("evaluation.dashboard.engineLabel")}
+              </h2>
+              <label className="mt-5 grid gap-2 text-sm font-semibold text-brand-navy">
+                <span className="sr-only">{t("evaluation.dashboard.engineLabel")}</span>
                 <select
-                  className="min-w-52 rounded-xl border border-border bg-white px-4 py-3 shadow-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="w-full rounded-xl border border-border bg-surface/50 px-4 py-3.5 font-bold shadow-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   value={activeEngine}
                   onChange={(event) => {
                     setSelectedEngine(event.target.value);
@@ -160,39 +185,98 @@ export function EvaluationPage() {
                   {engines.map((engine) => <option key={engine}>{engine}</option>)}
                 </select>
               </label>
+              <p className="mt-5 text-sm leading-6 text-muted">
+                {t("evaluation.dashboard.engineDescription")}
+              </p>
+              {irMetrics?.judgment_source === "qwen" && qwenQuestionCount !== undefined && (
+                <p className="mt-auto flex gap-3 rounded-2xl border border-accent/20 bg-accent-soft p-4 text-sm font-semibold leading-5 text-accent-strong lg:mt-8">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-current text-xs" aria-hidden="true">i</span>
+                  {t("evaluation.dashboard.qwenSummary", { count: qwenQuestionCount })}
+                </p>
+              )}
             </div>
           </section>
 
-          <section aria-label={t("evaluation.dashboard.metricsTitle")} className="space-y-10">
-            {metricGroups.map((group) => (
-              <div key={group}>
-                <h2 className="text-xl font-bold text-brand-navy">{t(`evaluation.groups.${group}.title`)}</h2>
-                <p className="mt-1 text-sm text-muted">{t(`evaluation.groups.${group}.description`)}</p>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  {dashboardMetrics.filter((metric) => metric.group === group).map((metric) => {
-                    const formatted = formatValue(
-                      metrics?.[metric.field],
-                      metric,
-                      i18n.language,
-                      t("evaluation.dashboard.unavailable"),
-                    );
-                    return (
-                      <MetricCard
-                        key={metric.key}
-                        name={t(`evaluation.metricCards.${metric.key}.name`)}
-                        description={t(`evaluation.metricCards.${metric.key}.description`)}
-                        direction={t(`evaluation.directions.${metric.direction}`)}
-                        value={formatted.value}
-                        unit={formatted.unit}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+          <section aria-label={t("evaluation.dashboard.metricsTitle")}>
+            <div
+              className="grid grid-cols-1 gap-1 rounded-2xl bg-border/50 p-1 sm:grid-cols-3"
+              role="tablist"
+              aria-label={t("evaluation.dashboard.metricsTitle")}
+            >
+              {metricTabs.map((tab, index) => {
+                const isActive = tab === activeTab;
+                return (
+                  <button
+                    key={tab}
+                    ref={(element) => {
+                      tabRefs.current[index] = element;
+                    }}
+                    id={`evaluation-tab-${tab}`}
+                    type="button"
+                    role="tab"
+                    aria-controls="evaluation-metric-panel"
+                    aria-selected={isActive}
+                    tabIndex={isActive ? 0 : -1}
+                    className={`rounded-xl px-4 py-3 text-sm font-bold transition-colors ${isActive ? "bg-white text-brand-navy shadow-soft" : "text-muted hover:bg-white/50 hover:text-brand-navy"}`}
+                    onClick={() => {
+                      setActiveTab(tab);
+                    }}
+                    onKeyDown={(event) => {
+                      selectTabFromKeyboard(event, index);
+                    }}
+                  >
+                    {t(`evaluation.metricTabs.${tab}`)}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div
+              id="evaluation-metric-panel"
+              role="tabpanel"
+              aria-labelledby={`evaluation-tab-${activeTab}`}
+              className="mt-5 grid gap-5 md:grid-cols-2"
+            >
+              {visibleMetrics.map((metric) => {
+                const irMetric = metric.source === "ir"
+                  ? irMetrics?.[metric.field as EvaluationIRMetricName]
+                  : undefined;
+                const metricValue = metric.source === "ir"
+                  ? irMetric?.value
+                  : metrics?.[metric.field as keyof EvaluationMetrics];
+                const formatted = formatValue(
+                  metricValue,
+                  metric,
+                  i18n.language,
+                  t("evaluation.dashboard.unavailable"),
+                );
+                const progress = metric.format === "percentage"
+                  ? typeof metricValue === "number" && Number.isFinite(metricValue)
+                    ? metricValue
+                    : null
+                  : undefined;
+                return (
+                  <MetricCard
+                    key={metric.key}
+                    name={t(`evaluation.metricCards.${metric.key}.name`)}
+                    description={t(`evaluation.metricCards.${metric.key}.description`)}
+                    details={irMetric ? [
+                      t("evaluation.dashboard.questionAvailability", {
+                        evaluated: irMetric.evaluated_question_count,
+                        unavailable: irMetric.unavailable_question_count,
+                      }),
+                    ] : undefined}
+                    direction={t(`evaluation.directions.${metric.direction}`)}
+                    progress={progress}
+                    value={formatted.value}
+                    unit={formatted.unit}
+                  />
+                );
+              })}
+            </div>
           </section>
 
-          <section aria-labelledby="guide-title" className="rounded-2xl border border-border bg-accent-soft p-5">
+          <section aria-labelledby="guide-title" className="rounded-3xl border border-accent/20 bg-accent-soft p-6 sm:p-8">
             <h2 id="guide-title" className="text-xl font-bold text-brand-navy">{t("evaluation.guide.title")}</h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-muted">{t("evaluation.guide.introduction")}</p>
             <div className="mt-5 space-y-3">

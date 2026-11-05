@@ -2,7 +2,14 @@ import { Fragment, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { compareEvaluationRuns } from "../api/services";
-import type { ConfigurationValue, EvaluationComparison, EvaluationRun } from "../api/types";
+import type {
+  ConfigurationValue,
+  EvaluationComparison,
+  EvaluationIRMetricName,
+  EvaluationMetrics,
+  EvaluationRun,
+} from "../api/types";
+import { dashboardMetrics, type DashboardMetric } from "./evaluationDashboard";
 
 interface EvaluationHistoryProps {
   runs: EvaluationRun[];
@@ -10,6 +17,24 @@ interface EvaluationHistoryProps {
 
 function displayValue(value: ConfigurationValue | undefined): string {
   return value === null || value === undefined ? "—" : String(value);
+}
+
+function displayMetric(
+  value: number | null | undefined,
+  metric: DashboardMetric,
+  language: string,
+): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "N/A";
+  if (metric.format === "percentage") {
+    return new Intl.NumberFormat(language, {
+      style: "percent",
+      maximumFractionDigits: 1,
+    }).format(value);
+  }
+  if (metric.format === "latency") {
+    return `${new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(value * 1000)} ms`;
+  }
+  return new Intl.NumberFormat(language, { maximumFractionDigits: 2 }).format(value);
 }
 
 function configuration(run: EvaluationRun): string {
@@ -27,7 +52,6 @@ export function EvaluationHistory({ runs }: EvaluationHistoryProps) {
   const [error, setError] = useState(false);
   const counts = useMemo(() => ({
     configurations: new Set(runs.map((run) => JSON.stringify(run.rag_configuration))).size,
-    engines: new Set(runs.flatMap((run) => Object.keys(run.measured_metrics))).size,
   }), [runs]);
 
   const toggle = (runId: string) => {
@@ -49,31 +73,28 @@ export function EvaluationHistory({ runs }: EvaluationHistoryProps) {
   };
 
   return (
-    <section className="border-t border-border pt-8" aria-labelledby="history-title">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 id="history-title" className="text-xl font-bold text-brand-navy">{t("evaluation.history.title")}</h2>
-          <p className="mt-1 text-sm text-muted">{t("evaluation.history.description")}</p>
+    <section aria-labelledby="history-title">
+      <div className="overflow-hidden rounded-3xl border border-border bg-white shadow-soft">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border px-6 py-6 sm:px-7">
+          <div>
+            <h2 id="history-title" className="text-xl font-bold text-brand-navy">{t("evaluation.history.title")}</h2>
+            <p className="mt-1 text-sm text-muted">{t("evaluation.history.description")}</p>
+          </div>
+          <p className="text-sm font-semibold text-muted">
+            {runs.length} {t("evaluation.summary.runs").toLocaleLowerCase(i18n.language)} · {counts.configurations} {t("evaluation.summary.configurations").toLocaleLowerCase(i18n.language)}
+          </p>
         </div>
-        <dl className="flex flex-wrap gap-2 text-xs font-semibold text-muted">
-          {[
-            [t("evaluation.summary.runs"), runs.length],
-            [t("evaluation.summary.configurations"), counts.configurations],
-            [t("evaluation.summary.engines"), counts.engines],
-          ].map(([label, value]) => (
-            <div key={String(label)} className="rounded-full bg-surface px-3 py-2">
-              <dt className="inline">{label}: </dt>
-              <dd className="inline text-brand-navy">{value}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-      <div className="mt-5 overflow-x-auto rounded-2xl border border-border bg-white shadow-soft">
-        <table className="min-w-[64rem] text-left text-sm">
-          <thead className="border-b border-border text-xs uppercase tracking-wide text-muted">
+        <div className="overflow-x-auto">
+        <table className="min-w-max text-left text-sm">
+          <thead className="sr-only">
             <tr>
-              {["details", "date", "run", "configuration", "engines", "source1", "source3", "evidence1", "evidence3", "latency"].map((key) => (
+              {["details", "date", "run", "configuration", "engines"].map((key) => (
                 <th key={key} className="whitespace-nowrap px-3 py-3">{t(`evaluation.history.${key}`)}</th>
+              ))}
+              {dashboardMetrics.map((metric) => (
+                <th key={metric.key} className="whitespace-nowrap px-3 py-3">
+                  {t(`evaluation.metricCards.${metric.key}.name`)}
+                </th>
               ))}
             </tr>
           </thead>
@@ -84,11 +105,11 @@ export function EvaluationHistory({ runs }: EvaluationHistoryProps) {
             return (
               <Fragment key={run.run_id}>
                 <tbody>
-                  <tr className="border-b border-border bg-surface/80 font-semibold text-brand-navy">
-                    <td className="px-3 py-3">
+                  <tr className="border-b border-border font-semibold text-brand-navy">
+                    <td className="px-5 py-4 sm:pl-7">
                       <button
                         type="button"
-                        className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                        className="inline-flex size-8 items-center justify-center rounded-full border border-border bg-white text-xs text-muted transition-colors hover:border-accent/50 hover:text-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                         aria-controls={detailsId}
                         aria-expanded={isExpanded}
                         aria-label={t(isExpanded ? "evaluation.history.collapse" : "evaluation.history.expand", { runId: run.run_id })}
@@ -99,35 +120,57 @@ export function EvaluationHistory({ runs }: EvaluationHistoryProps) {
                         <span aria-hidden="true">{isExpanded ? "▼" : "▶"}</span>
                       </button>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3">
+                    <td className="whitespace-nowrap px-3 py-4">
                       {new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(run.created_at))}
                     </td>
-                    <td className="max-w-36 truncate px-3 py-3 font-mono" title={run.run_id}>{run.run_id}</td>
-                    <td className="max-w-72 truncate px-3 py-3 font-normal text-muted" title={configuration(run)}>{configuration(run)}</td>
-                    <td className="px-3 py-3 text-center">{engines.length}</td>
-                    <td className="px-3 py-3 text-muted" colSpan={5}>—</td>
+                    <td className="max-w-36 truncate px-3 py-4 font-mono text-xs text-muted" title={run.run_id}>{run.run_id}</td>
+                    <td className="max-w-72 truncate px-3 py-4 font-mono text-xs font-normal text-muted" title={configuration(run)}>{configuration(run)}</td>
+                    <td className="px-3 py-4 text-center">{engines.length}</td>
+                    <td className="px-3 py-4 text-muted" colSpan={dashboardMetrics.length}>—</td>
                   </tr>
                 </tbody>
                 <tbody id={detailsId}>
-                  {isExpanded && engines.map(([engine, metrics]) => (
-                    <tr key={`${run.run_id}-${engine}`} className="border-b border-border/70">
+                  {isExpanded && (
+                    <tr className="border-b border-border bg-brand-navy/[0.04] text-xs font-bold text-brand-navy">
                       <td className="px-3 py-3" aria-hidden="true" />
-                      <th scope="row" className="whitespace-nowrap px-3 py-3 pl-6 font-semibold" colSpan={4}>{engine}</th>
-                      <td className="px-3 py-3">{metrics.source_hit_at_1.toFixed(3)}</td>
-                      <td className="px-3 py-3">{metrics.source_hit_at_3.toFixed(3)}</td>
-                      <td className="px-3 py-3">{metrics.evidence_hit_at_1.toFixed(3)}</td>
-                      <td className="px-3 py-3">{metrics.evidence_hit_at_3.toFixed(3)}</td>
-                      <td className="whitespace-nowrap px-3 py-3">{(metrics.mean_latency_seconds * 1000).toFixed(1)} ms</td>
+                      <th scope="col" className="whitespace-nowrap px-3 py-3 pl-6 text-left" colSpan={4}>
+                        {t("evaluation.history.engine")}
+                      </th>
+                      {dashboardMetrics.map((metric) => (
+                        <th key={metric.key} scope="col" className="whitespace-nowrap px-3 py-3 text-left">
+                          {t(`evaluation.metricCards.${metric.key}.name`)}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
+                  )}
+                  {isExpanded && engines.map(([engine, metrics]) => {
+                    const irMetrics = run.ir_metrics[engine];
+                    return (
+                      <tr key={`${run.run_id}-${engine}`} className="border-b border-border/70 bg-surface/45">
+                        <td className="px-3 py-3" aria-hidden="true" />
+                        <th scope="row" className="whitespace-nowrap px-3 py-3 pl-6 font-semibold" colSpan={4}>{engine}</th>
+                        {dashboardMetrics.map((metric) => {
+                          const value = metric.source === "ir"
+                            ? irMetrics?.[metric.field as EvaluationIRMetricName].value
+                            : metrics[metric.field as keyof EvaluationMetrics];
+                          return (
+                            <td key={metric.key} className="whitespace-nowrap px-3 py-3">
+                              {displayMetric(value, metric, i18n.language)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </Fragment>
             );
           })}
         </table>
+        </div>
       </div>
 
-      <div className="mt-8 rounded-2xl border border-border bg-white p-5 shadow-soft">
+      <div className="mt-6 rounded-3xl border border-border bg-white p-6 shadow-soft">
         <h2 className="text-xl font-bold text-brand-navy">{t("evaluation.comparison.title")}</h2>
         {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-red-800">{t("evaluation.comparison.error")}</p>}
         <div className="mt-4 flex flex-wrap items-end gap-4">

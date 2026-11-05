@@ -8,6 +8,7 @@ from app.api.dependencies import get_settings
 from app.core.config import Settings
 from app.schemas.evaluation import (
     PublicConfigurationChange,
+    PublicEngineIRMetrics,
     PublicEvaluationComparison,
     PublicEvaluationMetrics,
     PublicEvaluationRun,
@@ -35,6 +36,8 @@ PUBLIC_NUMERIC_CONFIGURATION_NAMES = frozenset(
     }
 )
 PUBLIC_STRING_CONFIGURATION_VALUES = {
+    "chunker": frozenset({"character", "structured"}),
+    "corpus_version": frozenset({"v1", "v2"}),
     "embedding_model": frozenset(
         {"sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"}
     ),
@@ -103,10 +106,14 @@ def public_run(run: BaselineRun) -> PublicEvaluationRun:
             engine: public_metrics(metrics)
             for engine, metrics in run.measured_metrics.items()
         },
+        ir_metrics={
+            engine: PublicEngineIRMetrics.model_validate(metrics.model_dump())
+            for engine, metrics in run.ir_metrics.items()
+        },
     )
 
 
-def public_metrics(metrics: Mapping[str, float]) -> PublicEvaluationMetrics:
+def public_metrics(metrics: Mapping[str, float | None]) -> PublicEvaluationMetrics:
     return PublicEvaluationMetrics(
         source_hit_at_1=metrics["source_hit_at_1"],
         source_hit_at_3=metrics["source_hit_at_3"],
