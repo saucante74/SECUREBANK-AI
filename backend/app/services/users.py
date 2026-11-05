@@ -147,6 +147,28 @@ def create_user_account(
     return repository.create(normalized_username, password_hash, role, is_active)
 
 
+def create_user_account_if_missing(
+    repository: SQLiteUserRepository,
+    password_hasher: PasswordHasher,
+    username: str,
+    password: str,
+    role: Role,
+) -> bool:
+    if repository.get_by_username(username) is not None:
+        return False
+    try:
+        create_user_account(
+            repository,
+            password_hasher,
+            username,
+            password,
+            role,
+        )
+    except UserAlreadyExistsError:
+        return False
+    return True
+
+
 def normalize_username(username: str) -> str:
     normalized_username = username.strip().lower()
     if not normalized_username or len(normalized_username) > 100:

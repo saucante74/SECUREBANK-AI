@@ -44,7 +44,7 @@ def test_frontend_proxy_uses_docker_dns_runtime_resolution() -> None:
     assert "proxy_pass $backend_upstream;" in nginx_content
 
 
-def test_backend_image_includes_rag_runtime_assets() -> None:
+def test_backend_image_includes_runtime_assets_without_local_embedding_model() -> None:
     dockerfile = (REPOSITORY_ROOT / "backend" / "Dockerfile").read_text(
         encoding="utf-8"
     )
@@ -56,7 +56,7 @@ def test_backend_image_includes_rag_runtime_assets() -> None:
     )
     assert (
         "COPY --chown=app:app models/paraphrase-multilingual-MiniLM-L12-v2 "
-        "./models/paraphrase-multilingual-MiniLM-L12-v2\n" in dockerfile
+        "./models/paraphrase-multilingual-MiniLM-L12-v2\n" not in dockerfile
     )
     assert "    && mkdir --parents /app/runtime \\\n" in dockerfile
     assert "    && chown app:app /app/runtime\n" in dockerfile
