@@ -219,6 +219,7 @@ describe("EvaluationPage", () => {
     expect(summary).not.toBeNull();
     expect(within(summary as HTMLElement).getByText("run-latest")).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Moteur évalué" })).toHaveValue("RRF");
+    fireEvent.click(screen.getByRole("tab", { name: "Pertinence" }));
     const precision = screen.getByRole("heading", { name: "Precision@1" }).closest("article");
     expect(within(precision as HTMLElement).getByRole("img", {
       name: "Precision@1: 65,8%",
@@ -266,6 +267,7 @@ describe("EvaluationPage", () => {
       ["MRR@3", "76,3"],
       ["nDCG@3", "64,3"],
     ];
+    fireEvent.click(await screen.findByRole("tab", { name: "Pertinence" }));
     await screen.findByRole("heading", { name: "Precision@1" });
     expect(screen.getByText("Jugements générés par Qwen sur 38 questions.")).toBeInTheDocument();
     for (const [name, value] of relevanceValues) {
@@ -299,6 +301,7 @@ describe("EvaluationPage", () => {
 
     const { unmount } = render(<EvaluationPage />);
 
+    fireEvent.click(await screen.findByRole("tab", { name: "Pertinence" }));
     const historicalPrecision = (await screen.findByRole("heading", {
       name: "Precision@1",
     })).closest("article");
@@ -349,6 +352,7 @@ describe("EvaluationPage", () => {
     const selector = await screen.findByRole("combobox", { name: "Moteur évalué" });
     fireEvent.change(selector, { target: { value: "Qdrant" } });
 
+    fireEvent.click(screen.getByRole("tab", { name: "Pertinence" }));
     const precision = screen.getByRole("heading", { name: "Precision@1" }).closest("article");
     expect(within(precision as HTMLElement).getByText("N/A")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Classement & performance" }));
@@ -433,13 +437,7 @@ describe("EvaluationPage", () => {
 
     render(<EvaluationPage />);
 
-    const relevanceTab = await screen.findByRole("tab", { name: "Pertinence" });
-    expect(relevanceTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("heading", { name: "Precision@1" })).toBeInTheDocument();
-    fireEvent.keyDown(relevanceTab, { key: "ArrowLeft" });
-
-    const rankingTab = screen.getByRole("tab", { name: "Classement & performance" });
-    expect(rankingTab).toHaveFocus();
+    const rankingTab = await screen.findByRole("tab", { name: "Classement & performance" });
     expect(rankingTab).toHaveAttribute("aria-selected", "true");
     for (const name of [
       "MRR@3",
@@ -458,6 +456,7 @@ describe("EvaluationPage", () => {
     }
     fireEvent.keyDown(rankingTab, { key: "ArrowRight" });
 
+    const relevanceTab = screen.getByRole("tab", { name: "Pertinence" });
     expect(relevanceTab).toHaveFocus();
     expect(relevanceTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("heading", { name: "Precision@1" })).toBeInTheDocument();

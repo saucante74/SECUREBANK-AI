@@ -74,7 +74,7 @@ export function EvaluationPage() {
   );
   const [dataSource, setDataSource] = useState<EvaluationDataSource>("reference");
   const [selectedEngine, setSelectedEngine] = useState("");
-  const [activeTab, setActiveTab] = useState<MetricTab>("relevance");
+  const [activeTab, setActiveTab] = useState<MetricTab>("rankingPerformance");
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
