@@ -148,6 +148,7 @@
   },
   "evaluation": {
     "eyebrow": "Qualità del retrieval", "title": "Valutazione del RAG", "description": "Prestazioni attuali e benchmark storici del retrieval. Queste metriche non misurano direttamente la qualità delle risposte generate.", "loading": "Caricamento dei benchmark…", "error": "I benchmark non possono essere caricati al momento.", "empty": "Nessun benchmark storico disponibile.",
+    "source": { "reference": "Dati di riferimento", "synchronized": "Dati sincronizzati" },
     "latest": { "eyebrow": "Stato attuale", "title": "Ultimo benchmark disponibile", "run": "Run pubblico", "date": "Eseguito il", "engines": "Motori valutati", "configuration": "Configurazione autorizzata" },
     "dashboard": { "engineTitle": "Prestazioni per motore", "engineDescription": "Le card usano solo il motore selezionato dell’ultimo benchmark e non rappresentano il motore di produzione.", "engineLabel": "Motore valutato", "metricsTitle": "Metriche dell’ultimo benchmark", "unavailable": "N/D", "qwenJudgments": "Giudizi Qwen", "qwenSummary": "Giudizi generati da Qwen su {{count}} domande.", "questionAvailability": "{{evaluated}} domande valutate · {{unavailable}} non disponibili" },
     "metricTabs": { "relevance": "Pertinenza", "rankingPerformance": "Classifica e prestazioni", "diversity": "Diversità documentale" },

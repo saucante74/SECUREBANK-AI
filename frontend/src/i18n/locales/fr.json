@@ -153,6 +153,7 @@
     "loading": "Chargement des benchmarks…",
     "error": "Les benchmarks ne peuvent pas être chargés actuellement.",
     "empty": "Aucun benchmark historique n’est disponible.",
+    "source": { "reference": "Données de référence", "synchronized": "Données synchronisées" },
     "latest": { "eyebrow": "État actuel", "title": "Dernier benchmark disponible", "run": "Run public", "date": "Exécuté le", "engines": "Moteurs évalués", "configuration": "Configuration autorisée" },
     "dashboard": { "engineTitle": "Performance par moteur", "engineDescription": "Les cartes utilisent uniquement le moteur sélectionné dans le dernier benchmark, sans représenter le moteur de production.", "engineLabel": "Moteur évalué", "metricsTitle": "Métriques du dernier benchmark", "unavailable": "N/A", "qwenJudgments": "Jugements Qwen", "qwenSummary": "Jugements générés par Qwen sur {{count}} questions.", "questionAvailability": "{{evaluated}} questions évaluées · {{unavailable}} indisponibles" },
     "metricTabs": { "relevance": "Pertinence", "rankingPerformance": "Classement & performance", "diversity": "Diversité documentaire" },

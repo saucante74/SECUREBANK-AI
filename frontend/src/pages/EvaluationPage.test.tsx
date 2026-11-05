@@ -10,6 +10,24 @@ vi.mock("../api/services", () => ({
   getEvaluationRuns: vi.fn(),
 }));
 
+vi.mock("./evaluationData", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./evaluationData")>();
+  return {
+    ...actual,
+    referenceEvaluationRuns: [],
+    synchronizeEvaluationRuns: (
+      _referenceRuns: EvaluationRun[],
+      apiResponse: unknown,
+    ) => ({
+      runs: [...apiResponse as EvaluationRun[]].sort((left, right) => (
+        Date.parse(right.created_at) - Date.parse(left.created_at)
+        || right.run_id.localeCompare(left.run_id)
+      )),
+      source: "synchronized",
+    }),
+  };
+});
+
 const getRunsMock = vi.mocked(getEvaluationRuns);
 const compareRunsMock = vi.mocked(compareEvaluationRuns);
 
@@ -134,13 +152,13 @@ describe("EvaluationPage", () => {
     fireEvent.click(expandButton);
 
     const table = screen.getByRole("table");
-    expect(within(table).getAllByRole("row")).toHaveLength(6);
+    expect(within(table).getAllByRole("row")).toHaveLength(7);
     const bm25Row = within(table).getByRole("row", { name: /BM25/ });
-    expect(within(bm25Row).getByText("0.575")).toBeInTheDocument();
-    expect(within(bm25Row).getByText("0.800")).toBeInTheDocument();
-    expect(within(bm25Row).getByText("0.450")).toBeInTheDocument();
-    expect(within(bm25Row).getByText("0.700")).toBeInTheDocument();
-    expect(within(bm25Row).getByText("1.0 ms")).toBeInTheDocument();
+    expect(bm25Row).toHaveTextContent("57,5 %");
+    expect(bm25Row).toHaveTextContent("80 %");
+    expect(bm25Row).toHaveTextContent("45 %");
+    expect(bm25Row).toHaveTextContent("70 %");
+    expect(within(bm25Row).getByText("1 ms")).toBeInTheDocument();
     expect(within(table).getByText("Qdrant")).toBeInTheDocument();
     expect(within(table).getByText("RRF")).toBeInTheDocument();
     expect(within(table).getByText("RRF + FlashRank")).toBeInTheDocument();
@@ -373,10 +391,10 @@ describe("EvaluationPage", () => {
     const bm25Row = within(screen.getByRole("table")).getByRole("row", {
       name: /BM25/,
     });
-    expect(within(bm25Row).getAllByText("N/A")).toHaveLength(4);
+    expect(within(bm25Row).getAllByText("N/A")).toHaveLength(21);
   });
 
-  it("shows loading and API error states", async () => {
+  it("keeps a non-blocking fallback state when the API fails", async () => {
     let rejectRequest: (reason: unknown) => void = () => undefined;
     getRunsMock.mockImplementation(
       () => new Promise((_, reject) => {
@@ -385,12 +403,13 @@ describe("EvaluationPage", () => {
     );
 
     render(<EvaluationPage />);
-    expect(screen.getByRole("status")).toHaveTextContent("Chargement des benchmarks…");
+    expect(screen.getByText("Aucun benchmark historique n’est disponible.")).toBeInTheDocument();
     rejectRequest(new Error("unavailable"));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Les benchmarks ne peuvent pas être chargés actuellement.",
-    );
+    await waitFor(() => {
+      expect(getRunsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("provides keyboard-accessible metric guide sections", async () => {
