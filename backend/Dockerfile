@@ -18,7 +18,6 @@ COPY --chown=app:app app ./app
 COPY --chown=app:app scripts/create_user.py ./scripts/create_user.py
 COPY --chown=app:app data ./data
 COPY --chown=app:app benchmark_results ./benchmark_results
-COPY --chown=app:app models/paraphrase-multilingual-MiniLM-L12-v2 ./models/paraphrase-multilingual-MiniLM-L12-v2
 
 USER app
 
